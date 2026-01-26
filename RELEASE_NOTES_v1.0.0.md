@@ -58,6 +58,16 @@ See [README.md](README.md) for detailed setup instructions.
 
 ---
 
+## 📈 Upgrading
+
+**From Pre-Release Versions:**
+If you were using development or beta versions, follow the migration guide in [MIGRATION.md](docs/MIGRATION.md).
+
+**Fresh Installation:**
+Follow the Quick Start section above.
+
+---
+
 ## ✨ Key Features
 
 ### Core Infrastructure
