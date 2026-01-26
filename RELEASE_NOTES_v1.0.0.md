@@ -293,6 +293,31 @@ See [docs/BENCHMARKS.md](docs/BENCHMARKS.md) for detailed performance data.
 
 ---
 
+## 📦 Dependencies
+
+**Major Dependencies:**
+- Flask 3.x
+- OpenAI Python SDK
+- Anthropic Python SDK
+- psycopg2 (PostgreSQL)
+- pymongo (MongoDB)
+- google-cloud-bigquery
+- snowflake-connector-python
+- cryptography
+- graphene (GraphQL)
+- rdflib (ontology)
+
+**Development Dependencies:**
+- pytest
+- pytest-cov
+- black
+- flake8
+- mypy
+
+See [requirements.txt](requirements.txt) for complete list.
+
+---
+
 ## 🌟 Highlights
 
 ### MCP Semantic Routing
