@@ -81,6 +81,14 @@ pip install universal-agent-connector
 
 ---
 
+## 🔐 Checksums
+
+**v1.0.0 Release Checksums:**
+- SHA256 (v1.0.0.zip): [checksum]
+- SHA256 (v1.0.0.tar.gz): [checksum]
+
+---
+
 ## 📈 Upgrading
 
 **From Pre-Release Versions:**
