@@ -531,7 +531,17 @@ This is the initial public release. No migration needed.
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for details.
+Universal Agent Connector is released under the MIT License.
+
+See [LICENSE](LICENSE) for full details.
+
+**TL;DR:**
+- ✅ Commercial use allowed
+- ✅ Modification allowed
+- ✅ Distribution allowed
+- ✅ Private use allowed
+- ❌ No liability
+- ❌ No warranty
 
 ---
 
