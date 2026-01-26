@@ -1,0 +1,8 @@
+# GitHub Sponsors configuration
+# https://help.github.com/en/articles/displaying-a-sponsor-button-in-your-repository
+
+github: cloudbadal007  # Replace with your GitHub username
+patreon: [your-patreon] # Replace with your Patreon username (if applicable)
+open_collective: [your-open-collective] # Replace with Open Collective username (if applicable)
+ko_fi: [your-ko-fi] # Replace with Ko-fi username (if applicable)
+custom: ["https://your-website.com/sponsor", "https://paypal.me/yourhandle"]
