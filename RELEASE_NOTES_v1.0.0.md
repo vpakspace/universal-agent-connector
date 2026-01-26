@@ -393,25 +393,25 @@ Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
-## 🔮 What's Next
+## 🔮 What's Next (v1.1.0 Roadmap)
 
-### Short-term (v1.1)
-- Enhanced OpenAPI specification
-- Additional database plugins
-- Performance optimizations
-- More ontology format support
+**Planned for Next Release:**
+- [ ] Enhanced RBAC with roles and groups
+- [ ] Additional database plugins (Cassandra, DynamoDB)
+- [ ] Advanced cost optimization features
+- [ ] Improved OpenAPI specification
+- [ ] Multi-region deployment guides
+- [ ] Ontology marketplace beta
 
-### Medium-term (v1.2-1.3)
-- Enhanced MCP tool governance
-- RBAC extensions
-- Distributed tracing
-- Marketplace for ontologies and plugins
+See [GitHub Projects](https://github.com/cloudbadal007/universal-agent-connector/projects) for detailed roadmap.
 
-### Long-term
-- Multi-region support
-- Advanced analytics
-- AI model fine-tuning integration
-- Enterprise support plans
+**Community Requests:**
+We're actively listening! Top requested features:
+1. [Feature from issues]
+2. [Feature from discussions]
+3. [Feature from feedback]
+
+Vote on features in [GitHub Discussions](https://github.com/cloudbadal007/universal-agent-connector/discussions).
 
 ---
 
