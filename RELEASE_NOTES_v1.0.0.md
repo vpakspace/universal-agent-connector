@@ -346,12 +346,26 @@ Complete SDKs, CLI tools, interactive demos, and extensive documentation make in
 
 ## 📚 Documentation
 
-- **[Architecture](docs/ARCHITECTURE.md)** - System design and components
-- **[API Reference](docs/API.md)** - Complete API documentation
-- **[Quick Start](QUICK_START.md)** - Get started in 5 minutes
-- **[Deployment Guides](deployment/README.md)** - Cloud deployment instructions
-- **[Contributing](CONTRIBUTING.md)** - How to contribute
-- **[Security](SECURITY.md)** - Security policy and best practices
+**Getting Started:**
+- [README.md](README.md) - Overview and quick start
+- [docs/INSTALLATION.md](docs/INSTALLATION.md) - Detailed installation
+- [docs/QUICKSTART.md](docs/QUICKSTART.md) - Tutorial
+
+**Architecture & Design:**
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture
+- [docs/API.md](docs/API.md) - API reference
+- [THREAT_MODEL.md](THREAT_MODEL.md) - Security threat model
+
+**Deployment:**
+- [deployment/](deployment/) - Cloud deployment guides
+- [terraform/](terraform/) - Infrastructure as Code
+- [helm/](helm/) - Kubernetes deployment
+- [serverless/](serverless/) - Serverless configurations
+
+**Developer Guides:**
+- [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute
+- [docs/CODE_STYLE_GUIDE.md](docs/CODE_STYLE_GUIDE.md) - Coding standards
+- [docs/PLUGIN_DEVELOPMENT.md](docs/PLUGIN_DEVELOPMENT.md) - Plugin SDK guide
 
 ---
 
@@ -394,12 +408,23 @@ Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
-## 📞 Support & Community
+## 💬 Support & Community
 
-- **GitHub Issues:** [Report bugs or request features](https://github.com/cloudbadal007/universal-agent-connector/issues)
-- **GitHub Discussions:** [Ask questions and share ideas](https://github.com/cloudbadal007/universal-agent-connector/discussions)
-- **Documentation:** [Full documentation](https://github.com/cloudbadal007/universal-agent-connector/tree/main/docs)
-- **Medium Article:** [Read the full story](https://medium.com/@cloudpankaj/universal-agent-connector-mcp-ontology-production-ready-ai-infrastructure-0b4e35f22942)
+**Get Help:**
+- 📖 [Documentation](docs/)
+- 💬 [GitHub Discussions](https://github.com/cloudbadal007/universal-agent-connector/discussions) - Q&A and community
+- 🐛 [GitHub Issues](https://github.com/cloudbadal007/universal-agent-connector/issues) - Bug reports
+- 💡 [Feature Requests](https://github.com/cloudbadal007/universal-agent-connector/discussions/categories/ideas) - Suggest features
+
+**Connect:**
+- 📝 Blog: [Badal AI World (Substack)](https://badalaiworld.substack.com/)
+- 📰 Medium: [Universal Agent Connector Article](https://medium.com/@cloudpankaj/universal-agent-connector-mcp-ontology-production-ready-ai-infrastructure-0b4e35f22942?sk=ab4129956bded27782db46bd686c2f9e)
+- 🐦 Twitter/X: [@CloudyPankaj](https://x.com/CloudyPankaj)
+- 💼 LinkedIn: [Pankaj Kumar](https://www.linkedin.com/in/pankaj-kumar-551b52a/)
+- 📺 YouTube: [Video Tutorial](https://youtu.be/QwTDeMBUwEY)
+
+**Enterprise Support:**
+For enterprise support, SLA commitments, and custom integrations, contact: badal.aiworld@gmail.com
 
 ---
 
