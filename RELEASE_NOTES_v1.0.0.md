@@ -29,6 +29,35 @@ Universal Agent Connector is an enterprise-grade platform that provides secure, 
 
 ---
 
+## 🚀 Quick Start
+
+### Installation
+```bash
+git clone https://github.com/cloudbadal007/universal-agent-connector.git
+cd universal-agent-connector
+python -m venv venv
+source venv/bin/activate  # Windows: .\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+### Basic Configuration
+```bash
+export SECRET_KEY="your-secret-key"
+export ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+export OPENAI_API_KEY="your-openai-key"  # Optional: for natural language queries
+```
+
+### Run
+```bash
+python main.py
+```
+
+Visit **http://localhost:5000/dashboard** to access the web interface.
+
+See [README.md](README.md) for detailed setup instructions.
+
+---
+
 ## ✨ Key Features
 
 ### Core Infrastructure
