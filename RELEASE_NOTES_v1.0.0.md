@@ -67,6 +67,52 @@ Universal Agent Connector is an enterprise-grade platform that provides secure, 
 
 ---
 
+## 🏗️ Architecture
+
+Universal Agent Connector follows a modular, extensible architecture designed for enterprise-scale deployments:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│         REST API │ GraphQL │ Web UI │ Widgets          │
+└──────────┬──────────────────────────────────────────────┘
+           │
+┌──────────▼──────────────────────────────────────────────┐
+│  Application Layer                                        │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐    │
+│  │ Agent        │ │ Access       │ │ DB Connector │    │
+│  │ Registry     │ │ Control      │ │ Factory      │    │
+│  └──────────────┘ └──────────────┘ └──────────────┘    │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐    │
+│  │ AI Agent     │ │ NL→SQL       │ │ MCP/Ontology │    │
+│  │ Manager      │ │ Converter    │ │ Layer        │    │
+│  └──────────────┘ └──────────────┘ └──────────────┘    │
+│  ┌──────────────┐ ┌──────────────┐                     │
+│  │ Enterprise   │ │ Security     │                     │
+│  │ Utils        │ │ Monitor      │                     │
+│  └──────────────┘ └──────────────┘                     │
+└──────────┬──────────────────────────────────────────────┘
+           │
+┌──────────▼──────────────────────────────────────────────┐
+│  Databases: PostgreSQL, MySQL, MongoDB, BigQuery, Snowflake│
+└─────────────────────────────────────────────────────────┘
+```
+
+**Key Components:**
+
+- **Agent Registry** - Manages agent registration, API key authentication, and lifecycle. Stores encrypted database credentials and agent metadata.
+
+- **Access Control** - Enforces fine-grained permissions at table/dataset level. Validates read/write permissions before every query execution.
+
+- **DB Connectors** - Factory pattern with connection pooling, failover, and plugin SDK. Supports multiple databases with unified interface.
+
+- **MCP/Ontology Layer** - Semantic routing with ontology-based tool filtering, governance middleware, and Universal Ontology Adapter for automatic MCP tool generation.
+
+- **Enterprise Utils** - Comprehensive enterprise features including SSO integration, chargeback, adoption analytics, legal document generation, training data export, and audit logging.
+
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed design, data flow, and extension points.
+
+---
+
 ## 📦 What's Included
 
 ### Core Components
