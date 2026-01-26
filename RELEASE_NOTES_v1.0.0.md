@@ -332,6 +332,77 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
+## 🐛 Known Issues
+
+### SQL Parsing
+- **SQL dialect parsing**: SQL parsing focuses on PostgreSQL-style SQL first. Complex queries in MySQL, MongoDB, BigQuery, or Snowflake may require dialect-specific handling. More robust parsing or a dedicated parser library could improve coverage across all database types.
+
+### Natural Language to SQL
+- **NL→SQL quality**: The quality of natural language to SQL conversion depends on schema context and AI model choice. Providing comprehensive schema information improves results. Consider using training data export to fine-tune models for your specific use cases.
+
+### Configuration Complexity
+- **Policy and ontology configuration**: Advanced policy and ontology configurations can be complex. Good defaults and examples (see `config/ontology_config.yaml`) help, and we're continuously improving documentation and templates.
+
+### Workarounds
+- For complex SQL queries, consider using direct SQL execution instead of natural language queries
+- For better NL→SQL results, ensure schema information is up-to-date and comprehensive
+- Start with simple queries and gradually increase complexity as you understand the system behavior
+
+### Planned Fixes
+- Enhanced SQL parser with better multi-dialect support (v1.1)
+- Improved NL→SQL with better schema context handling (v1.1)
+- Simplified configuration templates and wizards (v1.2)
+
+---
+
+## 📝 Limitations
+
+### Database-Specific Limitations
+
+- **PostgreSQL**: Full feature support, recommended for production use
+- **MySQL**: Full support, but some advanced PostgreSQL-specific features may not be available
+- **MongoDB**: Query syntax differs from SQL; use MongoDB query format (JSON) instead of SQL
+- **BigQuery**: Some BigQuery-specific features may require direct SQL execution
+- **Snowflake**: Full support, but connection pooling behavior may differ from PostgreSQL
+
+### SQL Parsing Limitations
+
+- **Multi-dialect parsing**: SQL parser is optimized for PostgreSQL-style SQL. Complex queries in other dialects may need manual adjustment
+- **Stored procedures**: Execution of stored procedures is database-specific and may require direct database connection
+- **Advanced SQL features**: Some advanced SQL features (window functions, CTEs, etc.) may have limited support depending on the database type
+
+### Scale Limitations
+
+- **Connection pooling**: Default connection pool sizes are conservative. For high-throughput deployments, tune pool settings based on your database capacity
+- **Concurrent queries**: Rate limiting is per-agent. For high concurrency, consider multiple agent registrations or adjust rate limits
+- **Large result sets**: Very large query results (>100MB) may require pagination or streaming. Consider using `LIMIT` clauses for large datasets
+
+### AI Provider Limitations
+
+- **OpenAI/Anthropic**: Requires API keys and internet connectivity. Rate limits apply per provider
+- **Local models**: Performance depends on local hardware. Large models may require significant resources
+- **Air-gapped mode**: Only local AI providers are supported when air-gapped mode is enabled
+
+### Feature Limitations
+
+- **GraphQL**: Some advanced GraphQL features may require REST API fallback
+- **Multi-agent collaboration**: Complex orchestration scenarios may require manual coordination
+- **Ontology formats**: While multiple formats are supported, some advanced OWL features may not be fully parsed
+
+### Performance Considerations
+
+- **Query optimization**: Automatic query optimization is best-effort. Complex queries may benefit from manual optimization
+- **Caching**: Query caching is available but may need tuning for your specific use case
+- **Network latency**: Database queries are subject to network latency between connector and database
+
+### Security Limitations
+
+- **Encryption**: Credentials are encrypted at rest, but ensure `ENCRYPTION_KEY` is properly secured in production
+- **API keys**: API keys are hashed but not encrypted. Rotate keys periodically
+- **Audit logs**: Large-scale deployments may generate significant audit log volume. Consider retention policies
+
+---
+
 ## ⚠️ Breaking Changes
 
 This is the initial public release. No migration needed.
