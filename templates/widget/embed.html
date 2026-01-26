@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Query Widget</title>
+    <style>
+        /* Base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--widget-bg-color, #ffffff);
+            color: var(--widget-text-color, #333333);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .widget-container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .widget-header {
+            margin-bottom: 20px;
+        }
+        
+        .widget-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--widget-primary-color, #007bff);
+            margin-bottom: 8px;
+        }
+        
+        .widget-subtitle {
+            font-size: 14px;
+            color: var(--widget-text-secondary, #666666);
+        }
+        
+        .query-form {
+            background: var(--widget-card-bg, #f8f9fa);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--widget-border-color, #e0e0e0);
+        }
+        
+        .query-input-group {
+            margin-bottom: 15px;
+        }
+        
+        .query-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--widget-text-color, #333333);
+        }
+        
+        .query-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--widget-border-color, #e0e0e0);
+            border-radius: 6px;
+            font-size: 16px;
+            font-family: inherit;
+            background: var(--widget-input-bg, #ffffff);
+            color: var(--widget-text-color, #333333);
+            transition: border-color 0.2s;
+        }
+        
+        .query-input:focus {
+            outline: none;
+            border-color: var(--widget-primary-color, #007bff);
+        }
+        
+        .query-button {
+            background: var(--widget-primary-color, #007bff);
+            color: var(--widget-button-text, #ffffff);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            width: 100%;
+        }
+        
+        .query-button:hover {
+            background: var(--widget-primary-hover, #0056b3);
+            transform: translateY(-1px);
+        }
+        
+        .query-button:active {
+            transform: translateY(0);
+        }
+        
+        .query-button:disabled {
+            background: var(--widget-disabled-bg, #cccccc);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--widget-text-secondary, #666666);
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid var(--widget-border-color, #e0e0e0);
+            border-top: 3px solid var(--widget-primary-color, #007bff);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results-container {
+            background: var(--widget-card-bg, #f8f9fa);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid var(--widget-border-color, #e0e0e0);
+            display: none;
+        }
+        
+        .results-container.active {
+            display: block;
+        }
+        
+        .results-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--widget-text-color, #333333);
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--widget-input-bg, #ffffff);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .results-table th {
+            background: var(--widget-primary-color, #007bff);
+            color: var(--widget-button-text, #ffffff);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .results-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--widget-border-color, #e0e0e0);
+            font-size: 14px;
+        }
+        
+        .results-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .results-table tr:hover {
+            background: var(--widget-hover-bg, #f0f0f0);
+        }
+        
+        .error-message {
+            background: var(--widget-error-bg, #fee);
+            color: var(--widget-error-text, #c33);
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border: 1px solid var(--widget-error-border, #fcc);
+            display: none;
+        }
+        
+        .error-message.active {
+            display: block;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--widget-text-secondary, #666666);
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        /* Theme-specific styles */
+        {% if theme == 'dark' %}
+        :root {
+            --widget-bg-color: #1a1a1a;
+            --widget-text-color: #e0e0e0;
+            --widget-text-secondary: #999999;
+            --widget-primary-color: #4a9eff;
+            --widget-primary-hover: #357abd;
+            --widget-card-bg: #2a2a2a;
+            --widget-input-bg: #333333;
+            --widget-border-color: #404040;
+            --widget-button-text: #ffffff;
+            --widget-hover-bg: #333333;
+            --widget-disabled-bg: #555555;
+            --widget-error-bg: #3a2222;
+            --widget-error-text: #ff6b6b;
+            --widget-error-border: #5a3333;
+        }
+        {% elif theme == 'light' %}
+        :root {
+            --widget-bg-color: #ffffff;
+            --widget-text-color: #333333;
+            --widget-text-secondary: #666666;
+            --widget-primary-color: #007bff;
+            --widget-primary-hover: #0056b3;
+            --widget-card-bg: #f8f9fa;
+            --widget-input-bg: #ffffff;
+            --widget-border-color: #e0e0e0;
+            --widget-button-text: #ffffff;
+            --widget-hover-bg: #f0f0f0;
+            --widget-disabled-bg: #cccccc;
+            --widget-error-bg: #fee;
+            --widget-error-text: #c33;
+            --widget-error-border: #fcc;
+        }
+        {% elif theme == 'minimal' %}
+        :root {
+            --widget-bg-color: #ffffff;
+            --widget-text-color: #2c3e50;
+            --widget-text-secondary: #7f8c8d;
+            --widget-primary-color: #3498db;
+            --widget-primary-hover: #2980b9;
+            --widget-card-bg: #ffffff;
+            --widget-input-bg: #ffffff;
+            --widget-border-color: #ecf0f1;
+            --widget-button-text: #ffffff;
+            --widget-hover-bg: #f8f9fa;
+            --widget-disabled-bg: #bdc3c7;
+            --widget-error-bg: #fff5f5;
+            --widget-error-text: #e74c3c;
+            --widget-error-border: #fadbd8;
+        }
+        {% endif %}
+        
+        /* Custom CSS from widget config */
+        {{ widget_config.get('custom_css', '') | safe }}
+    </style>
+</head>
+<body>
+    <div class="widget-container">
+        <div class="widget-header">
+            <h1 class="widget-title">Ask a Question</h1>
+            <p class="widget-subtitle">Query your data using natural language</p>
+        </div>
+        
+        <form class="query-form" id="queryForm">
+            <div class="query-input-group">
+                <label class="query-label" for="queryInput">Enter your question:</label>
+                <input 
+                    type="text" 
+                    id="queryInput" 
+                    class="query-input" 
+                    placeholder="e.g., What are the top 5 best-selling products?"
+                    required
+                    autocomplete="off"
+                >
+            </div>
+            <button type="submit" class="query-button" id="queryButton">
+                Run Query
+            </button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing your query...</p>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <div class="results-container" id="resultsContainer">
+            <div class="results-header">Results</div>
+            <div id="resultsContent">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <p>Enter a query above to see results</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const widgetId = '{{ widget_id }}';
+        const widgetApiKey = '{{ widget_config.get("api_key", "") }}';
+        const apiBaseUrl = window.location.origin;
+        
+        const queryForm = document.getElementById('queryForm');
+        const queryInput = document.getElementById('queryInput');
+        const queryButton = document.getElementById('queryButton');
+        const loading = document.getElementById('loading');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsContent = document.getElementById('resultsContent');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        queryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const query = queryInput.value.trim();
+            if (!query) return;
+            
+            // Show loading state
+            queryButton.disabled = true;
+            loading.classList.add('active');
+            resultsContainer.classList.remove('active');
+            errorMessage.classList.remove('active');
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/widget/api/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Widget-Key': widgetApiKey
+                    },
+                    body: JSON.stringify({ query })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.result) {
+                    displayResults(data.result);
+                } else {
+                    showError(data.error || 'Query failed');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                queryButton.disabled = false;
+                loading.classList.remove('active');
+            }
+        });
+        
+        function displayResults(result) {
+            // Clear previous results
+            resultsContent.innerHTML = '';
+            
+            if (!result || !result.rows || result.rows.length === 0) {
+                resultsContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>No results found</p>
+                    </div>
+                `;
+                resultsContainer.classList.add('active');
+                return;
+            }
+            
+            // Get column names
+            const columns = result.columns || Object.keys(result.rows[0]);
+            
+            // Create table
+            let tableHTML = '<table class="results-table"><thead><tr>';
+            columns.forEach(col => {
+                tableHTML += `<th>${escapeHtml(col)}</th>`;
+            });
+            tableHTML += '</tr></thead><tbody>';
+            
+            // Add rows
+            result.rows.forEach(row => {
+                tableHTML += '<tr>';
+                columns.forEach(col => {
+                    const value = row[col] !== null && row[col] !== undefined ? row[col] : '';
+                    tableHTML += `<td>${escapeHtml(String(value))}</td>`;
+                });
+                tableHTML += '</tr>';
+            });
+            
+            tableHTML += '</tbody></table>';
+            resultsContent.innerHTML = tableHTML;
+            resultsContainer.classList.add('active');
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Custom JS from widget config
+        {{ widget_config.get('custom_js', '') | safe }}
+    </script>
+</body>
+</html>
+

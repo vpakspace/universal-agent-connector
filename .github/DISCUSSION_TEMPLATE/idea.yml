@@ -1,0 +1,81 @@
+name: Idea
+description: Share an idea or feature request
+title: "[Idea] "
+labels: ["enhancement", "idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing your idea! Ideas help us improve AI Agent Connector.
+        
+        **Before posting:**
+        - [ ] I have searched existing discussions and issues
+        - [ ] This idea would be useful to others
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea Description
+      description: Clear description of your idea
+      placeholder: "Add support for MongoDB aggregation pipelines..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Use Case
+      description: Why is this idea useful? What problem does it solve?
+      placeholder: "This would allow users to use MongoDB's powerful aggregation features..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How should this work? Describe your vision
+      placeholder: "Users could specify aggregation pipelines in the query format..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Benefits
+      description: What benefits would this provide?
+      placeholder: |
+        - Enable MongoDB-specific features
+        - Improve query performance
+        - Better integration with MongoDB ecosystem
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered other approaches?
+      placeholder: "I considered using raw SQL but that doesn't work for MongoDB..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information, mockups, examples, etc.
+      placeholder: "Add any other context, mockups, or examples here"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing discussions and issues
+          required: false
+        - label: This idea would be useful to others
+          required: false
+

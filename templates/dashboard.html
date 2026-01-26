@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AI Agent Connector{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Dashboard</h2>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Agents</h3>
+            <p class="stat-number" id="total-agents">-</p>
+        </div>
+        <div class="stat-card">
+            <h3>Active Connections</h3>
+            <p class="stat-number" id="active-connections">-</p>
+        </div>
+        <div class="stat-card">
+            <h3>Recent Activity</h3>
+            <p class="stat-number" id="recent-activity">-</p>
+        </div>
+    </div>
+    
+    <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="action-buttons">
+            <a href="{{ url_for('wizard') }}" class="btn btn-primary">Connect New Agent</a>
+            <a href="{{ url_for('agents') }}" class="btn btn-secondary">Manage Agents</a>
+        </div>
+    </div>
+    
+    <div class="recent-agents">
+        <h3>Recent Agents</h3>
+        <div id="agents-list" class="agents-list">
+            <p class="loading">Loading agents...</p>
+        </div>
+    </div>
+    
+    <div class="security-alerts">
+        <h3>Recent Security Alerts</h3>
+        <div id="security-alerts-list" class="alerts-list">
+            <p class="loading">Loading alerts...</p>
+        </div>
+        <a href="/notifications" class="btn btn-secondary" style="margin-top: 1rem;">View All Notifications</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load dashboard data
+    fetch('/api/agents')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('total-agents').textContent = data.agents ? data.agents.length : 0;
+            
+            if (data.agents && data.agents.length > 0) {
+                const agentsList = document.getElementById('agents-list');
+                agentsList.innerHTML = '<ul class="agent-items">' + 
+                    data.agents.slice(0, 5).map(agentId => 
+                        `<li><a href="/agents/${agentId}">${agentId}</a></li>`
+                    ).join('') + 
+                    '</ul>';
+            } else {
+                document.getElementById('agents-list').innerHTML = '<p>No agents registered yet. <a href="/wizard">Create your first agent</a></p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading dashboard:', error);
+            document.getElementById('agents-list').innerHTML = '<p class="error">Error loading agents</p>';
+        });
+    
+    // Load security alerts
+    fetch('/api/notifications?limit=5&unread_only=true')
+        .then(response => response.json())
+        .then(data => {
+            const alertsList = document.getElementById('security-alerts-list');
+            
+            if (data.notifications && data.notifications.length > 0) {
+                alertsList.innerHTML = data.notifications.map(alert => `
+                    <div class="alert-item ${alert.severity}">
+                        <span class="alert-severity ${alert.severity}">${alert.severity.toUpperCase()}</span>
+                        <span class="alert-message">${alert.message}</span>
+                        <span class="alert-time">${new Date(alert.timestamp).toLocaleString()}</span>
+                    </div>
+                `).join('');
+            } else {
+                alertsList.innerHTML = '<p class="info">No recent security alerts</p>';
+            }
+        })
+        .catch(error => {
+            document.getElementById('security-alerts-list').innerHTML = 
+                '<p class="error">Error loading alerts</p>';
+        });
+</script>
+
+<style>
+.security-alerts {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.alert-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #95a5a6;
+}
+
+.alert-item.critical {
+    border-left-color: #e74c3c;
+    background: #fee;
+}
+
+.alert-item.high {
+    border-left-color: #e67e22;
+    background: #fff4e6;
+}
+
+.alert-item.medium {
+    border-left-color: #f39c12;
+    background: #fffbf0;
+}
+
+.alert-severity {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    min-width: 60px;
+    text-align: center;
+}
+
+.alert-severity.critical {
+    background: #e74c3c;
+    color: white;
+}
+
+.alert-severity.high {
+    background: #e67e22;
+    color: white;
+}
+
+.alert-severity.medium {
+    background: #f39c12;
+    color: white;
+}
+
+.alert-message {
+    flex: 1;
+    color: #2c3e50;
+}
+
+.alert-time {
+    color: #7f8c8d;
+    font-size: 0.85rem;
+}
+</style>
+{% endblock %}
+

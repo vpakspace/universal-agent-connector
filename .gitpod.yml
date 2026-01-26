@@ -1,0 +1,170 @@
+# Gitpod Configuration for AI Agent Connector
+# One-click browser-based development environment
+
+image: gitpod/workspace-postgres
+
+# Install Python and dependencies
+tasks:
+  - name: Setup Python Environment
+    init: |
+      # Install Python 3.11
+      pyenv install 3.11.0
+      pyenv global 3.11.0
+      
+      # Create virtual environment
+      python3 -m venv venv
+      source venv/bin/activate
+      
+      # Upgrade pip
+      pip install --upgrade pip
+      
+      # Install dependencies
+      pip install -r requirements.txt
+      
+      # Install PostgreSQL client
+      sudo apt-get update
+      sudo apt-get install -y postgresql-client
+      
+      # Wait for PostgreSQL to be ready
+      until pg_isready -h localhost -p 5432; do
+        echo "Waiting for PostgreSQL..."
+        sleep 2
+      done
+      
+      echo "PostgreSQL is ready!"
+    
+  - name: Setup Demo Databases
+    init: |
+      source venv/bin/activate
+      
+      # Set PostgreSQL environment
+      export PGHOST=localhost
+      export PGPORT=5432
+      export PGUSER=gitpod
+      export PGPASSWORD=gitpod
+      
+      # Create demo databases
+      echo "Creating demo databases..."
+      createdb ecommerce_demo || true
+      createdb saas_demo || true
+      createdb financial_demo || true
+      
+      # Load sample data
+      echo "Loading e-commerce demo data..."
+      psql -d ecommerce_demo -f demos/ecommerce/setup.sql
+      
+      echo "Loading SaaS demo data..."
+      psql -d saas_demo -f demos/saas/setup.sql
+      
+      echo "Loading financial demo data..."
+      psql -d financial_demo -f demos/financial/setup.sql
+      
+      echo "✅ All demo databases loaded!"
+    
+  - name: Start AI Agent Connector
+    command: |
+      source venv/bin/activate
+      
+      # Set environment variables
+      export FLASK_ENV=development
+      export PORT=5000
+      export HOST=0.0.0.0
+      export SECRET_KEY=gitpod-dev-key-change-in-production
+      
+      # Generate encryption key if not set
+      if [ -z "$ENCRYPTION_KEY" ]; then
+        export ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+      fi
+      
+      # Start the application
+      echo "🚀 Starting AI Agent Connector..."
+      echo "📍 Server will be available at: https://${GP_PORT_5000}"
+      echo ""
+      python main.py
+
+# Ports to expose
+ports:
+  - port: 5000
+    onOpen: open-browser
+    visibility: public
+    name: AI Agent Connector
+
+# VS Code extensions
+vscode:
+  extensions:
+    - ms-python.python
+    - ms-python.vscode-pylance
+    - ms-python.flake8
+    - ms-python.black-formatter
+    - redhat.vscode-yaml
+    - ms-vscode.vscode-json
+
+# Environment variables
+env:
+  - name: FLASK_ENV
+    value: development
+  - name: PORT
+    value: "5000"
+  - name: HOST
+    value: "0.0.0.0"
+  - name: DB_HOST
+    value: localhost
+  - name: DB_PORT
+    value: "5432"
+  - name: DB_USER
+    value: gitpod
+  - name: DB_PASSWORD
+    value: gitpod
+  - name: DB_NAME
+    value: postgres
+
+# Post-create command (runs after workspace is created)
+postCreateCommand: |
+  # Create welcome message
+  cat > /tmp/welcome.md << 'EOF'
+  # 🎉 Welcome to AI Agent Connector Playground!
+  
+  Your environment is ready! Here's what's been set up:
+  
+  ✅ Python environment with all dependencies
+  ✅ PostgreSQL database with demo data
+  ✅ All 3 demo databases loaded (e-commerce, SaaS, financial)
+  ✅ AI Agent Connector server starting...
+  
+  ## 🚀 Quick Start
+  
+  1. **Wait for the server to start** (check terminal)
+  2. **Open the dashboard**: The browser should open automatically
+  3. **Follow the tutorial**: See PLAYGROUND_TUTORIAL.md
+  
+  ## 📚 Available Demos
+  
+  - **E-Commerce**: Analyze sales, customers, products
+  - **SaaS Metrics**: Track MRR, churn, user growth
+  - **Financial**: Generate financial reports
+  
+  ## 🎯 Next Steps
+  
+  The server is starting in the background. Once ready:
+  
+  1. Visit the dashboard
+  2. Register an agent using demo configs
+  3. Try natural language queries
+  
+  Happy coding! 🎉
+  EOF
+  
+  # Display welcome message
+  cat /tmp/welcome.md
+
+# GitHub integration
+github:
+  prebuilds:
+    master: true
+    branches: true
+    pullRequests: true
+    pullRequestsFromForks: false
+    addCheck: true
+    addComment: false
+    addBadge: true
+

@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Console - AI Agent Connector{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>Server Console</h2>
+        <button onclick="clearConsole()" class="btn btn-secondary">Clear</button>
+    </div>
+    
+    <div id="console-output" class="console-output">
+        <div class="console-line info">🚀 AI Agent Connector Console</div>
+        <div class="console-line info">📍 Server: http://127.0.0.1:5000</div>
+        <div class="console-line info">⏰ Started: <span id="start-time"></span></div>
+        <div class="console-line separator">─────────────────────────────────────────</div>
+        <div class="console-line">Waiting for activity...</div>
+    </div>
+    
+    <div style="margin-top: 1rem;">
+        <button onclick="refreshLogs()" class="btn btn-primary">Refresh Logs</button>
+        <label style="margin-left: 1rem;">
+            <input type="checkbox" id="auto-refresh" checked onchange="toggleAutoRefresh()">
+            Auto-refresh (5s)
+        </label>
+    </div>
+</div>
+
+<script>
+let autoRefreshInterval = null;
+const startTime = new Date().toLocaleString();
+document.getElementById('start-time').textContent = startTime;
+
+function addConsoleLine(message, type = 'info') {
+    const console = document.getElementById('console-output');
+    const line = document.createElement('div');
+    line.className = `console-line ${type}`;
+    const timestamp = new Date().toLocaleTimeString();
+    line.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+    console.appendChild(line);
+    console.scrollTop = console.scrollHeight;
+}
+
+function refreshLogs() {
+    // Fetch recent audit logs
+    fetch('/api/audit/logs?limit=20')
+        .then(response => response.json())
+        .then(data => {
+            if (data.logs && data.logs.length > 0) {
+                const console = document.getElementById('console-output');
+                // Clear old log lines (keep header)
+                const headerLines = console.querySelectorAll('.console-line:not(.separator)');
+                headerLines.forEach((line, index) => {
+                    if (index > 3) line.remove(); // Keep first 4 lines (header)
+                });
+                
+                // Add separator
+                const sep = document.createElement('div');
+                sep.className = 'console-line separator';
+                sep.textContent = '─────────────────────────────────────────';
+                console.appendChild(sep);
+                
+                // Add recent logs
+                data.logs.slice(0, 10).forEach(log => {
+                    const icon = getIconForAction(log.action_type);
+                    const status = log.status || 'info';
+                    const message = `${icon} ${log.action_type} - Agent: ${log.agent_id || 'N/A'} - Status: ${status}`;
+                    addConsoleLine(message, status);
+                });
+            }
+        })
+        .catch(error => {
+            addConsoleLine(`Error fetching logs: ${error.message}`, 'error');
+        });
+}
+
+function getIconForAction(actionType) {
+    const icons = {
+        'query_execution': '🔍',
+        'natural_language_query': '💬',
+        'agent_registered': '✅',
+        'agent_revoked': '❌',
+        'permission_set': '🔐',
+        'permission_revoked': '🔓',
+        'agent_viewed': '👁️',
+        'tables_listed': '📋'
+    };
+    return icons[actionType] || '📝';
+}
+
+function clearConsole() {
+    const console = document.getElementById('console-output');
+    console.innerHTML = `
+        <div class="console-line info">🚀 AI Agent Connector Console</div>
+        <div class="console-line info">📍 Server: http://127.0.0.1:5000</div>
+        <div class="console-line info">⏰ Started: ${startTime}</div>
+        <div class="console-line separator">─────────────────────────────────────────</div>
+        <div class="console-line">Console cleared. Waiting for activity...</div>
+    `;
+}
+
+function toggleAutoRefresh() {
+    const checkbox = document.getElementById('auto-refresh');
+    if (checkbox.checked) {
+        autoRefreshInterval = setInterval(refreshLogs, 5000);
+        addConsoleLine('Auto-refresh enabled', 'info');
+    } else {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+        }
+        addConsoleLine('Auto-refresh disabled', 'info');
+    }
+}
+
+// Initial load
+refreshLogs();
+
+// Start auto-refresh
+if (document.getElementById('auto-refresh').checked) {
+    autoRefreshInterval = setInterval(refreshLogs, 5000);
+}
+
+// Add connection status
+fetch('/api/health')
+    .then(response => response.json())
+    .then(data => {
+        addConsoleLine(`✅ Server health check: ${data.status}`, 'success');
+    })
+    .catch(error => {
+        addConsoleLine(`❌ Server health check failed: ${error.message}`, 'error');
+    });
+</script>
+
+<style>
+.console-output {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.5rem;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid #3c3c3c;
+}
+
+.console-line {
+    margin-bottom: 0.5rem;
+    word-wrap: break-word;
+}
+
+.console-line.separator {
+    color: #666;
+    margin: 0.5rem 0;
+}
+
+.console-line.info {
+    color: #4ec9b0;
+}
+
+.console-line.success {
+    color: #4ec9b0;
+}
+
+.console-line.error {
+    color: #f48771;
+}
+
+.console-line.warning {
+    color: #dcdcaa;
+}
+
+.console-line.denied {
+    color: #ce9178;
+}
+
+.timestamp {
+    color: #808080;
+    margin-right: 0.5rem;
+}
+
+.console-output::-webkit-scrollbar {
+    width: 10px;
+}
+
+.console-output::-webkit-scrollbar-track {
+    background: #252526;
+}
+
+.console-output::-webkit-scrollbar-thumb {
+    background: #424242;
+    border-radius: 5px;
+}
+
+.console-output::-webkit-scrollbar-thumb:hover {
+    background: #4e4e4e;
+}
+</style>
+{% endblock %}
+
+
+

@@ -1,0 +1,22 @@
+{
+  "tenant_id": "tenant_001",
+  "db_host": "tenant-001-db.example.com",
+  "db_port": 5432,
+  "db_name": "tenant_001_db",
+  "db_user": "app_user_001",
+  "db_password": "${TENANT_001_DB_PASSWORD:default_password_001}",
+  "api_keys": {
+    "openai": "${TENANT_001_OPENAI_KEY:}",
+    "anthropic": "${TENANT_001_ANTHROPIC_KEY:}"
+  },
+  "quotas": {
+    "max_queries_per_hour": 1000,
+    "max_queries_per_day": 10000,
+    "max_concurrent_connections": 5
+  },
+  "features": {
+    "premium_support": true,
+    "advanced_analytics": false
+  }
+}
+

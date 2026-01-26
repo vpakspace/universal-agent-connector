@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Engineering Studio - AI Agent Connector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .nav-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+        
+        .nav-tab:hover {
+            color: #2563eb;
+        }
+        
+        .nav-tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #111827;
+        }
+        
+        .card-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-draft {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-testing {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .card-description {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-new {
+            background: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #111827;
+        }
+        
+        .empty-state-text {
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        
+        .api-key-input {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #fef3c7;
+            border-radius: 8px;
+            border: 1px solid #fbbf24;
+        }
+        
+        .api-key-input label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #92400e;
+        }
+        
+        .api-key-input input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .api-key-input button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 Prompt Engineering Studio</h1>
+            <p class="subtitle">Customize SQL generation prompts to optimize for your schema</p>
+            
+            <div class="api-key-input">
+                <label>API Key (required for API access)</label>
+                <input type="password" id="apiKey" placeholder="Enter your agent API key">
+                <button class="btn btn-primary" onclick="saveApiKey()">Save API Key</button>
+            </div>
+            
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="showTab('prompts')">My Prompts</button>
+                <button class="nav-tab" onclick="showTab('templates')">Template Library</button>
+                <button class="nav-tab" onclick="showTab('ab-testing')">A/B Testing</button>
+            </div>
+        </header>
+        
+        <!-- My Prompts Tab -->
+        <div id="tab-prompts" class="tab-content active">
+            <button class="btn btn-new" onclick="createNewPrompt()">
+                ➕ Create New Prompt
+            </button>
+            <div id="prompts-list" class="grid">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📝</div>
+                    <div class="empty-state-title">No prompts yet</div>
+                    <div class="empty-state-text">Create your first custom prompt to optimize SQL generation</div>
+                    <button class="btn btn-primary" onclick="createNewPrompt()">Create Prompt</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Template Library Tab -->
+        <div id="tab-templates" class="tab-content">
+            <div id="templates-list" class="grid">
+                <div class="empty-state">
+                    <div class="empty-state-icon">⏳</div>
+                    <div class="empty-state-title">Loading templates...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- A/B Testing Tab -->
+        <div id="tab-ab-testing" class="tab-content">
+            <button class="btn btn-new" onclick="createABTest()">
+                ➕ Create A/B Test
+            </button>
+            <div id="ab-tests-list" class="grid">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🧪</div>
+                    <div class="empty-state-title">No A/B tests yet</div>
+                    <div class="empty-state-text">Compare different prompts to find the best one for your use case</div>
+                    <button class="btn btn-primary" onclick="createABTest()">Create A/B Test</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let apiKey = localStorage.getItem('promptStudioApiKey') || '';
+        if (apiKey) {
+            document.getElementById('apiKey').value = apiKey;
+        }
+        
+        function saveApiKey() {
+            apiKey = document.getElementById('apiKey').value;
+            if (apiKey) {
+                localStorage.setItem('promptStudioApiKey', apiKey);
+                alert('API key saved!');
+                loadPrompts();
+            }
+        }
+        
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Load content
+            if (tabName === 'prompts') {
+                loadPrompts();
+            } else if (tabName === 'templates') {
+                loadTemplates();
+            } else if (tabName === 'ab-testing') {
+                loadABTests();
+            }
+        }
+        
+        function loadPrompts() {
+            if (!apiKey) {
+                return;
+            }
+            
+            fetch('/prompts/api/prompts', {
+                headers: {
+                    'X-API-Key': apiKey
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById('prompts-list');
+                if (data.prompts && data.prompts.length > 0) {
+                    container.innerHTML = data.prompts.map(prompt => `
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">${prompt.name}</div>
+                                <span class="card-badge badge-${prompt.status}">${prompt.status}</span>
+                            </div>
+                            <div class="card-description">${prompt.description || 'No description'}</div>
+                            <div class="card-actions">
+                                <button class="btn btn-primary" onclick="editPrompt('${prompt.id}')">Edit</button>
+                                <button class="btn btn-secondary" onclick="deletePrompt('${prompt.id}')">Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📝</div>
+                            <div class="empty-state-title">No prompts yet</div>
+                            <div class="empty-state-text">Create your first custom prompt</div>
+                            <button class="btn btn-primary" onclick="createNewPrompt()">Create Prompt</button>
+                        </div>
+                    `;
+                }
+            })
+            .catch(err => {
+                console.error('Error loading prompts:', err);
+            });
+        }
+        
+        function loadTemplates() {
+            fetch('/prompts/api/templates')
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById('templates-list');
+                if (data.templates && data.templates.length > 0) {
+                    container.innerHTML = data.templates.map(template => `
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">${template.name}</div>
+                                <span class="card-badge badge-active">Template</span>
+                            </div>
+                            <div class="card-description">${template.description || 'No description'}</div>
+                            <div class="card-actions">
+                                <button class="btn btn-success" onclick="cloneTemplate('${template.id}')">Use Template</button>
+                                <button class="btn btn-secondary" onclick="viewTemplate('${template.id}')">View</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            })
+            .catch(err => {
+                console.error('Error loading templates:', err);
+            });
+        }
+        
+        function loadABTests() {
+            if (!apiKey) {
+                return;
+            }
+            
+            fetch('/prompts/api/ab-tests', {
+                headers: {
+                    'X-API-Key': apiKey
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById('ab-tests-list');
+                if (data.ab_tests && data.ab_tests.length > 0) {
+                    container.innerHTML = data.ab_tests.map(test => `
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">${test.name}</div>
+                                <span class="card-badge badge-${test.status}">${test.status}</span>
+                            </div>
+                            <div class="card-description">${test.description || 'No description'}</div>
+                            <div class="card-actions">
+                                <button class="btn btn-primary" onclick="viewABTest('${test.id}')">View Results</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            })
+            .catch(err => {
+                console.error('Error loading A/B tests:', err);
+            });
+        }
+        
+        function createNewPrompt() {
+            window.location.href = '/prompts/editor';
+        }
+        
+        function editPrompt(promptId) {
+            window.location.href = `/prompts/editor/${promptId}`;
+        }
+        
+        function deletePrompt(promptId) {
+            if (!confirm('Are you sure you want to delete this prompt?')) {
+                return;
+            }
+            
+            fetch(`/prompts/api/prompts/${promptId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-API-Key': apiKey
+                }
+            })
+            .then(() => {
+                loadPrompts();
+            })
+            .catch(err => {
+                alert('Error deleting prompt: ' + err.message);
+            });
+        }
+        
+        function cloneTemplate(templateId) {
+            if (!apiKey) {
+                alert('Please enter your API key first');
+                return;
+            }
+            
+            const name = prompt('Enter a name for your prompt:');
+            if (!name) return;
+            
+            fetch(`/prompts/api/templates/${templateId}/clone`, {
+                method: 'POST',
+                headers: {
+                    'X-API-Key': apiKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.id) {
+                    window.location.href = `/prompts/editor/${data.id}`;
+                } else {
+                    alert('Error cloning template: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                alert('Error cloning template: ' + err.message);
+            });
+        }
+        
+        function viewTemplate(templateId) {
+            window.location.href = `/prompts/editor?template=${templateId}`;
+        }
+        
+        function createABTest() {
+            window.location.href = '/prompts/ab-testing?create=true';
+        }
+        
+        function viewABTest(testId) {
+            window.location.href = `/prompts/ab-testing?test=${testId}`;
+        }
+        
+        // Load prompts on page load
+        if (apiKey) {
+            loadPrompts();
+        }
+        loadTemplates();
+    </script>
+</body>
+</html>
+

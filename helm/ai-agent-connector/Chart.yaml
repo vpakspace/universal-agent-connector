@@ -1,0 +1,19 @@
+apiVersion: v2
+name: ai-agent-connector
+description: A Helm chart for AI Agent Connector - Universal connector for AI agents
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ai
+  - agent
+  - connector
+  - flask
+  - api
+home: https://github.com/your-org/universal-agent-connector
+sources:
+  - https://github.com/your-org/universal-agent-connector
+maintainers:
+  - name: DevOps Team
+    email: devops@example.com
+icon: https://example.com/icon.png

@@ -1,0 +1,36 @@
+# Azure Functions requirements
+# Optimized for cold start <2s
+
+# Core Flask dependencies (minimal)
+Flask==3.1.2
+Werkzeug==3.1.3
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+click==8.3.1
+blinker==1.9.0
+itsdangerous==2.2.0
+
+# Database connectors (lazy loaded)
+psycopg2-binary==2.9.11
+pymysql==1.1.1
+pymongo==4.10.1
+google-cloud-bigquery==3.27.0
+snowflake-connector-python==3.12.0
+
+# Encryption
+cryptography==43.0.1
+
+# AI Agent providers (lazy loaded)
+openai==1.54.5
+anthropic==0.39.0
+requests==2.32.3
+
+# GraphQL (lazy loaded)
+graphene==3.3
+flask-graphql==2.0.3
+
+# Azure specific
+azure-functions==1.18.0
+azure-keyvault-secrets==4.7.0
+azure-identity==1.15.0
+

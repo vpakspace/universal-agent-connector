@@ -1,0 +1,60 @@
+# Development values for ai-agent-connector
+# Use with: helm install ai-agent-connector ./helm/ai-agent-connector -f values-development.yaml
+
+replicaCount: 1
+
+image:
+  repository: ai-agent-connector
+  tag: "dev"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 5000
+
+ingress:
+  enabled: false
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+
+healthCheck:
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 30
+
+env:
+  FLASK_ENV: development
+  PORT: "5000"
+  HOST: "0.0.0.0"
+
+configMap:
+  enabled: true
+  data:
+    LOG_LEVEL: "DEBUG"
+
+secrets:
+  enabled: true
+
+terminationGracePeriodSeconds: 10

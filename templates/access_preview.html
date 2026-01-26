@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block title %}Access Preview - AI Agent Connector{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 id="preview-title">Access Preview</h2>
+        <a href="/agents" class="btn btn-secondary">← Back to Agents</a>
+    </div>
+    
+    <div id="summary-section" class="loading">
+        Loading access preview...
+    </div>
+    
+    <div id="accessible-section" style="margin-top: 2rem;">
+        <h3>Accessible Tables</h3>
+        <div id="accessible-tables" class="loading">Loading accessible tables...</div>
+    </div>
+    
+    <div id="inaccessible-section" style="margin-top: 2rem;">
+        <h3>Tables Without Access</h3>
+        <div id="inaccessible-tables" class="loading">Loading inaccessible tables...</div>
+    </div>
+</div>
+
+<script>
+const agentId = window.location.pathname.split('/').pop();
+
+function loadAccessPreview() {
+    fetch(`/api/agents/${agentId}/access-preview`)
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Failed to load access preview');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('preview-title').textContent = `Access Preview: ${data.agent_id}`;
+            
+            // Display summary
+            const summary = data.summary;
+            document.getElementById('summary-section').innerHTML = `
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <div class="summary-value">${summary.total_tables}</div>
+                        <div class="summary-label">Total Tables</div>
+                    </div>
+                    <div class="summary-card success">
+                        <div class="summary-value">${summary.accessible_tables}</div>
+                        <div class="summary-label">Accessible</div>
+                    </div>
+                    <div class="summary-card warning">
+                        <div class="summary-value">${summary.inaccessible_tables}</div>
+                        <div class="summary-label">No Access</div>
+                    </div>
+                    <div class="summary-card info">
+                        <div class="summary-value">${summary.read_write_tables}</div>
+                        <div class="summary-label">Read/Write</div>
+                    </div>
+                    <div class="summary-card read-only">
+                        <div class="summary-value">${summary.read_only_tables}</div>
+                        <div class="summary-label">Read Only</div>
+                    </div>
+                </div>
+            `;
+            
+            // Display accessible tables
+            if (data.accessible_tables && data.accessible_tables.length > 0) {
+                document.getElementById('accessible-tables').innerHTML = 
+                    data.accessible_tables.map(table => renderTableCard(table, true)).join('');
+            } else {
+                document.getElementById('accessible-tables').innerHTML = 
+                    '<p class="info-message">No accessible tables found. Grant permissions to enable access.</p>';
+            }
+            
+            // Display inaccessible tables
+            if (data.inaccessible_tables && data.inaccessible_tables.length > 0) {
+                document.getElementById('inaccessible-tables').innerHTML = 
+                    data.inaccessible_tables.map(table => renderTableCard(table, false)).join('');
+            } else {
+                document.getElementById('inaccessible-tables').innerHTML = 
+                    '<p class="info-message">All tables are accessible.</p>';
+            }
+        })
+        .catch(error => {
+            document.getElementById('summary-section').innerHTML = 
+                '<p class="error">Error loading access preview: ' + error.message + '</p>';
+            document.getElementById('accessible-tables').innerHTML = '';
+            document.getElementById('inaccessible-tables').innerHTML = '';
+        });
+}
+
+function renderTableCard(table, isAccessible) {
+    const permissionBadges = table.permissions.map(p => 
+        `<span class="badge badge-${p}">${p.toUpperCase()}</span>`
+    ).join('');
+    
+    const columnsHtml = table.columns && table.columns.length > 0 ? `
+        <div class="columns-section">
+            <strong>Fields (${table.column_count}):</strong>
+            <div class="columns-grid">
+                ${table.columns.map(col => `
+                    <div class="column-item">
+                        <span class="column-name">${col.name}</span>
+                        <span class="column-type">${col.type}</span>
+                        ${col.nullable ? '<span class="column-nullable">nullable</span>' : ''}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    ` : '<p class="info-message">No column information available</p>';
+    
+    const statusClass = isAccessible ? 'accessible' : 'inaccessible';
+    const statusIcon = isAccessible ? '✓' : '✗';
+    
+    return `
+        <div class="table-card ${statusClass}">
+            <div class="table-header">
+                <div class="table-title">
+                    <span class="status-icon">${statusIcon}</span>
+                    <strong>${table.schema}.${table.table_name}</strong>
+                    <span class="resource-id">(${table.resource_id})</span>
+                </div>
+                <div class="permission-badges">
+                    ${isAccessible ? permissionBadges : '<span class="badge badge-none">NO ACCESS</span>'}
+                </div>
+            </div>
+            ${isAccessible ? columnsHtml : '<p class="info-message">No access - columns hidden</p>'}
+        </div>
+    `;
+}
+
+loadAccessPreview();
+</script>
+
+<style>
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.summary-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+    border-top: 4px solid #3498db;
+}
+
+.summary-card.success {
+    border-top-color: #27ae60;
+}
+
+.summary-card.warning {
+    border-top-color: #f39c12;
+}
+
+.summary-card.info {
+    border-top-color: #3498db;
+}
+
+.summary-card.read-only {
+    border-top-color: #9b59b6;
+}
+
+.summary-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+    border-left: 4px solid #3498db;
+}
+
+.table-card.accessible {
+    border-left-color: #27ae60;
+}
+
+.table-card.inaccessible {
+    border-left-color: #e74c3c;
+    opacity: 0.7;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.table-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.status-icon {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.table-card.accessible .status-icon {
+    color: #27ae60;
+}
+
+.table-card.inaccessible .status-icon {
+    color: #e74c3c;
+}
+
+.resource-id {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    font-weight: normal;
+}
+
+.permission-badges {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.badge-read {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.badge-write {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-none {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.columns-section {
+    margin-top: 1rem;
+}
+
+.columns-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.column-item {
+    background: #f8f9fa;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.column-name {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.column-type {
+    color: #7f8c8d;
+    font-size: 0.85rem;
+}
+
+.column-nullable {
+    color: #3498db;
+    font-size: 0.75rem;
+    font-style: italic;
+}
+
+.info-message {
+    color: #7f8c8d;
+    font-style: italic;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.loading {
+    color: #7f8c8d;
+    font-style: italic;
+}
+</style>
+{% endblock %}

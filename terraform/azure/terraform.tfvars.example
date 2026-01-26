@@ -1,0 +1,25 @@
+# Azure Configuration
+azure_region = "eastus"
+project_name = "ai-agent-connector"
+
+# Network Configuration
+vnet_address_space = "10.0.0.0/16"
+subnet_address_prefix = "10.0.1.0/24"
+
+# Kubernetes Configuration
+kubernetes_version = "1.28"
+node_count = 2
+node_min_count = 1
+node_max_count = 10
+node_vm_size = "Standard_D2s_v3"
+node_os_disk_size_gb = 50
+
+# Helm Configuration
+helm_release_name = "ai-agent-connector"
+helm_chart_path = "../../helm/ai-agent-connector"
+helm_chart_version = "1.0.0"
+kubernetes_namespace = "production"
+
+# Application Configuration
+image_tag = "latest"
+replica_count = 2

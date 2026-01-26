@@ -1,0 +1,3 @@
+# Test dependencies for Helm chart tests
+pytest>=7.0.0
+pyyaml>=6.0

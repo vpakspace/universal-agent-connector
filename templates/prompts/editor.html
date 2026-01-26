@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Editor - AI Agent Connector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        
+        .editor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .editor-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #111827;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .variables-section {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        
+        .variable-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .variable-item input {
+            flex: 1;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .preview-panel {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .preview-section {
+            margin-bottom: 20px;
+        }
+        
+        .preview-label {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        
+        .preview-content {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        
+        .variable-hint {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        .variable-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #dbeafe;
+            color: #1e40af;
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 2px;
+            cursor: pointer;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+        
+        .badge-draft {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 Prompt Editor <span id="status-badge" class="status-badge badge-draft">Draft</span></h1>
+            <p>Customize your SQL generation prompt with variables and templates</p>
+        </header>
+        
+        <div class="editor-grid">
+            <div class="editor-panel">
+                <div class="panel-title">Prompt Configuration</div>
+                
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="promptName" placeholder="e.g., Analytics Optimized Prompt">
+                </div>
+                
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="promptDescription" placeholder="Brief description of this prompt">
+                </div>
+                
+                <div class="form-group">
+                    <label>System Prompt *</label>
+                    <textarea id="systemPrompt" placeholder="Enter system prompt with {{variables}}..."></textarea>
+                    <div class="variable-hint">
+                        Use {{variable_name}} for variables. Available: {{database_type}}, {{schema_info}}, {{natural_language_query}}
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>User Prompt Template *</label>
+                    <textarea id="userPrompt" placeholder="Enter user prompt template..."></textarea>
+                    <div class="variable-hint">
+                        Typically: {{natural_language_query}}
+                    </div>
+                </div>
+                
+                <div class="variables-section">
+                    <div class="panel-title">Variables</div>
+                    <div id="variables-list">
+                        <!-- Variables will be added here -->
+                    </div>
+                    <button class="btn btn-secondary" onclick="addVariable()" style="margin-top: 10px;">+ Add Variable</button>
+                </div>
+                
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="promptStatus" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;">
+                        <option value="draft">Draft</option>
+                        <option value="active">Active</option>
+                        <option value="testing">Testing</option>
+                    </select>
+                </div>
+                
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="savePrompt()">💾 Save Prompt</button>
+                    <button class="btn btn-success" onclick="testPrompt()">🧪 Test Prompt</button>
+                    <button class="btn btn-secondary" onclick="window.location.href='/prompts'">← Back</button>
+                </div>
+            </div>
+            
+            <div class="editor-panel">
+                <div class="panel-title">Preview</div>
+                <div class="preview-panel">
+                    <div class="preview-section">
+                        <div class="preview-label">System Prompt</div>
+                        <div class="preview-content" id="previewSystem">Enter system prompt to see preview...</div>
+                    </div>
+                    <div class="preview-section">
+                        <div class="preview-label">User Prompt</div>
+                        <div class="preview-content" id="previewUser">Enter user prompt to see preview...</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <div class="panel-title">Test Variables</div>
+                    <div class="form-group">
+                        <label>Test Query</label>
+                        <input type="text" id="testQuery" placeholder="e.g., Show me all users" oninput="updatePreview()">
+                    </div>
+                    <button class="btn btn-success" onclick="testPrompt()">Run Test</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const promptId = new URLSearchParams(window.location.search).get('id') || 
+                        window.location.pathname.split('/').pop();
+        let promptData = null;
+        let apiKey = localStorage.getItem('promptStudioApiKey') || '';
+        
+        // Load prompt if editing
+        if (promptId && promptId !== 'editor' && promptId !== 'new') {
+            loadPrompt(promptId);
+        } else {
+            // Initialize with default variables
+            addVariable('database_type', 'Database type', 'PostgreSQL', true);
+            addVariable('schema_info', 'Schema information', 'No schema information available', false);
+            addVariable('natural_language_query', 'Natural language query', '', true);
+        }
+        
+        // Update preview on input
+        document.getElementById('systemPrompt').addEventListener('input', updatePreview);
+        document.getElementById('userPrompt').addEventListener('input', updatePreview);
+        document.getElementById('promptStatus').addEventListener('change', function() {
+            const status = this.value;
+            const badge = document.getElementById('status-badge');
+            badge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            badge.className = 'status-badge badge-' + status;
+        });
+        
+        function loadPrompt(id) {
+            if (!apiKey) {
+                alert('Please set your API key first');
+                window.location.href = '/prompts';
+                return;
+            }
+            
+            fetch(`/prompts/api/prompts/${id}`, {
+                headers: {
+                    'X-API-Key': apiKey
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error loading prompt: ' + data.error);
+                    window.location.href = '/prompts';
+                    return;
+                }
+                
+                promptData = data;
+                document.getElementById('promptName').value = data.name || '';
+                document.getElementById('promptDescription').value = data.description || '';
+                document.getElementById('systemPrompt').value = data.system_prompt || '';
+                document.getElementById('userPrompt').value = data.user_prompt_template || '';
+                document.getElementById('promptStatus').value = data.status || 'draft';
+                
+                // Load variables
+                document.getElementById('variables-list').innerHTML = '';
+                if (data.variables) {
+                    data.variables.forEach(v => {
+                        addVariable(v.name, v.description, v.default_value, v.required, false);
+                    });
+                }
+                
+                updatePreview();
+            })
+            .catch(err => {
+                alert('Error loading prompt: ' + err.message);
+                window.location.href = '/prompts';
+            });
+        }
+        
+        function addVariable(name = '', description = '', defaultValue = '', required = true, focus = true) {
+            const container = document.getElementById('variables-list');
+            const div = document.createElement('div');
+            div.className = 'variable-item';
+            div.innerHTML = `
+                <input type="text" placeholder="Variable name" value="${name}" class="var-name">
+                <input type="text" placeholder="Description" value="${description}" class="var-desc">
+                <input type="text" placeholder="Default value" value="${defaultValue}" class="var-default">
+                <input type="checkbox" ${required ? 'checked' : ''} class="var-required"> Required
+                <button class="btn btn-danger" onclick="this.parentElement.remove(); updatePreview();">×</button>
+            `;
+            container.appendChild(div);
+            
+            if (focus) {
+                div.querySelector('.var-name').focus();
+            }
+            
+            // Add event listeners
+            div.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', updatePreview);
+            });
+        }
+        
+        function getVariables() {
+            const variables = [];
+            document.querySelectorAll('.variable-item').forEach(item => {
+                const name = item.querySelector('.var-name').value;
+                const desc = item.querySelector('.var-desc').value;
+                const defaultValue = item.querySelector('.var-default').value;
+                const required = item.querySelector('.var-required').checked;
+                
+                if (name) {
+                    variables.push({
+                        name: name,
+                        description: desc,
+                        default_value: defaultValue,
+                        required: required
+                    });
+                }
+            });
+            return variables;
+        }
+        
+        function updatePreview() {
+            const systemPrompt = document.getElementById('systemPrompt').value;
+            const userPrompt = document.getElementById('userPrompt').value;
+            const testQuery = document.getElementById('testQuery').value || '{{natural_language_query}}';
+            
+            // Replace variables with test values
+            let previewSystem = systemPrompt;
+            let previewUser = userPrompt;
+            
+            // Default test values
+            const testValues = {
+                'database_type': 'PostgreSQL',
+                'schema_info': 'Tables: users, products, orders\nColumns: users.id, users.name, products.name',
+                'natural_language_query': testQuery || 'Show me all users'
+            };
+            
+            // Replace variables
+            getVariables().forEach(v => {
+                const value = testValues[v.name] || v.default_value || `{{${v.name}}}`;
+                previewSystem = previewSystem.replace(new RegExp(`\\{\\{${v.name}\\}\\}`, 'g'), value);
+                previewUser = previewUser.replace(new RegExp(`\\{\\{${v.name}\\}\\}`, 'g'), value);
+            });
+            
+            document.getElementById('previewSystem').textContent = previewSystem || 'Enter system prompt...';
+            document.getElementById('previewUser').textContent = previewUser || 'Enter user prompt...';
+        }
+        
+        function savePrompt() {
+            if (!apiKey) {
+                alert('Please set your API key first');
+                return;
+            }
+            
+            const name = document.getElementById('promptName').value;
+            const systemPrompt = document.getElementById('systemPrompt').value;
+            const userPrompt = document.getElementById('userPrompt').value;
+            
+            if (!name || !systemPrompt || !userPrompt) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            const data = {
+                name: name,
+                description: document.getElementById('promptDescription').value,
+                system_prompt: systemPrompt,
+                user_prompt_template: userPrompt,
+                variables: getVariables(),
+                status: document.getElementById('promptStatus').value
+            };
+            
+            const url = promptData ? `/prompts/api/prompts/${promptData.id}` : '/prompts/api/prompts';
+            const method = promptData ? 'PUT' : 'POST';
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'X-API-Key': apiKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error saving prompt: ' + data.error);
+                } else {
+                    alert('Prompt saved successfully!');
+                    if (!promptData) {
+                        window.location.href = `/prompts/editor/${data.id}`;
+                    }
+                }
+            })
+            .catch(err => {
+                alert('Error saving prompt: ' + err.message);
+            });
+        }
+        
+        function testPrompt() {
+            const testQuery = document.getElementById('testQuery').value;
+            if (!testQuery) {
+                alert('Please enter a test query');
+                return;
+            }
+            
+            // This would call the actual API to test the prompt
+            alert('Test functionality - would execute query: ' + testQuery);
+            // TODO: Implement actual test API call
+        }
+        
+        // Initial preview update
+        updatePreview();
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,252 @@
+# Default values for ai-agent-connector
+# This is a YAML-formatted file.
+
+# Application configuration
+app:
+  name: ai-agent-connector
+  version: "1.0.0"
+  environment: production  # development, production, testing
+
+# Image configuration
+image:
+  repository: ai-agent-connector
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+  # pullSecrets: []
+
+# Replica configuration
+replicaCount: 2
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 5000
+  targetPort: 5000
+  # nodePort: 30080  # For NodePort type
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: ai-agent-connector.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: ai-agent-connector-tls
+    #   hosts:
+    #     - ai-agent-connector.example.com
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Auto-scaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  # behavior:
+  #   scaleDown:
+  #     stabilizationWindowSeconds: 300
+  #     policies:
+  #     - type: Percent
+  #       value: 50
+  #       periodSeconds: 60
+  #   scaleUp:
+  #     stabilizationWindowSeconds: 0
+  #     policies:
+  #     - type: Percent
+  #       value: 100
+  #       periodSeconds: 15
+
+# Health check configuration
+healthCheck:
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+    path: /api/health
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+    path: /api/health
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 30
+    path: /api/health
+
+# Environment variables
+env:
+  # Flask configuration
+  FLASK_ENV: production
+  PORT: "5000"
+  HOST: "0.0.0.0"
+  
+  # Security (should be set via secrets)
+  # SECRET_KEY: ""  # Set via secret
+  # ENCRYPTION_KEY: ""  # Set via secret
+  
+  # AI Provider API Keys (set via secrets)
+  # OPENAI_API_KEY: ""  # Set via secret
+  # ANTHROPIC_API_KEY: ""  # Set via secret
+  
+  # Database configuration (optional, can be set via ConfigMap)
+  # DATABASE_URL: ""
+  # DB_HOST: ""
+  # DB_PORT: "5432"
+  # DB_USER: ""
+  # DB_PASSWORD: ""  # Set via secret
+  # DB_NAME: ""
+
+# ConfigMap values
+configMap:
+  enabled: true
+  data: {}
+    # Add custom configuration here
+    # Example:
+    # LOG_LEVEL: "INFO"
+    # MAX_CONNECTIONS: "100"
+
+# Secrets configuration
+secrets:
+  enabled: true
+  # Secret values should be provided via external secret management
+  # or created manually before deployment
+  # Example:
+  # SECRET_KEY: "base64-encoded-value"
+  # ENCRYPTION_KEY: "base64-encoded-value"
+  # OPENAI_API_KEY: "base64-encoded-value"
+  # ANTHROPIC_API_KEY: "base64-encoded-value"
+  # DB_PASSWORD: "base64-encoded-value"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 2000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Pod annotations
+podAnnotations: {}
+  # prometheus.io/scrape: "true"
+  # prometheus.io/port: "5000"
+  # prometheus.io/path: "/metrics"
+
+# Pod labels
+podLabels: {}
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+  # Example:
+  # podAntiAffinity:
+  #   preferredDuringSchedulingIgnoredDuringExecution:
+  #   - weight: 100
+  #     podAffinityTerm:
+  #       labelSelector:
+  #         matchExpressions:
+  #         - key: app
+  #           operator: In
+  #           values:
+  #           - ai-agent-connector
+  #       topologyKey: kubernetes.io/hostname
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Persistent volumes (for data storage if needed)
+persistence:
+  enabled: false
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  # annotations: {}
+
+# Init containers (optional)
+initContainers: []
+  # - name: wait-for-db
+  #   image: busybox:1.35
+  #   command: ['sh', '-c', 'until nc -z db-service 5432; do echo waiting for db; sleep 2; done;']
+
+# Additional volumes
+extraVolumes: []
+  # - name: config
+  #   configMap:
+  #     name: ai-agent-connector-config
+
+# Additional volume mounts
+extraVolumeMounts: []
+  # - name: config
+  #   mountPath: /app/config
+  #   readOnly: true
+
+# Lifecycle hooks
+lifecycle: {}
+  # preStop:
+  #   exec:
+  #     command: ["/bin/sh", "-c", "sleep 15"]
+
+# Termination grace period
+terminationGracePeriodSeconds: 30
+
+# DNS configuration
+dnsPolicy: ClusterFirst
+
+# Priority class
+priorityClassName: ""
+
+# Additional containers (sidecars)
+extraContainers: []
+
+# Network policies
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []
+    # - to:
+    #   - namespaceSelector:
+    #       matchLabels:
+    #         name: database
+    #   ports:
+    #   - protocol: TCP
+    #     port: 5432

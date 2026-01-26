@@ -1,0 +1,18 @@
+{
+  "agent_id": "ecommerce-analyst",
+  "agent_info": {
+    "name": "E-Commerce Analytics Agent",
+    "type": "analytics",
+    "description": "AI agent for e-commerce sales and customer analytics"
+  },
+  "agent_credentials": {
+    "api_key": "demo-ecommerce-key",
+    "api_secret": "demo-ecommerce-secret"
+  },
+  "database": {
+    "connection_string": "postgresql://postgres:password@localhost:5432/ecommerce_demo",
+    "connection_name": "ecommerce",
+    "type": "postgresql"
+  }
+}
+

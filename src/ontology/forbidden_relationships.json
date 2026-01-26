@@ -1,0 +1,35 @@
+{
+  "Medication": {
+    "allowed_targets": ["Disease", "Symptom", "Patient", "Condition", "BacterialInfection"],
+    "forbidden_targets": ["SoftwareBug", "Vehicle", "Building", "Location", "Event", "Virus", "ViralInfection"]
+  },
+  "Antibiotic": {
+    "allowed_targets": ["BacterialInfection", "Disease", "Patient", "Condition"],
+    "forbidden_targets": ["Virus", "ViralInfection", "SoftwareBug", "Vehicle", "Building", "Location"]
+  },
+  "Vehicle": {
+    "allowed_targets": ["Location", "Person", "Route", "Destination", "Address"],
+    "forbidden_targets": ["Disease", "Symptom", "Medication", "SoftwareBug", "Virus", "BacterialInfection"]
+  },
+  "SoftwareBug": {
+    "allowed_targets": ["Software", "Code", "System", "Application", "Program"],
+    "forbidden_targets": ["Medication", "Disease", "Patient", "Vehicle", "Building", "Virus", "BacterialInfection"]
+  },
+  "Building": {
+    "allowed_targets": ["Location", "Person", "Organization", "Address", "City"],
+    "forbidden_targets": ["Disease", "Medication", "SoftwareBug", "Virus", "BacterialInfection", "Symptom"]
+  },
+  "Person": {
+    "allowed_targets": ["Location", "Organization", "Event", "Building", "Address"],
+    "forbidden_targets": ["SoftwareBug", "Virus", "Code", "Program"]
+  },
+  "Virus": {
+    "allowed_targets": ["Patient", "Disease", "Condition", "Symptom"],
+    "forbidden_targets": ["SoftwareBug", "Vehicle", "Building", "Medication", "Antibiotic"]
+  },
+  "Disease": {
+    "allowed_targets": ["Patient", "Symptom", "Condition", "Medication", "Treatment"],
+    "forbidden_targets": ["SoftwareBug", "Vehicle", "Building", "Code"]
+  }
+}
+

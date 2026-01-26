@@ -1,0 +1,146 @@
+{
+  "Revenue": {
+    "tables": ["sales_data", "invoices", "payment_transactions", "revenue_reports"],
+    "tools": [
+      "query_sales",
+      "aggregate_revenue",
+      "get_revenue_by_period",
+      "calculate_total_revenue",
+      "revenue_forecast",
+      "sales_trend_analysis",
+      "invoice_summary",
+      "payment_analytics",
+      "revenue_by_product",
+      "monthly_revenue_report"
+    ],
+    "description": "Revenue and sales analysis including invoices, payments, and revenue reports",
+    "sample_queries": [
+      "How much revenue last quarter?",
+      "What was our total sales last month?",
+      "Show me revenue by product",
+      "Calculate monthly revenue",
+      "What are the payment trends?"
+    ]
+  },
+  "Customer": {
+    "tables": ["customers", "customer_profiles", "customer_segments", "customer_contacts"],
+    "tools": [
+      "get_customer_list",
+      "search_customers",
+      "customer_segmentation",
+      "customer_lifetime_value",
+      "customer_satisfaction_score",
+      "get_customer_details",
+      "customer_activity_report",
+      "customer_retention_analysis",
+      "customer_preferences",
+      "customer_support_tickets"
+    ],
+    "description": "Customer management, profiles, segments, and customer-related analytics",
+    "sample_queries": [
+      "List all customers",
+      "Find customers in segment A",
+      "What is the customer lifetime value?",
+      "Show customer satisfaction scores",
+      "Get customer details for ID 123"
+    ]
+  },
+  "Inventory": {
+    "tables": ["inventory", "products", "stock_levels", "warehouse_locations", "inventory_movements"],
+    "tools": [
+      "check_stock_levels",
+      "get_inventory_status",
+      "low_stock_alerts",
+      "inventory_valuation",
+      "product_search",
+      "warehouse_inventory",
+      "inventory_movements_report",
+      "stock_reorder_points",
+      "inventory_turnover",
+      "product_availability"
+    ],
+    "description": "Inventory management, stock levels, products, and warehouse operations",
+    "sample_queries": [
+      "Check stock levels",
+      "What products are low in stock?",
+      "Show inventory by warehouse",
+      "Calculate inventory value",
+      "Get product availability"
+    ]
+  },
+  "Employee": {
+    "tables": ["employees", "employee_profiles", "departments", "payroll", "attendance"],
+    "tools": [
+      "get_employee_list",
+      "employee_search",
+      "department_staffing",
+      "payroll_summary",
+      "attendance_report",
+      "employee_performance",
+      "get_employee_details",
+      "employee_directory",
+      "salary_statistics",
+      "team_composition"
+    ],
+    "description": "Employee management, HR data, payroll, attendance, and organizational structure",
+    "sample_queries": [
+      "List all employees",
+      "Show employees in sales department",
+      "Get payroll summary for this month",
+      "Employee attendance report",
+      "What is the team composition?"
+    ]
+  },
+  "Transaction": {
+    "tables": ["transactions", "transaction_history", "payment_logs", "financial_transactions"],
+    "tools": [
+      "get_transactions",
+      "transaction_search",
+      "transaction_summary",
+      "payment_history",
+      "transaction_analytics",
+      "filter_transactions",
+      "transaction_reconciliation",
+      "financial_transactions_report",
+      "transaction_trends",
+      "transaction_details"
+    ],
+    "description": "Financial transactions, payment logs, transaction history, and transaction analytics",
+    "sample_queries": [
+      "Get all transactions",
+      "Show transactions from last week",
+      "Transaction summary by type",
+      "Payment history for customer 123",
+      "What are the transaction trends?"
+    ]
+  },
+  "forbidden_merges": [
+    ["Person", "Organization"],
+    ["Person", "Location"],
+    ["Organization", "Location"],
+    ["Product", "Service"],
+    ["Animal", "Company"],
+    ["Animal", "Brand"],
+    ["Company", "Animal"],
+    ["Brand", "Animal"],
+    ["Person", "Animal"],
+    ["Organization", "Animal"]
+  ],
+  "type_aliases": {
+    "Person": ["Individual", "Human", "User", "Customer", "Employee"],
+    "Organization": ["Company", "Corporation", "Business", "Firm", "Enterprise"],
+    "Location": ["Place", "Address", "City", "Country", "Region"],
+    "Product": ["Item", "Good", "Merchandise"],
+    "Service": ["Offering", "Solution"],
+    "Animal": ["Creature", "Beast", "Wildlife"],
+    "Brand": ["Trademark", "Label", "Make"],
+    "Event": ["Occurrence", "Happening", "Incident"]
+  },
+  "type_hierarchies": {
+    "Entity": ["Person", "Organization", "Location", "Product", "Service", "Event", "Animal"],
+    "Business": ["Company", "Brand", "Product", "Service", "Organization"],
+    "Living": ["Person", "Animal"],
+    "Physical": ["Person", "Animal", "Product", "Location"]
+  }
+}
+

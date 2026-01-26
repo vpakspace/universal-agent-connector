@@ -1,0 +1,18 @@
+{
+  "agent_id": "saas-analyst",
+  "agent_info": {
+    "name": "SaaS Metrics Analyst",
+    "type": "analytics",
+    "description": "AI agent for SaaS metrics and subscription analytics"
+  },
+  "agent_credentials": {
+    "api_key": "demo-saas-key",
+    "api_secret": "demo-saas-secret"
+  },
+  "database": {
+    "connection_string": "postgresql://postgres:password@localhost:5432/saas_demo",
+    "connection_name": "saas",
+    "type": "postgresql"
+  }
+}
+

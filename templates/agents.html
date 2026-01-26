@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Agents - AI Agent Connector{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>Agents</h2>
+        <a href="{{ url_for('wizard') }}" class="btn btn-primary">+ New Agent</a>
+    </div>
+    
+    <div id="agents-container">
+        <p class="loading">Loading agents...</p>
+    </div>
+</div>
+
+<script>
+fetch('/api/agents')
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('agents-container');
+        
+        if (data.agents && data.agents.length > 0) {
+            container.innerHTML = '<div class="agents-grid"></div>';
+            const grid = container.querySelector('.agents-grid');
+            
+            data.agents.forEach(agentId => {
+                fetch(`/api/agents/${agentId}`)
+                    .then(res => res.json())
+                    .then(agent => {
+                        const card = document.createElement('div');
+                        card.className = 'agent-card';
+                        card.innerHTML = `
+                            <h3>${agent.agent_id}</h3>
+                            <p><strong>Name:</strong> ${agent.name || 'Not specified'}</p>
+                            <p><strong>Type:</strong> ${agent.type || 'Not specified'}</p>
+                            <p><strong>Database:</strong> ${agent.database ? 'Connected' : 'Not connected'}</p>
+                            <div class="agent-actions">
+                                <a href="/agents/${agent.agent_id}" class="btn btn-secondary">View Details</a>
+                                <button onclick="revokeAgent('${agent.agent_id}')" class="btn btn-danger">Revoke</button>
+                            </div>
+                        `;
+                        grid.appendChild(card);
+                    })
+                    .catch(err => console.error('Error loading agent:', err));
+            });
+        } else {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>No agents registered yet.</p>
+                    <a href="/wizard" class="btn btn-primary">Create Your First Agent</a>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        document.getElementById('agents-container').innerHTML = 
+            '<p class="error">Error loading agents</p>';
+    });
+
+function revokeAgent(agentId) {
+    if (confirm(`Are you sure you want to revoke agent ${agentId}? This action cannot be undone.`)) {
+        fetch(`/api/agents/${agentId}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            return response.json().then(data => {
+                if (response.ok) {
+                    alert('Agent revoked successfully');
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to revoke agent'));
+                }
+            });
+        })
+        .catch(error => {
+            alert('Error revoking agent: ' + error.message);
+        });
+    }
+}
+</script>
+
+{% endblock %}
+

@@ -1,0 +1,76 @@
+name: Show and Tell
+description: Share your projects and achievements
+title: "[Show and Tell] "
+labels: ["show-and-tell"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share what you've built with AI Agent Connector! We love seeing how the community uses the project.
+
+  - type: textarea
+    id: project
+    attributes:
+      label: Project Description
+      description: What did you build?
+      placeholder: "I built an analytics dashboard that uses AI Agent Connector widgets..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: features
+    attributes:
+      label: Key Features
+      description: What are the main features?
+      placeholder: |
+        - Real-time query widgets
+        - Custom themes
+        - Integration with our CI/CD
+    validations:
+      required: false
+
+  - type: textarea
+    id: tech
+    attributes:
+      label: Technology Stack
+      description: What technologies did you use?
+      placeholder: "Python, Flask, PostgreSQL, React..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: challenges
+    attributes:
+      label: Challenges & Solutions
+      description: What challenges did you face and how did you solve them?
+      placeholder: "I had trouble with permissions, but the access preview feature helped..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: results
+    attributes:
+      label: Results
+      description: What were the results? Any metrics or achievements?
+      placeholder: "Reduced query time by 50%, improved developer productivity..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: links
+    attributes:
+      label: Links
+      description: Links to your project, screenshots, demos, etc.
+      placeholder: "GitHub: https://..., Demo: https://..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information you'd like to share
+      placeholder: "Add any other context, lessons learned, tips, etc."
+    validations:
+      required: false
+

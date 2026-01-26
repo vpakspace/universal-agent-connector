@@ -1,0 +1,24 @@
+{
+  "tax_identifier": ["tax_id", "vat_number", "ein", "gst_id", "tax_number"],
+  "customer_name": ["name", "full_name", "customer_name", "client_name", "contact_name"],
+  "email": ["email", "email_address", "contact_email", "e_mail", "email_addr"],
+  "phone": ["phone", "phone_number", "contact_phone", "telephone", "phone_no"],
+  "address": ["address", "street_address", "mailing_address", "physical_address", "addr"],
+  "postal_code": ["postal_code", "zip_code", "zip", "postcode", "postal"],
+  "country": ["country", "country_code", "nation", "country_name"],
+  "city": ["city", "city_name", "town", "municipality"],
+  "state": ["state", "state_code", "province", "region"],
+  "date_of_birth": ["date_of_birth", "dob", "birth_date", "birthday", "birth_day"],
+  "social_security_number": ["ssn", "social_security_number", "ss_number", "social_security_no"],
+  "credit_card": ["credit_card", "card_number", "cc_number", "card_no", "credit_card_number"],
+  "order_total": ["order_total", "total", "total_amount", "amount", "order_amount"],
+  "order_date": ["order_date", "date", "created_date", "created_at", "order_created"],
+  "status": ["status", "state", "order_status", "current_status", "status_code"],
+  "quantity": ["quantity", "qty", "amount", "count", "item_count"],
+  "price": ["price", "unit_price", "cost", "item_price", "unit_cost"],
+  "product_name": ["product_name", "name", "product", "item_name", "product_title"],
+  "category": ["category", "category_name", "product_category", "cat", "type"],
+  "description": ["description", "desc", "details", "product_description", "item_description"],
+  "revenue": ["revenue", "total_revenue", "sales_revenue", "income", "total_income", "total_spend", "total_sales", "amount", "total_amount"]
+}
+

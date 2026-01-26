@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Console Locked - AI Agent Connector{% endblock %}
+
+{% block content %}
+<div class="dashboard" style="max-width: 500px; margin: 5rem auto;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2>🔒 Console Locked</h2>
+        <p style="color: #666; margin-top: 1rem;">
+            The console is locked and needs to be unlocked by entering the PIN.<br>
+            You can find the PIN printed out on the standard output of your shell that runs the server.
+        </p>
+    </div>
+    
+    <div style="background: #f5f5f5; padding: 2rem; border-radius: 8px; border: 1px solid #ddd;">
+        <form id="pin-form" onsubmit="unlockConsole(event)">
+            <div style="margin-bottom: 1.5rem;">
+                <label for="pin-input" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                    Enter PIN:
+                </label>
+                <input 
+                    type="text" 
+                    id="pin-input" 
+                    name="pin" 
+                    maxlength="4" 
+                    pattern="[0-9]{4}" 
+                    placeholder="0000"
+                    style="width: 100%; padding: 0.75rem; font-size: 1.5rem; text-align: center; letter-spacing: 0.5rem; border: 2px solid #ddd; border-radius: 4px; font-family: 'Courier New', monospace;"
+                    autocomplete="off"
+                    autofocus
+                    required
+                />
+            </div>
+            
+            <div id="error-message" style="color: #d32f2f; margin-bottom: 1rem; min-height: 1.5rem; text-align: center; display: none;"></div>
+            
+            <button 
+                type="submit" 
+                class="btn btn-primary" 
+                style="width: 100%; padding: 0.75rem; font-size: 1rem;"
+            >
+                Unlock Console
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function unlockConsole(event) {
+    event.preventDefault();
+    
+    const pinInput = document.getElementById('pin-input');
+    const errorMessage = document.getElementById('error-message');
+    const pin = pinInput.value.trim();
+    
+    // Clear previous error
+    errorMessage.style.display = 'none';
+    errorMessage.textContent = '';
+    
+    // Validate PIN format
+    if (!/^\d{4}$/.test(pin)) {
+        errorMessage.textContent = 'Please enter a 4-digit PIN';
+        errorMessage.style.display = 'block';
+        pinInput.focus();
+        return;
+    }
+    
+    // Send unlock request
+    fetch('/api/console/unlock', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pin: pin })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Redirect to console
+            window.location.href = '/console';
+        } else {
+            errorMessage.textContent = data.message || 'Invalid PIN. Please try again.';
+            errorMessage.style.display = 'block';
+            pinInput.value = '';
+            pinInput.focus();
+        }
+    })
+    .catch(error => {
+        errorMessage.textContent = 'Error unlocking console. Please try again.';
+        errorMessage.style.display = 'block';
+        pinInput.focus();
+    });
+}
+
+// Auto-focus PIN input
+document.getElementById('pin-input').focus();
+
+// Allow only numeric input
+document.getElementById('pin-input').addEventListener('input', function(e) {
+    this.value = this.value.replace(/[^0-9]/g, '');
+});
+</script>
+
+<style>
+#pin-input:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+</style>
+{% endblock %}
+

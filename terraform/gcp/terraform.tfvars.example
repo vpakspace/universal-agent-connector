@@ -1,0 +1,26 @@
+# GCP Configuration
+gcp_project_id = "your-gcp-project-id"
+gcp_region = "us-central1"
+project_name = "ai-agent-connector"
+
+# Network Configuration
+subnet_cidr = "10.0.0.0/16"
+master_ipv4_cidr_block = "172.16.0.0/28"
+
+# Node Configuration
+node_count = 2
+node_min_count = 1
+node_max_count = 10
+node_machine_type = "e2-medium"
+node_disk_size = 50
+preemptible_nodes = false
+
+# Helm Configuration
+helm_release_name = "ai-agent-connector"
+helm_chart_path = "../../helm/ai-agent-connector"
+helm_chart_version = "1.0.0"
+kubernetes_namespace = "production"
+
+# Application Configuration
+image_tag = "latest"
+replica_count = 2

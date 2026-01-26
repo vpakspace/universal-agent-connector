@@ -1,0 +1,131 @@
+# Universal Ontology Adapter Configuration
+# JAG Intelligence Suite - Enterprise Ontology Support
+
+ontology:
+  # Source ontology file (supports .ttl, .owl, .yaml, .jsonld)
+  source: "./ontologies/healthcare_hl7.ttl"
+  
+  # Format: "turtle", "owl", "yaml", "jsonld" (auto-detected from extension if not specified)
+  format: "turtle"
+  
+  # Namespace prefix for generated tools
+  namespace_prefix: "hl7"
+  
+  # Base URI for ontology (if needed for resolution)
+  base_uri: "http://hl7.org/fhir/"
+
+# JAG Intelligence Suite Settings
+jag_settings:
+  # Disambiguation threshold (JAG-001)
+  # Higher = more strict (fewer false merges)
+  disambiguation_threshold: 0.85
+  
+  # Target MINE score (JAG-002)
+  # Minimum acceptable knowledge graph quality
+  mine_target: 0.80
+  
+  # Guardrails mode (JAG-003)
+  # - strict: Block all violations
+  # - permissive: Allow with warnings
+  # - audit-only: Log but don't block
+  guardrails_mode: "strict"
+  
+  # Spectral analysis threshold (JAG-004)
+  # Alert if Fiedler value (λ₂) < threshold
+  spectral_alert_threshold: 2.0
+
+# Tool Generation Settings
+tool_generation:
+  # Enable CRUD operations (get_, create_, update_, delete_, list_)
+  enable_crud: true
+  
+  # Enable query tools (find_by_*, filter_by_*)
+  enable_queries: true
+  
+  # Custom tool templates (optional)
+  # Path to custom Python templates for tool generation
+  custom_tool_templates: "./templates/healthcare_tools.py"
+  
+  # Tool naming convention
+  # Options: "snake_case", "camelCase", "PascalCase"
+  naming_convention: "snake_case"
+
+# Validation Settings
+validation:
+  # Enable axiom validation
+  enable_axiom_validation: true
+  
+  # Strict mode: Fail on any validation error
+  strict_mode: false
+  
+  # Custom validation rules file (optional)
+  custom_rules: null
+
+# Health Check Settings
+health_check:
+  # Run health check before deployment
+  pre_deployment_check: true
+  
+  # Minimum MINE score required for deployment
+  min_mine_score: 0.75
+  
+  # Check for ambiguous class names
+  check_ambiguity: true
+  
+  # Check for missing inverse properties
+  check_connectivity: true
+  
+  # Check for circular dependencies
+  check_circular_deps: true
+
+# Documentation Generation
+documentation:
+  # Auto-generate API docs from ontology
+  auto_generate: true
+  
+  # Output format: "openapi", "swagger", "markdown"
+  format: "openapi"
+  
+  # Output directory
+  output_dir: "./docs/api"
+  
+  # Include examples in documentation
+  include_examples: true
+
+# Ontology Marketplace (Pre-built Ontologies)
+marketplace:
+  # Enable marketplace ontologies
+  enable_marketplace: true
+  
+  # Marketplace directory
+  marketplace_dir: "./ontologies/marketplace"
+  
+  # Pre-installed ontologies
+  pre_installed:
+    - name: "HL7 FHIR"
+      file: "hl7_fhir.ttl"
+      domain: "healthcare"
+      certified: true
+    - name: "GAAP Financial"
+      file: "gaap_financial.ttl"
+      domain: "finance"
+      certified: true
+    - name: "Social Services"
+      file: "social_services.yaml"
+      domain: "social"
+      certified: true
+
+# Logging
+logging:
+  # Log level: "DEBUG", "INFO", "WARNING", "ERROR"
+  level: "INFO"
+  
+  # Log ontology parsing
+  log_parsing: true
+  
+  # Log tool generation
+  log_tool_generation: true
+  
+  # Log validation results
+  log_validation: true
+

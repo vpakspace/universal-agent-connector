@@ -1,0 +1,13 @@
+{{- if and .Values.autoscaling.enabled (gt (int .Values.autoscaling.minReplicas) 1) }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ai-agent-connector.fullname" . }}
+  labels:
+    {{- include "ai-agent-connector.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ max 1 (sub (int .Values.autoscaling.minReplicas) 1) }}
+  selector:
+    matchLabels:
+      {{- include "ai-agent-connector.selectorLabels" . | nindent 6 }}
+{{- end }}

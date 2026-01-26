@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Details - AI Agent Connector{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 id="agent-title">Agent Details</h2>
+        <div>
+            <a href="/agents" class="btn btn-secondary">← Back to Agents</a>
+            <button onclick="revokeAgent()" class="btn btn-danger">Revoke Agent</button>
+        </div>
+    </div>
+    
+    <div id="agent-details" class="loading">
+        Loading agent details...
+    </div>
+    
+    <div id="permissions-section" style="margin-top: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3>Permissions</h3>
+            <a id="access-preview-link" href="#" class="btn btn-primary">View Access Preview</a>
+        </div>
+        <div id="permissions-list" class="loading">Loading permissions...</div>
+    </div>
+</div>
+
+<script>
+const agentId = window.location.pathname.split('/').pop();
+document.getElementById('access-preview-link').href = `/agents/${agentId}/access-preview`;
+
+function loadAgentDetails() {
+    fetch(`/api/agents/${agentId}`)
+        .then(response => response.json())
+        .then(agent => {
+            document.getElementById('agent-title').textContent = `Agent: ${agent.agent_id}`;
+            
+            document.getElementById('agent-details').innerHTML = `
+                <div class="agent-info-card">
+                    <h3>Agent Information</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Agent ID:</strong> ${agent.agent_id}
+                        </div>
+                        <div class="info-item">
+                            <strong>Name:</strong> ${agent.name || 'Not specified'}
+                        </div>
+                        <div class="info-item">
+                            <strong>Type:</strong> ${agent.type || 'Not specified'}
+                        </div>
+                        <div class="info-item">
+                            <strong>Registered:</strong> ${agent.registered_at || 'Unknown'}
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin-top: 2rem;">Database Connection</h3>
+                    ${agent.database ? `
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <strong>Status:</strong> <span class="success">Connected</span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Connection Name:</strong> ${agent.database.connection_name || 'default'}
+                            </div>
+                            <div class="info-item">
+                                <strong>Type:</strong> ${agent.database.type || 'postgresql'}
+                            </div>
+                            ${agent.database.host ? `
+                                <div class="info-item">
+                                    <strong>Host:</strong> ${agent.database.host}
+                                </div>
+                                <div class="info-item">
+                                    <strong>Database:</strong> ${agent.database.database || 'N/A'}
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : '<p class="error">No database connection configured</p>'}
+                </div>
+            `;
+            
+            // Load permissions
+            if (agent.resource_permissions) {
+                const permissions = agent.resource_permissions;
+                const permissionsList = document.getElementById('permissions-list');
+                
+                if (Object.keys(permissions).length > 0) {
+                    permissionsList.innerHTML = '<ul class="permissions-list">' +
+                        Object.entries(permissions).map(([resource, info]) => `
+                            <li class="permission-item">
+                                <strong>${resource}</strong> (${info.type})
+                                <div class="permission-badges">
+                                    ${info.permissions.map(p => `<span class="badge badge-${p}">${p}</span>`).join('')}
+                                </div>
+                            </li>
+                        `).join('') +
+                        '</ul>';
+                } else {
+                    permissionsList.innerHTML = '<p>No permissions configured</p>';
+                }
+            }
+        })
+        .catch(error => {
+            document.getElementById('agent-details').innerHTML = 
+                '<p class="error">Error loading agent details: ' + error.message + '</p>';
+        });
+}
+
+function revokeAgent() {
+    if (confirm(`Are you sure you want to revoke agent ${agentId}? This action cannot be undone.`)) {
+        fetch(`/api/agents/${agentId}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            return response.json().then(data => {
+                if (response.ok) {
+                    alert('Agent revoked successfully');
+                    window.location.href = '/agents';
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to revoke agent'));
+                }
+            });
+        })
+        .catch(error => {
+            alert('Error revoking agent: ' + error.message);
+        });
+    }
+}
+
+loadAgentDetails();
+</script>
+
+<style>
+.agent-info-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.info-item {
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.permissions-list {
+    list-style: none;
+    margin-top: 1rem;
+}
+
+.permission-item {
+    background: white;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    border-left: 4px solid #3498db;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.permission-badges {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.badge-read {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.badge-write {
+    background: #d4edda;
+    color: #155724;
+}
+</style>
+{% endblock %}
+

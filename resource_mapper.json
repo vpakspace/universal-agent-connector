@@ -1,0 +1,125 @@
+{
+  "Revenue": {
+    "resources": [
+      "mcp://{{tenant}}/postgres/sales_data",
+      "mcp://{{tenant}}/postgres/invoices",
+      "mcp://{{tenant}}/postgres/payment_transactions",
+      "mcp://{{tenant}}/postgres/revenue_reports",
+      "mcp://{{tenant}}/salesforce/opportunities"
+    ],
+    "tools": [
+      "query_sales",
+      "aggregate_revenue",
+      "get_revenue_by_period",
+      "calculate_total_revenue",
+      "revenue_forecast",
+      "sales_trend_analysis",
+      "invoice_summary",
+      "payment_analytics",
+      "revenue_by_product",
+      "monthly_revenue_report"
+    ],
+    "requires": ["READ_FINANCIAL_DATA"],
+    "description": "Revenue and sales analysis resources"
+  },
+  "Customer": {
+    "resources": [
+      "mcp://{{tenant}}/postgres/customers",
+      "mcp://{{tenant}}/postgres/customer_profiles",
+      "mcp://{{tenant}}/postgres/customer_segments",
+      "mcp://{{tenant}}/postgres/customer_contacts",
+      "mcp://{{tenant}}/salesforce/accounts",
+      "mcp://{{tenant}}/salesforce/contacts"
+    ],
+    "tools": [
+      "get_customer_list",
+      "search_customers",
+      "customer_segmentation",
+      "get_customer_details",
+      "customer_lifetime_value",
+      "customer_churn_prediction",
+      "customer_feedback_analysis",
+      "customer_support_history",
+      "customer_acquisition_cost",
+      "customer_retention_rate",
+      "query_customer_orders",
+      "filter_by_date_range",
+      "aggregate_purchases"
+    ],
+    "requires": ["READ_CUSTOMER_DATA"],
+    "description": "Customer data and analytics resources"
+  },
+  "Inventory": {
+    "resources": [
+      "mcp://{{tenant}}/postgres/products",
+      "mcp://{{tenant}}/postgres/stock_levels",
+      "mcp://{{tenant}}/postgres/warehouses",
+      "mcp://{{tenant}}/postgres/suppliers",
+      "mcp://{{tenant}}/erp/inventory"
+    ],
+    "tools": [
+      "check_stock_levels",
+      "list_products",
+      "get_product_details",
+      "reorder_products",
+      "inventory_valuation",
+      "warehouse_inventory_report",
+      "supply_chain_status",
+      "product_demand_forecast",
+      "track_shipments",
+      "inventory_turnover_rate"
+    ],
+    "requires": ["READ_INVENTORY_DATA"],
+    "description": "Inventory management and stock resources"
+  },
+  "Employee": {
+    "resources": [
+      "mcp://{{tenant}}/postgres/employees",
+      "mcp://{{tenant}}/postgres/departments",
+      "mcp://{{tenant}}/postgres/payroll",
+      "mcp://{{tenant}}/postgres/attendance_records",
+      "mcp://{{tenant}}/hr/employee_data"
+    ],
+    "tools": [
+      "list_employees",
+      "get_employee_details",
+      "search_employees",
+      "calculate_payroll",
+      "track_attendance",
+      "employee_performance_review",
+      "department_headcount",
+      "employee_onboarding_status",
+      "employee_salary_report",
+      "hr_analytics"
+    ],
+    "requires": ["READ_HR_DATA"],
+    "description": "Employee and HR resources"
+  },
+  "Transaction": {
+    "resources": [
+      "mcp://{{tenant}}/postgres/transactions",
+      "mcp://{{tenant}}/postgres/orders",
+      "mcp://{{tenant}}/postgres/payments",
+      "mcp://{{tenant}}/postgres/refunds",
+      "mcp://{{tenant}}/payment_gateway/transactions"
+    ],
+    "tools": [
+      "get_transaction_history",
+      "search_transactions",
+      "process_payment",
+      "issue_refund",
+      "transaction_summary",
+      "daily_transaction_report",
+      "fraud_detection_check",
+      "payment_gateway_status",
+      "order_fulfillment_status",
+      "transaction_analytics",
+      "query_customer_orders",
+      "filter_by_date_range",
+      "aggregate_purchases"
+    ],
+    "requires": ["READ_TRANSACTION_DATA"],
+    "description": "Financial transactions and order resources"
+  }
+}
+

@@ -1,0 +1,510 @@
+{% extends "base.html" %}
+
+{% block title %}Cost Dashboard - AI Agent Connector{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cost-dashboard {
+        padding: 2rem 0;
+    }
+    
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .dashboard-header h2 {
+        margin: 0;
+    }
+    
+    .controls {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+    
+    .controls select, .controls input {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .stat-card h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.9rem;
+        color: #666;
+        font-weight: normal;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+        margin: 0;
+    }
+    
+    .stat-label {
+        font-size: 0.8rem;
+        color: #999;
+        margin-top: 0.25rem;
+    }
+    
+    .chart-container {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .chart-container h3 {
+        margin: 0 0 1rem 0;
+    }
+    
+    .cost-breakdown {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .breakdown-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .breakdown-card h3 {
+        margin: 0 0 1rem 0;
+    }
+    
+    .breakdown-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .breakdown-item:last-child {
+        border-bottom: none;
+    }
+    
+    .breakdown-label {
+        font-weight: 500;
+    }
+    
+    .breakdown-value {
+        color: #0066cc;
+        font-weight: bold;
+    }
+    
+    .budget-alerts {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .budget-alerts h3 {
+        margin: 0 0 1rem 0;
+    }
+    
+    .alert-item {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-radius: 4px;
+        border-left: 4px solid #ff9900;
+        background: #fff8e1;
+    }
+    
+    .alert-item.active {
+        border-left-color: #4caf50;
+        background: #e8f5e9;
+    }
+    
+    .alert-item.triggered {
+        border-left-color: #f44336;
+        background: #ffebee;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 0.9rem;
+    }
+    
+    .btn-primary {
+        background: #0066cc;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #0052a3;
+    }
+    
+    .btn-secondary {
+        background: #666;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #555;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #999;
+    }
+    
+    .error {
+        background: #ffebee;
+        color: #c62828;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cost-dashboard">
+    <div class="dashboard-header">
+        <h2>Cost Dashboard</h2>
+        <div class="controls">
+            <select id="period-select">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="365">Last year</option>
+            </select>
+            <select id="provider-filter">
+                <option value="">All Providers</option>
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="custom">Custom</option>
+            </select>
+            <select id="agent-filter">
+                <option value="">All Agents</option>
+            </select>
+            <button class="btn btn-primary" onclick="exportReport()">Export Report</button>
+        </div>
+    </div>
+    
+    <div id="error-message" class="error" style="display: none;"></div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Cost</h3>
+            <p class="stat-number" id="total-cost">$0.00</p>
+            <p class="stat-label" id="total-cost-period">Last 30 days</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Calls</h3>
+            <p class="stat-number" id="total-calls">0</p>
+            <p class="stat-label">API calls</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Tokens</h3>
+            <p class="stat-number" id="total-tokens">0</p>
+            <p class="stat-label">Tokens processed</p>
+        </div>
+        <div class="stat-card">
+            <h3>Avg Cost/Call</h3>
+            <p class="stat-number" id="avg-cost">$0.00</p>
+            <p class="stat-label">Per API call</p>
+        </div>
+    </div>
+    
+    <div class="cost-breakdown">
+        <div class="breakdown-card">
+            <h3>Cost by Provider</h3>
+            <div id="cost-by-provider">
+                <p class="loading">Loading...</p>
+            </div>
+        </div>
+        <div class="breakdown-card">
+            <h3>Cost by Operation</h3>
+            <div id="cost-by-operation">
+                <p class="loading">Loading...</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="chart-container">
+        <h3>Daily Cost Trend</h3>
+        <canvas id="daily-cost-chart" width="400" height="100"></canvas>
+    </div>
+    
+    <div class="budget-alerts">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Budget Alerts</h3>
+            <button class="btn btn-secondary" onclick="manageAlerts()">Manage Alerts</button>
+        </div>
+        <div id="budget-alerts-list">
+            <p class="loading">Loading alerts...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    let costChart = null;
+    let currentPeriod = 30;
+    let currentProvider = '';
+    let currentAgent = '';
+    
+    // Load dashboard data
+    function loadDashboard() {
+        const params = new URLSearchParams();
+        if (currentPeriod) params.append('period_days', currentPeriod);
+        if (currentProvider) params.append('provider', currentProvider);
+        if (currentAgent) params.append('agent_id', currentAgent);
+        
+        fetch(`/api/cost/dashboard?${params.toString()}`)
+            .then(response => response.json())
+            .then(data => {
+                updateDashboard(data);
+            })
+            .catch(error => {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('error-message').textContent = 'Failed to load dashboard data: ' + error.message;
+                document.getElementById('error-message').style.display = 'block';
+            });
+    }
+    
+    function updateDashboard(data) {
+        // Update stats
+        document.getElementById('total-cost').textContent = '$' + data.total_cost.toFixed(4);
+        document.getElementById('total-calls').textContent = data.total_calls.toLocaleString();
+        document.getElementById('total-tokens').textContent = data.total_tokens.toLocaleString();
+        document.getElementById('avg-cost').textContent = '$' + data.average_cost_per_call.toFixed(6);
+        document.getElementById('total-cost-period').textContent = `Last ${data.period_days} days`;
+        
+        // Update cost by provider
+        const providerDiv = document.getElementById('cost-by-provider');
+        if (Object.keys(data.cost_by_provider).length === 0) {
+            providerDiv.innerHTML = '<p style="color: #999;">No data available</p>';
+        } else {
+            providerDiv.innerHTML = Object.entries(data.cost_by_provider)
+                .sort((a, b) => b[1] - a[1])
+                .map(([provider, cost]) => `
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">${provider}</span>
+                        <span class="breakdown-value">$${cost.toFixed(4)}</span>
+                    </div>
+                `).join('');
+        }
+        
+        // Update cost by operation
+        const operationDiv = document.getElementById('cost-by-operation');
+        if (Object.keys(data.cost_by_operation).length === 0) {
+            operationDiv.innerHTML = '<p style="color: #999;">No data available</p>';
+        } else {
+            operationDiv.innerHTML = Object.entries(data.cost_by_operation)
+                .sort((a, b) => b[1] - a[1])
+                .map(([operation, cost]) => `
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">${operation}</span>
+                        <span class="breakdown-value">$${cost.toFixed(4)}</span>
+                    </div>
+                `).join('');
+        }
+        
+        // Update daily cost chart
+        updateDailyChart(data.daily_costs);
+        
+        // Load budget alerts
+        loadBudgetAlerts();
+    }
+    
+    function updateDailyChart(dailyCosts) {
+        const ctx = document.getElementById('daily-cost-chart').getContext('2d');
+        
+        // Sort dates
+        const sortedDates = Object.keys(dailyCosts).sort();
+        const costs = sortedDates.map(date => dailyCosts[date]);
+        
+        if (costChart) {
+            costChart.destroy();
+        }
+        
+        costChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: sortedDates,
+                datasets: [{
+                    label: 'Daily Cost (USD)',
+                    data: costs,
+                    borderColor: '#0066cc',
+                    backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(4);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function loadBudgetAlerts() {
+        fetch('/api/cost/budget-alerts')
+            .then(response => response.json())
+            .then(data => {
+                const alertsDiv = document.getElementById('budget-alerts-list');
+                if (data.alerts.length === 0) {
+                    alertsDiv.innerHTML = '<p style="color: #999;">No budget alerts configured</p>';
+                } else {
+                    alertsDiv.innerHTML = data.alerts.map(alert => {
+                        const status = alert.enabled ? 'active' : '';
+                        return `
+                            <div class="alert-item ${status}">
+                                <strong>${alert.name}</strong><br>
+                                <small>Threshold: $${alert.threshold_usd.toFixed(2)} (${alert.period})</small>
+                                ${alert.last_triggered ? `<br><small style="color: #f44336;">Last triggered: ${new Date(alert.last_triggered).toLocaleString()}</small>` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading budget alerts:', error);
+                document.getElementById('budget-alerts-list').innerHTML = '<p style="color: #f44336;">Failed to load alerts</p>';
+            });
+    }
+    
+    function exportReport() {
+        const params = new URLSearchParams();
+        if (currentPeriod) {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - currentPeriod);
+            params.append('start_date', startDate.toISOString().split('T')[0]);
+            params.append('end_date', endDate.toISOString().split('T')[0]);
+        }
+        if (currentProvider) params.append('provider', currentProvider);
+        if (currentAgent) params.append('agent_id', currentAgent);
+        params.append('format', 'csv');
+        
+        window.location.href = `/api/cost/export?${params.toString()}`;
+    }
+    
+    function manageAlerts() {
+        // Simple alert management - could be expanded to a modal or separate page
+        const name = prompt('Alert name:');
+        if (!name) return;
+        
+        const threshold = parseFloat(prompt('Threshold (USD):'));
+        if (isNaN(threshold)) return;
+        
+        const period = prompt('Period (daily/weekly/monthly/total):');
+        if (!['daily', 'weekly', 'monthly', 'total'].includes(period)) {
+            alert('Invalid period');
+            return;
+        }
+        
+        fetch('/api/cost/budget-alerts', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name: name,
+                threshold_usd: threshold,
+                period: period
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('Budget alert created successfully');
+            loadBudgetAlerts();
+        })
+        .catch(error => {
+            alert('Failed to create alert: ' + error.message);
+        });
+    }
+    
+    // Event listeners
+    document.getElementById('period-select').addEventListener('change', (e) => {
+        currentPeriod = parseInt(e.target.value);
+        loadDashboard();
+    });
+    
+    document.getElementById('provider-filter').addEventListener('change', (e) => {
+        currentProvider = e.target.value;
+        loadDashboard();
+    });
+    
+    document.getElementById('agent-filter').addEventListener('change', (e) => {
+        currentAgent = e.target.value;
+        loadDashboard();
+    });
+    
+    // Load agents for filter
+    fetch('/api/agents')
+        .then(response => response.json())
+        .then(data => {
+            const agentSelect = document.getElementById('agent-filter');
+            if (data.agents && Array.isArray(data.agents)) {
+                data.agents.forEach(agent => {
+                    const option = document.createElement('option');
+                    option.value = agent.agent_id;
+                    option.textContent = agent.agent_id;
+                    agentSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => console.error('Error loading agents:', error));
+    
+    // Initial load
+    loadDashboard();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(loadDashboard, 30000);
+</script>
+{% endblock %}

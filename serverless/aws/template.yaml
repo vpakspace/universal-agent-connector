@@ -1,0 +1,207 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AI Agent Connector - Serverless Lambda Deployment
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: ai-agent-connector
+    Description: Project name for resource naming
+  
+  DatabaseType:
+    Type: String
+    Default: RDS
+    AllowedValues:
+      - RDS
+      - Aurora
+    Description: Managed database type
+  
+  DatabaseEndpoint:
+    Type: String
+    Description: RDS/Aurora endpoint (e.g., mydb.xxxxx.us-east-1.rds.amazonaws.com)
+  
+  DatabaseName:
+    Type: String
+    Default: ai_agent_connector
+    Description: Database name
+  
+  DatabaseUsername:
+    Type: String
+    Description: Database username
+  
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    Description: Database password (stored in Secrets Manager)
+  
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - development
+      - staging
+      - production
+    Description: Environment name
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Environment:
+      Variables:
+        FLASK_ENV: !Ref Environment
+        SERVERLESS: 'true'
+        DATABASE_POOL_SIZE: '5'
+        DATABASE_MAX_OVERFLOW: '10'
+    Layers:
+      - !Ref PythonDependenciesLayer
+
+Resources:
+  # Secrets Manager for database credentials
+  DatabaseSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${ProjectName}-db-secret'
+      SecretString: !Sub |
+        {
+          "host": "${DatabaseEndpoint}",
+          "port": 5432,
+          "database": "${DatabaseName}",
+          "username": "${DatabaseUsername}",
+          "password": "${DatabasePassword}"
+        }
+  
+  # IAM Role for Lambda
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:DescribeSecret
+                Resource: !Ref DatabaseSecret
+        - PolicyName: VPCAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                Resource: '*'
+  
+  # Lambda Layer for Python dependencies
+  PythonDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub '${ProjectName}-dependencies'
+      Description: Python dependencies for AI Agent Connector
+      ContentUri: layers/python/
+      CompatibleRuntimes:
+        - python3.11
+      RetentionPolicy: Retain
+  
+  # API Gateway
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub '${ProjectName}-api'
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          title: !Sub '${ProjectName} API'
+        paths:
+          /{proxy+}:
+            x-amazon-apigateway-any-method:
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations'
+          /health:
+            get:
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HealthFunction.Arn}/invocations'
+  
+  # Main API Lambda Function
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-api'
+      Handler: lambda_handler.lambda_handler
+      CodeUri: ../../
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          DATABASE_SECRET_ARN: !Ref DatabaseSecret
+      VpcConfig:
+        SecurityGroupIds: []
+        SubnetIds: []
+      ReservedConcurrentExecutions: 100
+      ProvisionedConcurrencyConfig:
+        ProvisionedConcurrentExecutions: 2
+  
+  # Health Check Lambda Function (lightweight, no cold start)
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-health'
+      Handler: lambda_handler.health_handler
+      CodeUri: ../../
+      Role: !GetAtt LambdaExecutionRole.Arn
+      MemorySize: 128
+      Timeout: 5
+      Events:
+        HealthEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /health
+            Method: GET
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+    Export:
+      Name: !Sub '${ProjectName}-api-url'
+  
+  ApiFunctionArn:
+    Description: API Lambda function ARN
+    Value: !GetAtt ApiFunction.Arn
+    Export:
+      Name: !Sub '${ProjectName}-api-arn'
+  
+  HealthFunctionArn:
+    Description: Health check Lambda function ARN
+    Value: !GetAtt HealthFunction.Arn
+

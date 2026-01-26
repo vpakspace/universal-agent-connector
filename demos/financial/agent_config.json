@@ -1,0 +1,18 @@
+{
+  "agent_id": "financial-analyst",
+  "agent_info": {
+    "name": "Financial Reporting Analyst",
+    "type": "analytics",
+    "description": "AI agent for financial reporting and transaction analysis"
+  },
+  "agent_credentials": {
+    "api_key": "demo-financial-key",
+    "api_secret": "demo-financial-secret"
+  },
+  "database": {
+    "connection_string": "postgresql://postgres:password@localhost:5432/financial_demo",
+    "connection_name": "financial",
+    "type": "postgresql"
+  }
+}
+

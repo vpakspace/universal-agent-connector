@@ -1,0 +1,27 @@
+# AWS Configuration
+aws_region = "us-east-1"
+project_name = "ai-agent-connector"
+
+# VPC Configuration
+vpc_cidr = "10.0.0.0/16"
+availability_zones_count = 2
+
+# Kubernetes Configuration
+kubernetes_version = "1.28"
+node_instance_types = ["t3.medium"]
+node_desired_size = 2
+node_min_size = 1
+node_max_size = 10
+
+# ECR Configuration
+ecr_repository_name = "ai-agent-connector"
+
+# Helm Configuration
+helm_release_name = "ai-agent-connector"
+helm_chart_path = "../../helm/ai-agent-connector"
+helm_chart_version = "1.0.0"
+kubernetes_namespace = "production"
+
+# Application Configuration
+image_tag = "latest"
+replica_count = 2
