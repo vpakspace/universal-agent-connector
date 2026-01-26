@@ -58,6 +58,29 @@ See [README.md](README.md) for detailed setup instructions.
 
 ---
 
+## 💾 Download
+
+**Source Code:**
+- [Download ZIP](https://github.com/cloudbadal007/universal-agent-connector/archive/refs/tags/v1.0.0.zip)
+- [Download TAR.GZ](https://github.com/cloudbadal007/universal-agent-connector/archive/refs/tags/v1.0.0.tar.gz)
+
+**Git Clone:**
+```bash
+git clone --branch v1.0.0 https://github.com/cloudbadal007/universal-agent-connector.git
+```
+
+**Docker:**
+```bash
+docker pull cloudbadal007/universal-agent-connector:1.0.0
+```
+
+**PyPI (coming soon):**
+```bash
+pip install universal-agent-connector
+```
+
+---
+
 ## 📈 Upgrading
 
 **From Pre-Release Versions:**
