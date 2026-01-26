@@ -358,6 +358,23 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
+## 👥 Contributors
+
+This release was made possible by:
+
+**Core Team:**
+- Pankaj Kumar - Creator & Lead Developer
+- [Team members if applicable]
+
+**Special Thanks:**
+- 100+ early adopters who provided feedback
+- 50+ contributors who reported issues and suggestions
+- The MCP and semantic web communities
+
+Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md)
+
+---
+
 ## 🙏 Acknowledgments
 
 - Flask, OpenAI, Anthropic, and all open-source libraries
