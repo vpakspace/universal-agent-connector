@@ -228,6 +228,40 @@ See [Installation Guide](docs/DEVELOPER_SETUP.md) for detailed setup instruction
 
 ---
 
+## 🔧 Compatibility
+
+**Supported Python Versions:** 3.8, 3.9, 3.10, 3.11
+
+**Supported Databases:**
+- PostgreSQL 11+
+- MySQL 5.7+
+- MongoDB 4.0+
+- BigQuery
+- Snowflake
+
+**Supported Platforms:**
+- Linux (Ubuntu 20.04+, RHEL 8+)
+- macOS 11+
+- Windows 10/11 (with WSL2 recommended)
+
+**Cloud Providers:**
+- AWS (tested on ECS, EKS, Lambda)
+- GCP (tested on Cloud Run, GKE, Cloud Functions)
+- Azure (tested on Container Apps, AKS, Functions)
+
+**Additional Requirements:**
+- **Node.js**: 14+ (for CLI tool `aidb`)
+- **Docker**: 20.10+ (for containerized deployments)
+- **Kubernetes**: 1.20+ (for Helm chart deployments)
+- **Web Browsers**: Modern browsers (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+) for web dashboard
+
+**MCP Compatibility:**
+- Compatible with MCP (Model Context Protocol) clients
+- Supports MCP tool generation from ontologies
+- Semantic routing compatible with MCP tool filtering
+
+---
+
 ## 📊 Statistics
 
 - **Total Files:** 574
