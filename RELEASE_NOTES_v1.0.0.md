@@ -249,17 +249,6 @@ See [Installation Guide](docs/DEVELOPER_SETUP.md) for detailed setup instruction
 - GCP (tested on Cloud Run, GKE, Cloud Functions)
 - Azure (tested on Container Apps, AKS, Functions)
 
-**Additional Requirements:**
-- **Node.js**: 14+ (for CLI tool `aidb`)
-- **Docker**: 20.10+ (for containerized deployments)
-- **Kubernetes**: 1.20+ (for Helm chart deployments)
-- **Web Browsers**: Modern browsers (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+) for web dashboard
-
-**MCP Compatibility:**
-- Compatible with MCP (Model Context Protocol) clients
-- Supports MCP tool generation from ontologies
-- Semantic routing compatible with MCP tool filtering
-
 ---
 
 ## 📊 Statistics
