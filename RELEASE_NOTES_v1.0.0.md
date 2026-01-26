@@ -281,6 +281,18 @@ See [SECURITY.md](SECURITY.md) for our security policy.
 
 ---
 
+## ⚡ Performance
+
+Typical performance characteristics:
+- Query execution latency: [from tests]
+- Permission check overhead: [from tests]
+- Context window reduction: 60-80% (with semantic routing)
+- Connection pool efficiency: [from tests]
+
+See [docs/BENCHMARKS.md](docs/BENCHMARKS.md) for detailed performance data.
+
+---
+
 ## 🌟 Highlights
 
 ### MCP Semantic Routing
