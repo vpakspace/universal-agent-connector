@@ -332,6 +332,14 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
+## ⚠️ Breaking Changes
+
+This is the initial public release. No migration needed.
+
+**Note for Early Adopters:** If you were using pre-release versions, please see [MIGRATION.md](docs/MIGRATION.md) for upgrade guidance.
+
+---
+
 ## 📄 License
 
 This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for details.
