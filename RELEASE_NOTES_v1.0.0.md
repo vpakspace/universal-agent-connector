@@ -263,15 +263,21 @@ See [Installation Guide](docs/DEVELOPER_SETUP.md) for detailed setup instruction
 
 ---
 
-## 🔒 Security Features
+## 🔒 Security
 
-- **Encrypted Credentials** - Database credentials encrypted at rest using Fernet
-- **Permission Enforcement** - Automatic validation on every query
-- **Audit Logging** - Complete audit trail of all operations
-- **PII Masking** - Automatic PII detection and masking
-- **Security Monitoring** - Real-time security alerts and anomaly detection
-- **SSO Support** - Enterprise SSO with SAML, OAuth, LDAP
-- **Data Residency** - Enforce data residency rules for compliance
+**Security Features in v1.0.0:**
+- Encrypted credential storage (Fernet)
+- API key authentication
+- Table/column-level permissions
+- Audit logging
+- PII masking capabilities
+- Air-gapped mode support
+
+**Security Advisories:**
+No known security vulnerabilities at release.
+
+**Reporting Security Issues:**
+See [SECURITY.md](SECURITY.md) for our security policy.
 
 ---
 
