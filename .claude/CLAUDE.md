@@ -13,6 +13,8 @@ Universal Agent Connector - MCP инфраструктура для AI-аген�
 
 ### Ключевые возможности
 
+- **Streamlit UI** - веб-интерфейс для Natural Language запросов
+- **Natural Language Query** - NL→SQL через OpenAI API (русский/английский)
 - **Agent Registry** - регистрация и управление AI-агентами
 - **Database Connectors** - PostgreSQL, SQLite подключения
 - **OntoGuard Integration** - семантическая валидация действий
@@ -51,6 +53,56 @@ Universal Agent Connector - MCP инфраструктура для AI-аген�
 │  PostgreSQL / SQLite Connectors                             │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Streamlit UI
+
+Веб-интерфейс для работы с системой.
+
+### Запуск
+
+```bash
+# Терминал 1: Flask API
+export OPENAI_API_KEY="your-key"
+python main_simple.py
+
+# Терминал 2: Streamlit
+streamlit run streamlit_app.py
+```
+
+**URLs:**
+- Flask API: http://localhost:5000
+- Streamlit UI: http://localhost:8501
+
+### Функционал
+
+| Вкладка | Описание |
+|---------|----------|
+| **Вопросы (NL)** | Natural Language запросы на русском/английском |
+| **SQL запросы** | Прямые SQL запросы к БД |
+| **OntoGuard** | Проверка разрешений по OWL онтологии |
+| **История** | Лог выполненных запросов |
+
+### Natural Language Query
+
+```
+Вопрос: "Покажи всех пациентов"
+SQL: SELECT * FROM patients;
+Результат: 5 записей
+```
+
+**Поддерживаемые языки**: русский, английский
+
+**Требования**: `OPENAI_API_KEY` для NL→SQL конверсии
+
+### Файлы
+
+| Файл | Описание |
+|------|----------|
+| `streamlit_app.py` | Главное приложение (~500 строк) |
+| `run_streamlit.sh` | Скрипт запуска |
+| `requirements_streamlit.txt` | Зависимости (streamlit, pandas, requests) |
 
 ---
 
@@ -245,23 +297,14 @@ python e2e_postgres_tests.py
 
 ---
 
-## Commits
-
-| Commit | Дата | Описание |
-|--------|------|----------|
-| `3129e82` | 2026-01-28 | feat: Add PostgreSQL E2E testing with OntoGuard validation |
-| `25f509a` | 2026-01-28 | docs: Update project memory with Round 2 test results |
-| `03ccff7` | 2026-01-28 | feat: Add SQL table to OWL entity type mapping |
-| `2950716` | 2026-01-28 | feat: Add OntoGuard validation to query endpoints |
-| `1fb9d14` | 2026-01-28 | feat: OntoGuard + Universal Agent Connector Integration (7 фаз) |
-
----
-
 ## Файлы проекта
 
 ```
 universal-agent-connector/
 ├── main_simple.py              # Flask entry point
+├── streamlit_app.py            # Streamlit UI (~500 строк)
+├── run_streamlit.sh            # Скрипт запуска Streamlit
+├── requirements_streamlit.txt  # Streamlit dependencies
 ├── docker-compose.yml          # PostgreSQL container (port 5433)
 ├── init_db.sql                 # Test data (hospital)
 ├── e2e_postgres_tests.py       # E2E test script (15 tests)
@@ -270,11 +313,13 @@ universal-agent-connector/
 │       ├── api/routes.py       # REST API endpoints
 │       ├── security/           # OntoGuard adapter, exceptions
 │       ├── mcp/tools/          # MCP tools for AI agents
+│       ├── utils/nl_to_sql.py  # NL→SQL converter (OpenAI)
 │       └── db/connectors.py    # PostgreSQL/MySQL/SQLite connectors
 ├── ontologies/
 │   └── hospital.owl            # Medical domain OWL ontology
 ├── config/
-│   └── ontoguard.yaml          # OntoGuard configuration
+│   ├── ontoguard.yaml          # OntoGuard configuration
+│   └── hospital_ontoguard.yaml # Hospital-specific config
 └── tests/
     └── test_ontoguard_*.py     # Unit tests
 ```
@@ -292,11 +337,27 @@ universal-agent-connector/
 
 - [x] ~~Docker Compose setup~~ (done: port 5433)
 - [x] ~~PostgreSQL E2E тесты~~ (done: 15/15 passed)
-- [ ] Natural Language Query с LLM
+- [x] ~~Natural Language Query с LLM~~ (done: OpenAI API, русский/английский)
+- [x] ~~Streamlit UI~~ (done: NL queries, SQL, OntoGuard validation)
+- [ ] Выбор онтологии через UI (сейчас hardcoded hospital.owl)
+- [ ] Настройка БД через UI (сейчас hardcoded hospital_db)
 - [ ] GraphQL mutations для OntoGuard
 - [ ] WebSocket для real-time validation
 - [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Prometheus metrics
+
+---
+
+## Commits
+
+| Commit | Дата | Описание |
+|--------|------|----------|
+| `9ebbea8` | 2026-01-28 | feat: Add Streamlit UI for Natural Language queries |
+| `3129e82` | 2026-01-28 | feat: Add PostgreSQL E2E testing with OntoGuard validation |
+| `25f509a` | 2026-01-28 | docs: Update project memory with Round 2 test results |
+| `03ccff7` | 2026-01-28 | feat: Add SQL table to OWL entity type mapping |
+| `2950716` | 2026-01-28 | feat: Add OntoGuard validation to query endpoints |
+| `1fb9d14` | 2026-01-28 | feat: OntoGuard + Universal Agent Connector Integration |
 
 ---
 
