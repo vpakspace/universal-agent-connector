@@ -820,13 +820,34 @@ def execute_query(agent_id: str):
         }
         action = action_map.get(query_type, 'query')
 
+        # Table name to entity type mapping (SQL tables → OWL entity types)
+        table_entity_map = {
+            'patients': 'PatientRecord',
+            'medical_records': 'MedicalRecord',
+            'lab_results': 'LabResult',
+            'prescriptions': 'Prescription',
+            'medications': 'Medication',
+            'billing': 'Billing',
+            'appointments': 'Appointment',
+            'staff': 'Staff',
+            'departments': 'Department',
+            'rooms': 'Room',
+            'insurance': 'Insurance',
+            'surgeries': 'Surgery',
+            'emergency_cases': 'EmergencyCase',
+            'equipment': 'Equipment',
+            'audit_log': 'AuditLog'
+        }
+
         # Get tables from query and validate each
         tables = extract_tables_from_query(query)
         context = get_ontoguard_context()
 
         for table in tables:
-            # Convert table name to entity type (e.g., medical_records -> MedicalRecord)
-            entity_type = ''.join(word.capitalize() for word in table.replace('_', ' ').split())
+            # Use mapping if available, otherwise convert automatically
+            table_lower = table.lower()
+            entity_type = table_entity_map.get(table_lower,
+                ''.join(word.capitalize() for word in table.replace('_', ' ').split()))
 
             result = adapter.validate_action(action, entity_type, context)
             if not result.allowed:
@@ -935,11 +956,32 @@ def natural_language_query(agent_id: str):
             }
             action = action_map.get(query_type, 'query')
 
+            # Table name to entity type mapping
+            table_entity_map = {
+                'patients': 'PatientRecord',
+                'medical_records': 'MedicalRecord',
+                'lab_results': 'LabResult',
+                'prescriptions': 'Prescription',
+                'medications': 'Medication',
+                'billing': 'Billing',
+                'appointments': 'Appointment',
+                'staff': 'Staff',
+                'departments': 'Department',
+                'rooms': 'Room',
+                'insurance': 'Insurance',
+                'surgeries': 'Surgery',
+                'emergency_cases': 'EmergencyCase',
+                'equipment': 'Equipment',
+                'audit_log': 'AuditLog'
+            }
+
             tables = extract_tables_from_query(generated_sql)
             context = get_ontoguard_context()
 
             for table in tables:
-                entity_type = ''.join(word.capitalize() for word in table.replace('_', ' ').split())
+                table_lower = table.lower()
+                entity_type = table_entity_map.get(table_lower,
+                    ''.join(word.capitalize() for word in table.replace('_', ' ').split()))
                 result = adapter.validate_action(action, entity_type, context)
                 if not result.allowed:
                     audit_logger.log(ActionType.NATURAL_LANGUAGE_QUERY, agent_id=agent_id, status='denied',
