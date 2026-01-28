@@ -101,9 +101,11 @@ table_entity_map = {
 
 ## Тестирование
 
-### E2E Query Validation Tests (11/11 passed)
+### E2E Query Validation Tests (21/21 passed)
 
-**Двухуровневая защита**: OntoGuard (semantic) + Resource Permissions
+**Двухуровневая защита**: OntoGuard (semantic RBAC) + Resource Permissions
+
+#### Round 1 (11/11)
 
 **ALLOWED (5/5)**:
 - ✅ Doctor SELECT patients
@@ -119,6 +121,22 @@ table_entity_map = {
 - ✅ Receptionist UPDATE medical_records
 - ✅ Nurse UPDATE patients
 - ✅ Doctor UPDATE patients (OWL: only Patient/Receptionist/Admin)
+
+#### Round 2 (10/10)
+
+**ALLOWED (3/3)**:
+- ✅ Admin INSERT lab_results
+- ✅ Doctor SELECT lab_results
+- ✅ LabTech UPDATE lab_results
+
+**DENIED by OWL rules (7/7)**:
+- ✅ Admin UPDATE billing (OWL: Admin can update only PatientRecord)
+- ✅ Nurse INSERT patients (OWL: Nurse has no create permission)
+- ✅ Receptionist SELECT billing (OWL: only Patient/Insurance can read Billing)
+- ✅ Receptionist DELETE appointments (OWL: no delete permission)
+- ✅ Nurse UPDATE medical_records (OWL: no update permission)
+- ✅ Admin DELETE appointments (OWL: Admin can delete only Staff/PatientRecord)
+- ✅ Doctor DELETE lab_results (OWL: no delete permission)
 
 ### Unit Tests
 
