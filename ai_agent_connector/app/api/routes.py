@@ -11,7 +11,7 @@ from . import api_bp
 
 # Core components
 from ..agents.registry import AgentRegistry
-from ..agents.ai_agent_manager import AIAgentManager
+from ..agents.ai_agent_manager import AIAgentManager, set_cost_tracker as set_ai_cost_tracker
 from ..permissions.access_control import AccessControl, Permission
 from ..db import DatabaseConnector
 from ..utils.sql_parser import extract_tables_from_query, get_query_type, QueryType
@@ -41,7 +41,7 @@ agent_orchestrator = AgentOrchestrator(agent_registry)
 set_nl_cost_tracker(cost_tracker)
 
 # Set cost tracker for AI agent manager
-ai_agent_manager.set_cost_tracker(cost_tracker)
+set_ai_cost_tracker(cost_tracker)
 
 # Initialize security monitor
 security_monitor = SecurityMonitor()

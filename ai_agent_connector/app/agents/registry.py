@@ -764,6 +764,15 @@ class AgentRegistry:
             'updated_at': get_timestamp()
         }
     
+    # Alias for backwards compatibility
+    def update_database_connection(
+        self,
+        agent_id: str,
+        database_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Alias for update_agent_database (backwards compatibility)"""
+        return self.update_agent_database(agent_id, database_config)
+
     def _sanitize_database_config(self, database_config: Dict[str, Any]) -> Dict[str, Any]:
         """Remove sensitive data before storing database configuration"""
         allowed_fields = ('connection_name', 'host', 'port', 'database', 'schema', 'type')

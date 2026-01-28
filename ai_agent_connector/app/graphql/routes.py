@@ -4,8 +4,15 @@ GraphQL API routes with playground and subscriptions
 
 from flask import Blueprint, request, jsonify, render_template_string, Response, stream_with_context
 from graphql import graphql_sync
-from graphql.error import format_error
+from graphql.error import GraphQLError
 import json
+
+
+def format_error(error: GraphQLError) -> dict:
+    """Format GraphQL error for response (graphql-core 3.x compatible)"""
+    if hasattr(error, 'formatted'):
+        return error.formatted
+    return {'message': str(error)}
 import threading
 from collections import defaultdict
 from typing import Dict, Any, List

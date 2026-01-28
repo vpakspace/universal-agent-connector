@@ -501,3 +501,82 @@ class CostTracker:
         """Get custom pricing for a provider/model"""
         key = f"{provider}_{model}"
         return self._custom_pricing.get(key)
+
+    def get_statistics(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        agent_id: Optional[str] = None,
+        provider: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Get cost statistics for a date range
+
+        Args:
+            start_date: Optional start date (YYYY-MM-DD or ISO format)
+            end_date: Optional end date (YYYY-MM-DD or ISO format)
+            agent_id: Optional filter by agent
+            provider: Optional filter by provider
+
+        Returns:
+            Dictionary with cost statistics
+        """
+        # Filter records
+        filtered_records = self._cost_records
+
+        if agent_id:
+            filtered_records = [r for r in filtered_records if r.agent_id == agent_id]
+        if provider:
+            filtered_records = [r for r in filtered_records if r.provider == provider]
+        if start_date:
+            filtered_records = [r for r in filtered_records if r.timestamp >= start_date]
+        if end_date:
+            filtered_records = [r for r in filtered_records if r.timestamp <= end_date]
+
+        # Calculate statistics
+        total_cost = sum(r.cost_usd for r in filtered_records)
+        total_calls = len(filtered_records)
+        total_tokens = sum(r.total_tokens for r in filtered_records)
+
+        # Cost by provider
+        cost_by_provider = defaultdict(float)
+        calls_by_provider = defaultdict(int)
+        for record in filtered_records:
+            cost_by_provider[record.provider] += record.cost_usd
+            calls_by_provider[record.provider] += 1
+
+        # Cost by model
+        cost_by_model = defaultdict(float)
+        for record in filtered_records:
+            key = f"{record.provider}/{record.model}"
+            cost_by_model[key] += record.cost_usd
+
+        # Cost by operation type
+        cost_by_operation = defaultdict(float)
+        for record in filtered_records:
+            cost_by_operation[record.operation_type] += record.cost_usd
+
+        # Daily breakdown
+        daily_costs = defaultdict(lambda: {'cost': 0.0, 'calls': 0, 'tokens': 0})
+        for record in filtered_records:
+            date = record.timestamp[:10]  # YYYY-MM-DD
+            daily_costs[date]['cost'] += record.cost_usd
+            daily_costs[date]['calls'] += 1
+            daily_costs[date]['tokens'] += record.total_tokens
+
+        return {
+            'total_cost_usd': round(total_cost, 4),
+            'total_calls': total_calls,
+            'total_tokens': total_tokens,
+            'average_cost_per_call': round(total_cost / total_calls, 6) if total_calls > 0 else 0.0,
+            'average_tokens_per_call': round(total_tokens / total_calls, 2) if total_calls > 0 else 0.0,
+            'cost_by_provider': dict(cost_by_provider),
+            'calls_by_provider': dict(calls_by_provider),
+            'cost_by_model': dict(cost_by_model),
+            'cost_by_operation': dict(cost_by_operation),
+            'daily_breakdown': {k: dict(v) for k, v in daily_costs.items()},
+            'date_range': {
+                'start': start_date,
+                'end': end_date
+            }
+        }
