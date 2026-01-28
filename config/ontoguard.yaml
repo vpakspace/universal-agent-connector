@@ -1,0 +1,154 @@
+# OntoGuard Configuration for Universal Agent Connector
+# =====================================================
+#
+# This file configures the OntoGuard semantic firewall integration,
+# enabling OWL ontology-based validation for AI agent actions.
+
+ontoguard:
+  # Enable/disable OntoGuard validation
+  enabled: true
+
+  # Ontology files to load
+  # Each ontology defines business rules for a specific domain
+  ontologies:
+    - path: "ontologies/ecommerce.owl"
+      name: "E-Commerce Domain"
+      description: "Business rules for e-commerce operations including users, orders, products"
+
+    # Additional ontologies can be added here:
+    # - path: "ontologies/database_access.owl"
+    #   name: "Database Access"
+    #   description: "Rules for database operations and permissions"
+
+  # Default validation settings
+  defaults:
+    # Strict mode: fail-closed (deny if validation errors occur)
+    # Non-strict mode: fail-open (allow if validation errors occur)
+    strict_mode: false
+
+    # Log all validation attempts (useful for auditing)
+    log_violations: true
+
+    # Cache validation results for performance
+    cache_results: true
+
+    # Cache time-to-live in seconds
+    cache_ttl: 300
+
+  # Role mappings
+  # Maps application roles to ontology roles
+  roles:
+    admin:
+      - Admin
+      - SystemAdmin
+      - SuperUser
+
+    manager:
+      - Manager
+      - TeamLead
+      - Supervisor
+
+    user:
+      - Customer
+      - Guest
+      - StandardUser
+
+  # Action mappings
+  # Maps database/application operations to semantic actions
+  action_mappings:
+    # SQL operations
+    SELECT: read
+    INSERT: create
+    UPDATE: update
+    DELETE: delete
+    EXECUTE: execute
+
+    # API operations
+    GET: read
+    POST: create
+    PUT: update
+    PATCH: update
+
+    # Semantic actions (pass-through)
+    read: read
+    create: create
+    update: update
+    delete: delete
+    query: read
+    execute: execute
+
+  # Entity type mappings
+  # Maps database tables/API resources to ontology entity types
+  entity_mappings:
+    # Database tables
+    users: User
+    orders: Order
+    products: Product
+    customers: Customer
+    inventory: Inventory
+
+    # API resources
+    "/api/users": User
+    "/api/orders": Order
+    "/api/products": Product
+
+  # Validation rules overrides
+  # Override or extend ontology rules via configuration
+  rules_overrides:
+    # Allow read access for all authenticated users
+    - action: read
+      entity_type: "*"
+      allow_roles:
+        - Admin
+        - Manager
+        - Customer
+
+    # Restrict delete to Admin only
+    - action: delete
+      entity_type: User
+      allow_roles:
+        - Admin
+      deny_roles:
+        - Customer
+        - Manager
+
+  # Audit configuration
+  audit:
+    # Enable audit logging
+    enabled: true
+
+    # Log level for audit events
+    log_level: INFO
+
+    # Include context in audit logs
+    include_context: true
+
+    # Audit storage (file, database, or external)
+    storage:
+      type: file
+      path: "logs/ontoguard_audit.log"
+
+  # Integration settings
+  integration:
+    # Apply validation to API routes
+    api_routes: true
+
+    # Apply validation to GraphQL operations
+    graphql: true
+
+    # Apply validation to MCP tool calls
+    mcp_tools: true
+
+    # Apply validation in policy engine
+    policy_engine: true
+
+  # Performance settings
+  performance:
+    # Maximum ontology size (in triples)
+    max_ontology_size: 100000
+
+    # Validation timeout in milliseconds
+    validation_timeout_ms: 5000
+
+    # Cache warm-up on startup
+    cache_warmup: true

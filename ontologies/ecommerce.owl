@@ -1,0 +1,353 @@
+<?xml version="1.0"?>
+<!--
+    E-Commerce Ontology for OntoGuard
+    
+    This ontology defines the semantic structure and business rules for an e-commerce system.
+    It includes user roles, orders, products, payments, and refunds, along with
+    action permissions and business constraints.
+    
+    Namespace: http://example.org/ecommerce#
+-->
+
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+         xmlns:ontoguard="http://example.org/ontoguard#"
+         xml:base="http://example.org/ecommerce#">
+
+    <!-- ============================================ -->
+    <!-- ONTOLOGY METADATA -->
+    <!-- ============================================ -->
+    
+    <owl:Ontology rdf:about="http://example.org/ecommerce">
+        <rdfs:comment>E-Commerce Ontology for OntoGuard Semantic Validation</rdfs:comment>
+        <rdfs:label>E-Commerce Ontology</rdfs:label>
+        <owl:versionInfo>1.0</owl:versionInfo>
+    </owl:Ontology>
+
+    <!-- ============================================ -->
+    <!-- CLASSES (CONCEPTS) -->
+    <!-- ============================================ -->
+    
+    <!-- User Class and Subclasses -->
+    <owl:Class rdf:about="#User">
+        <rdfs:label>User</rdfs:label>
+        <rdfs:comment>Base class for all users in the e-commerce system</rdfs:comment>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#Customer">
+        <rdfs:subClassOf rdf:resource="#User"/>
+        <rdfs:label>Customer</rdfs:label>
+        <rdfs:comment>Regular customer who can place orders and make purchases</rdfs:comment>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#Admin">
+        <rdfs:subClassOf rdf:resource="#User"/>
+        <rdfs:label>Administrator</rdfs:label>
+        <rdfs:comment>System administrator with full access to manage users, products, and orders</rdfs:comment>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#Manager">
+        <rdfs:subClassOf rdf:resource="#User"/>
+        <rdfs:label>Manager</rdfs:label>
+        <rdfs:comment>Manager who can approve high-value refunds and manage operations</rdfs:comment>
+    </owl:Class>
+    
+    <!-- Order and Related Classes -->
+    <owl:Class rdf:about="#Order">
+        <rdfs:label>Order</rdfs:label>
+        <rdfs:comment>An order placed by a customer</rdfs:comment>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#Product">
+        <rdfs:label>Product</rdfs:label>
+        <rdfs:comment>A product available for purchase</rdfs:comment>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#Payment">
+        <rdfs:label>Payment</rdfs:label>
+        <rdfs:comment>Payment associated with an order</rdfs:comment>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#Refund">
+        <rdfs:label>Refund</rdfs:label>
+        <rdfs:comment>A refund issued for an order</rdfs:comment>
+    </owl:Class>
+    
+    <!-- Action Classes -->
+    <owl:Class rdf:about="#Action">
+        <rdfs:label>Action</rdfs:label>
+        <rdfs:comment>Base class for all actions that can be performed in the system</rdfs:comment>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#CreateOrder">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Create Order</rdfs:label>
+        <rdfs:comment>Action to create a new order</rdfs:comment>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#DeleteUser">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Delete User</rdfs:label>
+        <rdfs:comment>Action to delete a user account</rdfs:comment>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#ProcessRefund">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Process Refund</rdfs:label>
+        <rdfs:comment>Action to process a refund for an order</rdfs:comment>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#CancelOrder">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Cancel Order</rdfs:label>
+        <rdfs:comment>Action to cancel an existing order</rdfs:comment>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#ModifyProduct">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Modify Product</rdfs:label>
+        <rdfs:comment>Action to modify product information</rdfs:comment>
+    </owl:Class>
+
+    <!-- ============================================ -->
+    <!-- PROPERTIES (RELATIONSHIPS) -->
+    <!-- ============================================ -->
+    
+    <!-- User-Order Relationship -->
+    <owl:ObjectProperty rdf:about="#hasOrder">
+        <rdfs:label>has order</rdfs:label>
+        <rdfs:comment>Relates a user to their orders</rdfs:comment>
+        <rdfs:domain rdf:resource="#User"/>
+        <rdfs:range rdf:resource="#Order"/>
+    </owl:ObjectProperty>
+    
+    <!-- Order-Product Relationship -->
+    <owl:ObjectProperty rdf:about="#containsProduct">
+        <rdfs:label>contains product</rdfs:label>
+        <rdfs:comment>Relates an order to the products it contains</rdfs:comment>
+        <rdfs:domain rdf:resource="#Order"/>
+        <rdfs:range rdf:resource="#Product"/>
+    </owl:ObjectProperty>
+    
+    <!-- Order-Payment Relationship -->
+    <owl:ObjectProperty rdf:about="#hasPayment">
+        <rdfs:label>has payment</rdfs:label>
+        <rdfs:comment>Relates an order to its payment</rdfs:comment>
+        <rdfs:domain rdf:resource="#Order"/>
+        <rdfs:range rdf:resource="#Payment"/>
+    </owl:ObjectProperty>
+    
+    <!-- Order-Refund Relationship -->
+    <owl:ObjectProperty rdf:about="#hasRefund">
+        <rdfs:label>has refund</rdfs:label>
+        <rdfs:comment>Relates an order to its refund</rdfs:comment>
+        <rdfs:domain rdf:resource="#Order"/>
+        <rdfs:range rdf:resource="#Refund"/>
+    </owl:ObjectProperty>
+    
+    <!-- Action Permission Properties -->
+    <owl:ObjectProperty rdf:about="#requiresRole">
+        <rdfs:label>requires role</rdfs:label>
+        <rdfs:comment>Specifies which user role is required to perform an action</rdfs:comment>
+        <rdfs:domain rdf:resource="#Action"/>
+        <rdfs:range rdf:resource="#User"/>
+    </owl:ObjectProperty>
+    
+    <owl:ObjectProperty rdf:about="#requiresApproval">
+        <rdfs:label>requires approval</rdfs:label>
+        <rdfs:comment>Indicates that an action requires approval from a specific role</rdfs:comment>
+        <rdfs:domain rdf:resource="#Action"/>
+        <rdfs:range rdf:resource="#User"/>
+    </owl:ObjectProperty>
+    
+    <owl:ObjectProperty rdf:about="#appliesTo">
+        <rdfs:label>applies to</rdfs:label>
+        <rdfs:comment>Specifies which entity type an action can be applied to</rdfs:comment>
+        <rdfs:domain rdf:resource="#Action"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    </owl:ObjectProperty>
+    
+    <!-- Data Properties -->
+    <owl:DatatypeProperty rdf:about="#refundAmount">
+        <rdfs:label>refund amount</rdfs:label>
+        <rdfs:comment>Amount of money for a refund</rdfs:comment>
+        <rdfs:domain rdf:resource="#Refund"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    </owl:DatatypeProperty>
+    
+    <owl:DatatypeProperty rdf:about="#orderTime">
+        <rdfs:label>order time</rdfs:label>
+        <rdfs:comment>Timestamp when the order was placed</rdfs:comment>
+        <rdfs:domain rdf:resource="#Order"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#dateTime"/>
+    </owl:DatatypeProperty>
+    
+    <owl:DatatypeProperty rdf:about="#canCancelWithinHours">
+        <rdfs:label>can cancel within hours</rdfs:label>
+        <rdfs:comment>Number of hours within which an order can be cancelled</rdfs:comment>
+        <rdfs:domain rdf:resource="#Order"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+    </owl:DatatypeProperty>
+
+    <!-- ============================================ -->
+    <!-- ACTION INDIVIDUALS -->
+    <!-- ============================================ -->
+    
+    <CreateOrder rdf:about="#createOrderAction">
+        <rdfs:label>create order</rdfs:label>
+        <requiresRole rdf:resource="#Customer"/>
+        <appliesTo rdf:resource="#Order"/>
+    </CreateOrder>
+    
+    <DeleteUser rdf:about="#deleteUserAction">
+        <rdfs:label>delete user</rdfs:label>
+        <requiresRole rdf:resource="#Admin"/>
+        <appliesTo rdf:resource="#User"/>
+    </DeleteUser>
+    
+    <ProcessRefund rdf:about="#processRefundAction">
+        <rdfs:label>process refund</rdfs:label>
+        <appliesTo rdf:resource="#Refund"/>
+    </ProcessRefund>
+    
+    <CancelOrder rdf:about="#cancelOrderAction">
+        <rdfs:label>cancel order</rdfs:label>
+        <appliesTo rdf:resource="#Order"/>
+    </CancelOrder>
+    
+    <ModifyProduct rdf:about="#modifyProductAction">
+        <rdfs:label>modify product</rdfs:label>
+        <requiresRole rdf:resource="#Admin"/>
+        <appliesTo rdf:resource="#Product"/>
+    </ModifyProduct>
+
+    <!-- ============================================ -->
+    <!-- BUSINESS RULES AS OWL RESTRICTIONS -->
+    <!-- ============================================ -->
+    
+    <!-- Rule 1: Only Admins can delete Users -->
+    <owl:Class rdf:about="#AdminOnlyDeleteUser">
+        <rdfs:subClassOf rdf:resource="#DeleteUser"/>
+        <rdfs:comment>Restriction: Only Admin role can perform DeleteUser action</rdfs:comment>
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="#DeleteUser"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="#requiresRole"/>
+                        <owl:hasValue rdf:resource="#Admin"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+    </owl:Class>
+    
+    <!-- Rule 2: Refunds over $1000 require Manager approval -->
+    <owl:Class rdf:about="#HighValueRefund">
+        <rdfs:subClassOf rdf:resource="#Refund"/>
+        <rdfs:comment>Refund with amount greater than $1000</rdfs:comment>
+        <owl:equivalentClass>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="#refundAmount"/>
+                <owl:someValuesFrom>
+                    <rdfs:Datatype>
+                        <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+                        <owl:withRestrictions rdf:parseType="Collection">
+                            <rdf:Description>
+                                <xsd:minExclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">1000</xsd:minExclusive>
+                            </rdf:Description>
+                        </owl:withRestrictions>
+                    </rdfs:Datatype>
+                </owl:someValuesFrom>
+            </owl:Restriction>
+        </owl:equivalentClass>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#ProcessHighValueRefund">
+        <rdfs:subClassOf rdf:resource="#ProcessRefund"/>
+        <rdfs:comment>Processing a high-value refund requires Manager approval</rdfs:comment>
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="#ProcessRefund"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="#appliesTo"/>
+                        <owl:someValuesFrom rdf:resource="#HighValueRefund"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="#requiresApproval"/>
+                        <owl:hasValue rdf:resource="#Manager"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+    </owl:Class>
+    
+    <!-- Rule 3: Orders can only be cancelled within 24 hours -->
+    <owl:Class rdf:about="#CancellableOrder">
+        <rdfs:subClassOf rdf:resource="#Order"/>
+        <rdfs:comment>Order that can be cancelled (within 24 hours of creation)</rdfs:comment>
+        <owl:equivalentClass>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="#canCancelWithinHours"/>
+                <owl:hasValue rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">24</owl:hasValue>
+            </owl:Restriction>
+        </owl:equivalentClass>
+    </owl:Class>
+    
+    <owl:Class rdf:about="#ValidCancelOrder">
+        <rdfs:subClassOf rdf:resource="#CancelOrder"/>
+        <rdfs:comment>Cancel order action that applies only to cancellable orders</rdfs:comment>
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="#CancelOrder"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="#appliesTo"/>
+                        <owl:someValuesFrom rdf:resource="#CancellableOrder"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+    </owl:Class>
+    
+    <!-- Rule 4: Products can only be modified by Admins -->
+    <owl:Class rdf:about="#AdminOnlyModifyProduct">
+        <rdfs:subClassOf rdf:resource="#ModifyProduct"/>
+        <rdfs:comment>Restriction: Only Admin role can modify products</rdfs:comment>
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="#ModifyProduct"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="#requiresRole"/>
+                        <owl:hasValue rdf:resource="#Admin"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="#appliesTo"/>
+                        <owl:hasValue rdf:resource="#Product"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+    </owl:Class>
+
+    <!-- ============================================ -->
+    <!-- ADDITIONAL HELPER CLASSES -->
+    <!-- ============================================ -->
+    
+    <!-- Define a class for actions that require approval -->
+    <owl:Class rdf:about="#ApprovalRequiredAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:comment>Actions that require approval from a specific role</rdfs:comment>
+        <owl:equivalentClass>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="#requiresApproval"/>
+                <owl:minCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:minCardinality>
+            </owl:Restriction>
+        </owl:equivalentClass>
+    </owl:Class>
+
+</rdf:RDF>

@@ -5,9 +5,18 @@ Main API endpoints for agent management, query execution, and system features
 
 from flask import request, jsonify
 from typing import Dict, List, Optional, Any
+from datetime import datetime
+from functools import wraps
 import os
 
 from . import api_bp
+
+# OntoGuard integration
+from ..security import (
+    get_ontoguard_adapter,
+    ValidationResult,
+    ValidationDeniedError
+)
 
 # Core components
 from ..agents.registry import AgentRegistry
@@ -98,6 +107,93 @@ def check_permissions(agent_id: str, query: str) -> tuple[bool, List[Dict[str, A
 
 
 # ============================================================================
+# OntoGuard Validation Decorator
+# ============================================================================
+
+def validate_with_ontoguard(action: str, entity_type: str):
+    """
+    Decorator for OntoGuard semantic validation.
+
+    This decorator validates incoming requests against OWL ontology rules
+    before allowing the endpoint to execute.
+
+    Args:
+        action: The action being performed (e.g., 'query', 'create', 'delete')
+        entity_type: The entity type being acted upon (e.g., 'Database', 'User')
+
+    Returns:
+        Decorated function that performs OntoGuard validation
+
+    Example:
+        @api_bp.route('/agents/<agent_id>/query', methods=['POST'])
+        @validate_with_ontoguard(action='query', entity_type='Database')
+        def execute_query(agent_id):
+            ...
+    """
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            adapter = get_ontoguard_adapter()
+
+            # Skip validation if OntoGuard is not active
+            if not adapter.is_active:
+                return f(*args, **kwargs)
+
+            # Extract context from request
+            context = {
+                'role': request.headers.get('X-User-Role', 'anonymous'),
+                'user_id': request.headers.get('X-User-ID'),
+                'ip': request.remote_addr,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+
+            # Add any additional context from request body
+            if request.is_json:
+                data = request.get_json(silent=True) or {}
+                if 'context' in data:
+                    context.update(data['context'])
+
+            # Validate action with OntoGuard
+            result = adapter.validate_action(action, entity_type, context)
+
+            if not result.allowed:
+                return jsonify({
+                    'error': 'Action denied by OntoGuard',
+                    'reason': result.reason,
+                    'constraints': result.constraints,
+                    'suggestions': result.suggestions,
+                    'metadata': result.metadata
+                }), 403
+
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def get_ontoguard_context() -> Dict[str, Any]:
+    """
+    Extract OntoGuard context from the current request.
+
+    Returns:
+        Dictionary containing context information for OntoGuard validation
+    """
+    context = {
+        'role': request.headers.get('X-User-Role', 'anonymous'),
+        'user_id': request.headers.get('X-User-ID'),
+        'ip': request.remote_addr,
+        'timestamp': datetime.utcnow().isoformat(),
+        'method': request.method,
+        'path': request.path
+    }
+
+    # Add query parameters
+    if request.args:
+        context['query_params'] = dict(request.args)
+
+    return context
+
+
+# ============================================================================
 # Health & Info Endpoints
 # ============================================================================
 
@@ -125,6 +221,168 @@ def api_docs():
             '/databases/test': {},
             '/agents/{agent_id}/query': {}
         }
+    }), 200
+
+
+# ============================================================================
+# OntoGuard Endpoints
+# ============================================================================
+
+@api_bp.route('/ontoguard/status', methods=['GET'])
+def ontoguard_status():
+    """
+    Get OntoGuard status and configuration.
+
+    Returns:
+        JSON object with OntoGuard status information
+    """
+    adapter = get_ontoguard_adapter()
+
+    return jsonify({
+        'enabled': adapter._initialized,
+        'active': adapter.is_active,
+        'pass_through_mode': adapter._pass_through_mode,
+        'ontology_paths': adapter.ontology_paths,
+        'config_path': adapter.config_path
+    }), 200
+
+
+@api_bp.route('/ontoguard/validate', methods=['POST'])
+def validate_action_endpoint():
+    """
+    Validate an action against OntoGuard ontology rules.
+
+    Request body:
+        {
+            "action": "create|read|update|delete|query",
+            "entity_type": "User|Order|Product|...",
+            "context": {
+                "role": "Admin|Customer|...",
+                "user_id": "...",
+                ...
+            }
+        }
+
+    Returns:
+        Validation result with allowed status and explanation
+    """
+    data = request.get_json() or {}
+
+    action = data.get('action')
+    entity_type = data.get('entity_type')
+    context = data.get('context', {})
+
+    if not action or not entity_type:
+        return jsonify({
+            'error': 'action and entity_type are required'
+        }), 400
+
+    adapter = get_ontoguard_adapter()
+    result = adapter.validate_action(action, entity_type, context)
+
+    return jsonify(result.to_dict()), 200 if result.allowed else 403
+
+
+@api_bp.route('/ontoguard/permissions', methods=['POST'])
+def check_permissions_endpoint():
+    """
+    Check if a role has permission for an action on entity type.
+
+    Request body:
+        {
+            "role": "Admin|Customer|...",
+            "action": "create|read|update|delete",
+            "entity_type": "User|Order|..."
+        }
+
+    Returns:
+        Permission check result
+    """
+    data = request.get_json() or {}
+
+    role = data.get('role')
+    action = data.get('action')
+    entity_type = data.get('entity_type')
+
+    if not all([role, action, entity_type]):
+        return jsonify({
+            'error': 'role, action, and entity_type are required'
+        }), 400
+
+    adapter = get_ontoguard_adapter()
+    allowed = adapter.check_permissions(role, action, entity_type)
+
+    return jsonify({
+        'role': role,
+        'action': action,
+        'entity_type': entity_type,
+        'allowed': allowed
+    }), 200
+
+
+@api_bp.route('/ontoguard/allowed-actions', methods=['GET'])
+def get_allowed_actions_endpoint():
+    """
+    Get list of allowed actions for a role on entity type.
+
+    Query parameters:
+        - role: User role
+        - entity_type: Entity type to query
+
+    Returns:
+        List of allowed actions
+    """
+    role = request.args.get('role', 'anonymous')
+    entity_type = request.args.get('entity_type')
+
+    if not entity_type:
+        return jsonify({
+            'error': 'entity_type query parameter is required'
+        }), 400
+
+    adapter = get_ontoguard_adapter()
+    actions = adapter.get_allowed_actions(role, entity_type)
+
+    return jsonify({
+        'role': role,
+        'entity_type': entity_type,
+        'allowed_actions': actions
+    }), 200
+
+
+@api_bp.route('/ontoguard/explain', methods=['POST'])
+def explain_rule_endpoint():
+    """
+    Get detailed explanation of validation rules for an action.
+
+    Request body:
+        {
+            "action": "create|read|update|delete",
+            "entity_type": "User|Order|...",
+            "context": {...}
+        }
+
+    Returns:
+        Human-readable explanation of the rules
+    """
+    data = request.get_json() or {}
+
+    action = data.get('action')
+    entity_type = data.get('entity_type')
+    context = data.get('context', {})
+
+    if not action or not entity_type:
+        return jsonify({
+            'error': 'action and entity_type are required'
+        }), 400
+
+    adapter = get_ontoguard_adapter()
+    explanation = adapter.explain_rule(action, entity_type, context)
+
+    return jsonify({
+        'action': action,
+        'entity_type': entity_type,
+        'explanation': explanation
     }), 200
 
 

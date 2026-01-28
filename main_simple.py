@@ -1,5 +1,8 @@
 """
 AI Agent Connector - Simplified Entry Point (without GraphQL)
+
+This is the main entry point for the AI Agent Connector application,
+providing a Flask-based web server with OntoGuard integration.
 """
 
 from flask import Flask, render_template, session, request, jsonify
@@ -8,6 +11,14 @@ from ai_agent_connector.app.widgets import widget_bp
 from ai_agent_connector.app.prompts import prompt_bp
 import os
 import secrets
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 def create_app(config_name: str = None) -> Flask:
@@ -100,7 +111,132 @@ def create_app(config_name: str = None) -> Flask:
             'note': 'Running in simplified mode (no GraphQL)'
         }
 
+    # Register OntoGuard error handlers
+    _register_ontoguard_error_handlers(app)
+
+    # Initialize OntoGuard
+    _initialize_ontoguard(app)
+
     return app
+
+
+def _register_ontoguard_error_handlers(app: Flask) -> None:
+    """Register OntoGuard-specific error handlers."""
+    try:
+        from ai_agent_connector.app.security.exceptions import (
+            OntoGuardError,
+            ValidationDeniedError,
+            OntologyLoadError,
+            ConfigurationError,
+            PermissionDeniedError,
+            ApprovalRequiredError
+        )
+
+        @app.errorhandler(ValidationDeniedError)
+        def handle_validation_denied(error):
+            """Handle action validation denial."""
+            logger.warning(f"OntoGuard validation denied: {error.message}")
+            return jsonify({
+                'error': 'Validation Denied',
+                'error_type': 'ValidationDeniedError',
+                'action': error.action,
+                'entity_type': error.entity_type,
+                'reason': error.reason,
+                'suggestions': error.suggestions
+            }), 403
+
+        @app.errorhandler(PermissionDeniedError)
+        def handle_permission_denied(error):
+            """Handle permission denial."""
+            logger.warning(f"OntoGuard permission denied: {error.message}")
+            return jsonify({
+                'error': 'Permission Denied',
+                'error_type': 'PermissionDeniedError',
+                'role': error.role,
+                'action': error.action,
+                'entity_type': error.entity_type,
+                'required_role': error.required_role
+            }), 403
+
+        @app.errorhandler(ApprovalRequiredError)
+        def handle_approval_required(error):
+            """Handle approval required error."""
+            logger.warning(f"OntoGuard approval required: {error.message}")
+            return jsonify({
+                'error': 'Approval Required',
+                'error_type': 'ApprovalRequiredError',
+                'action': error.action,
+                'entity_type': error.entity_type,
+                'approver_role': error.approver_role
+            }), 403
+
+        @app.errorhandler(OntologyLoadError)
+        def handle_ontology_load_error(error):
+            """Handle ontology loading error."""
+            logger.error(f"OntoGuard ontology load error: {error.message}")
+            return jsonify({
+                'error': 'Ontology Load Error',
+                'error_type': 'OntologyLoadError',
+                'path': error.path,
+                'message': error.error
+            }), 500
+
+        @app.errorhandler(ConfigurationError)
+        def handle_configuration_error(error):
+            """Handle configuration error."""
+            logger.error(f"OntoGuard configuration error: {error.message}")
+            return jsonify({
+                'error': 'Configuration Error',
+                'error_type': 'ConfigurationError',
+                'config_path': error.config_path,
+                'field': error.field,
+                'message': error.error
+            }), 500
+
+        @app.errorhandler(OntoGuardError)
+        def handle_ontoguard_error(error):
+            """Handle generic OntoGuard error."""
+            logger.error(f"OntoGuard error: {error.message}")
+            return jsonify({
+                'error': 'OntoGuard Error',
+                'error_type': error.__class__.__name__,
+                'message': str(error)
+            }), 500
+
+        logger.info("OntoGuard error handlers registered")
+
+    except ImportError:
+        logger.warning("OntoGuard security module not available, error handlers not registered")
+
+
+def _initialize_ontoguard(app: Flask) -> None:
+    """Initialize OntoGuard with configuration."""
+    try:
+        from ai_agent_connector.app.security import initialize_ontoguard
+
+        # Get ontology path from config or use default
+        ontology_path = os.getenv(
+            'ONTOGUARD_ONTOLOGY_PATH',
+            os.path.join(os.path.dirname(__file__), 'ontologies', 'ecommerce.owl')
+        )
+
+        config = {
+            'ontology_paths': [ontology_path] if os.path.exists(ontology_path) else [],
+            'config_path': os.getenv(
+                'ONTOGUARD_CONFIG_PATH',
+                os.path.join(os.path.dirname(__file__), 'config', 'ontoguard.yaml')
+            )
+        }
+
+        if initialize_ontoguard(config):
+            logger.info(f"OntoGuard initialized with ontology: {ontology_path}")
+        else:
+            logger.warning("OntoGuard running in pass-through mode")
+
+    except ImportError:
+        logger.warning("OntoGuard module not available")
+    except Exception as e:
+        logger.error(f"OntoGuard initialization error: {e}")
 
 
 if __name__ == '__main__':

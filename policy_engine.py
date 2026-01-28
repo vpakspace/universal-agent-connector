@@ -1,15 +1,23 @@
 """
 Policy Engine for MCP Governance
 Validates tool execution requests against security policies
+
+This module provides the PolicyEngine class for validating tool execution
+requests against various security policies including rate limits, RLS,
+complexity limits, PII access, and OntoGuard semantic validation.
 """
 
 import asyncio
 import hashlib
 import json
+import logging
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from collections import defaultdict
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -381,7 +389,249 @@ class PolicyEngine:
         """Revoke PII_READ permission from user"""
         self._pii_permissions[user_id] = False
 
+    def enable_ontoguard(self, ontology_paths: Optional[List[str]] = None) -> bool:
+        """
+        Enable OntoGuard semantic validation in the policy engine.
 
-# Global instance
+        Args:
+            ontology_paths: List of paths to OWL ontology files
+
+        Returns:
+            True if OntoGuard was successfully enabled
+        """
+        try:
+            from ai_agent_connector.app.security import (
+                get_ontoguard_adapter,
+                initialize_ontoguard
+            )
+
+            config = {}
+            if ontology_paths:
+                config['ontology_paths'] = ontology_paths
+
+            return initialize_ontoguard(config)
+
+        except ImportError:
+            # OntoGuard module not available
+            return False
+        except Exception:
+            return False
+
+
+class OntoGuardValidator:
+    """
+    Policy validator using OntoGuard semantic rules.
+
+    This validator integrates OntoGuard ontology-based validation
+    into the existing policy engine infrastructure.
+    """
+
+    def __init__(self, adapter=None):
+        """
+        Initialize the OntoGuard validator.
+
+        Args:
+            adapter: Optional OntoGuardAdapter instance. If None, uses singleton.
+        """
+        self._adapter = adapter
+        self._logger = logging.getLogger(__name__)
+
+    @property
+    def adapter(self):
+        """Get the OntoGuard adapter (lazy initialization)."""
+        if self._adapter is None:
+            try:
+                from ai_agent_connector.app.security import get_ontoguard_adapter
+                self._adapter = get_ontoguard_adapter()
+            except ImportError:
+                self._logger.warning("OntoGuard module not available")
+                return None
+        return self._adapter
+
+    def validate(
+        self,
+        action: str,
+        entity_type: str,
+        context: Dict[str, Any],
+        policy: Dict[str, Any]
+    ) -> ValidationResult:
+        """
+        Validate using OntoGuard ontology rules.
+
+        Args:
+            action: The action being performed
+            entity_type: The entity type being acted upon
+            context: Request context (role, user_id, etc.)
+            policy: Policy configuration
+
+        Returns:
+            ValidationResult indicating if the action is allowed
+        """
+        # Check if OntoGuard validation is enabled in policy
+        if not policy.get('ontoguard_enabled', True):
+            return ValidationResult(
+                is_allowed=True,
+                reason="OntoGuard disabled in policy",
+                suggestions=[],
+                metadata={"ontoguard_enabled": False}
+            )
+
+        adapter = self.adapter
+        if adapter is None or not adapter.is_active:
+            return ValidationResult(
+                is_allowed=True,
+                reason="OntoGuard not active (pass-through)",
+                suggestions=[],
+                metadata={"ontoguard_active": False}
+            )
+
+        # Get role from context
+        role = context.get('role', 'anonymous')
+        user_id = context.get('user_id', 'unknown')
+
+        # Validate action using OntoGuard
+        result = adapter.validate_action(action, entity_type, context)
+
+        # Log validation
+        self._logger.info(
+            f"OntoGuard validation: {action} on {entity_type} "
+            f"by {role} (user: {user_id}) = {result.allowed}"
+        )
+
+        # Convert to policy engine ValidationResult
+        return ValidationResult(
+            is_allowed=result.allowed,
+            reason=result.reason,
+            suggestions=result.suggestions,
+            failed_policy="ontoguard" if not result.allowed else None,
+            metadata={
+                "ontoguard_constraints": result.constraints,
+                "ontoguard_metadata": result.metadata
+            }
+        )
+
+
+class ExtendedPolicyEngine(PolicyEngine):
+    """
+    Extended policy engine with OntoGuard integration.
+
+    This class extends the base PolicyEngine to include OntoGuard
+    semantic validation as an additional policy check.
+    """
+
+    def __init__(
+        self,
+        max_calls_per_hour: int = 100,
+        max_complexity_score: int = 100,
+        enable_ontoguard: bool = True
+    ):
+        """
+        Initialize the extended policy engine.
+
+        Args:
+            max_calls_per_hour: Maximum tool calls per hour per user
+            max_complexity_score: Maximum allowed query complexity score
+            enable_ontoguard: Whether to enable OntoGuard validation
+        """
+        super().__init__(max_calls_per_hour, max_complexity_score)
+        self._ontoguard_enabled = enable_ontoguard
+        self._ontoguard_validator = OntoGuardValidator() if enable_ontoguard else None
+
+    async def validate(
+        self,
+        user_id: str,
+        tenant_id: Optional[str],
+        tool_name: str,
+        arguments: Dict[str, Any]
+    ) -> ValidationResult:
+        """
+        Validate tool execution request against policies including OntoGuard.
+
+        Args:
+            user_id: User ID making the request
+            tenant_id: Tenant ID (for RLS check)
+            tool_name: Name of the tool being called
+            arguments: Arguments passed to the tool
+
+        Returns:
+            ValidationResult indicating if request is allowed
+        """
+        # First, run base policy checks
+        base_result = await super().validate(user_id, tenant_id, tool_name, arguments)
+
+        if not base_result.is_allowed:
+            return base_result
+
+        # Then, run OntoGuard validation if enabled
+        if self._ontoguard_enabled and self._ontoguard_validator:
+            # Extract action and entity from tool_name and arguments
+            action = self._extract_action(tool_name)
+            entity_type = self._extract_entity_type(arguments)
+
+            context = {
+                'role': arguments.get('role', 'anonymous'),
+                'user_id': user_id,
+                'tenant_id': tenant_id
+            }
+
+            policy = {
+                'ontoguard_enabled': self._ontoguard_enabled
+            }
+
+            ontoguard_result = self._ontoguard_validator.validate(
+                action, entity_type, context, policy
+            )
+
+            if not ontoguard_result.is_allowed:
+                return ontoguard_result
+
+        return base_result
+
+    def _extract_action(self, tool_name: str) -> str:
+        """Extract action from tool name."""
+        # Map common tool names to actions
+        action_mapping = {
+            'query': 'read',
+            'select': 'read',
+            'insert': 'create',
+            'create': 'create',
+            'update': 'update',
+            'modify': 'update',
+            'delete': 'delete',
+            'remove': 'delete',
+            'execute': 'execute'
+        }
+
+        tool_lower = tool_name.lower()
+        for keyword, action in action_mapping.items():
+            if keyword in tool_lower:
+                return action
+
+        return 'execute'  # Default action
+
+    def _extract_entity_type(self, arguments: Dict[str, Any]) -> str:
+        """Extract entity type from arguments."""
+        # Try to find entity type in arguments
+        entity_keys = ['entity_type', 'entity', 'table', 'resource', 'type']
+
+        for key in entity_keys:
+            if key in arguments:
+                return str(arguments[key])
+
+        # Try to extract from query
+        if 'query' in arguments:
+            query = str(arguments['query']).lower()
+            # Simple extraction from SQL
+            if 'from' in query:
+                parts = query.split('from')
+                if len(parts) > 1:
+                    table_part = parts[1].strip().split()[0]
+                    return table_part.strip()
+
+        return 'Resource'  # Default entity type
+
+
+# Global instances
 policy_engine = PolicyEngine()
+extended_policy_engine = ExtendedPolicyEngine()
 
