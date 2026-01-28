@@ -878,10 +878,16 @@ def execute_query(agent_id: str):
     connector = agent_registry.get_database_connector(agent_id)
     if not connector:
         return jsonify({'error': 'Agent does not have a database connection'}), 400
-    
+
     try:
+        # Connect to database
+        connector.connect()
+
         query_type = get_query_type(query)
-        result = connector.execute_query(query, params=params, as_dict=as_dict)
+
+        # For non-SELECT queries (INSERT, UPDATE, DELETE), don't try to fetch results
+        fetch_results = query_type == QueryType.SELECT
+        result = connector.execute_query(query, params=params, as_dict=as_dict, fetch=fetch_results)
         row_count = len(result) if result else 0
         
         tables_accessed = list(extract_tables_from_query(query))
@@ -894,14 +900,15 @@ def execute_query(agent_id: str):
                             'query_preview': query[:100]
                         })
         
-        return jsonify({
+        response = jsonify({
             'agent_id': agent_id,
             'query_type': query_type.value,
             'tables_accessed': tables_accessed,
             'success': True,
             'result': result,
             'row_count': row_count
-        }), 200
+        })
+        return response, 200
     except Exception as e:
         audit_logger.log(ActionType.QUERY_EXECUTION, agent_id=agent_id, status='error',
                         error_message=str(e), details={'query_preview': query[:100]})
@@ -909,6 +916,12 @@ def execute_query(agent_id: str):
             'error': 'Query execution failed',
             'message': str(e)
         }), 500
+    finally:
+        # Disconnect from database
+        try:
+            connector.disconnect()
+        except Exception:
+            pass
 
 
 @api_bp.route('/agents/<agent_id>/query/natural', methods=['POST'])

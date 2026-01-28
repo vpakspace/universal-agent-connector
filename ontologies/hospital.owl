@@ -1,0 +1,801 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://example.org/hospital#"
+     xml:base="http://example.org/hospital"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#">
+
+    <owl:Ontology rdf:about="http://example.org/hospital">
+        <rdfs:label>Hospital Management System Ontology</rdfs:label>
+        <rdfs:comment>HIPAA-compliant ontology for hospital operations with role-based access control</rdfs:comment>
+        <owl:versionInfo>1.0.0</owl:versionInfo>
+    </owl:Ontology>
+
+    <!-- ============================================ -->
+    <!-- CLASSES: Roles                               -->
+    <!-- ============================================ -->
+
+    <owl:Class rdf:about="#Role">
+        <rdfs:label>Role</rdfs:label>
+        <rdfs:comment>Base class for all user roles in the hospital system</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Admin">
+        <rdfs:subClassOf rdf:resource="#Role"/>
+        <rdfs:label>Admin</rdfs:label>
+        <rdfs:comment>System administrator with full access to all resources</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Doctor">
+        <rdfs:subClassOf rdf:resource="#Role"/>
+        <rdfs:label>Doctor</rdfs:label>
+        <rdfs:comment>Medical doctor with access to patient records and prescriptions</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Nurse">
+        <rdfs:subClassOf rdf:resource="#Role"/>
+        <rdfs:label>Nurse</rdfs:label>
+        <rdfs:comment>Nurse with limited access to patient records</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Receptionist">
+        <rdfs:subClassOf rdf:resource="#Role"/>
+        <rdfs:label>Receptionist</rdfs:label>
+        <rdfs:comment>Receptionist with access to appointments and basic patient info</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Patient">
+        <rdfs:subClassOf rdf:resource="#Role"/>
+        <rdfs:label>Patient</rdfs:label>
+        <rdfs:comment>Patient with access only to their own records</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#LabTechnician">
+        <rdfs:subClassOf rdf:resource="#Role"/>
+        <rdfs:label>LabTechnician</rdfs:label>
+        <rdfs:comment>Laboratory technician with access to lab results</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Pharmacist">
+        <rdfs:subClassOf rdf:resource="#Role"/>
+        <rdfs:label>Pharmacist</rdfs:label>
+        <rdfs:comment>Pharmacist with access to prescriptions</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#InsuranceAgent">
+        <rdfs:subClassOf rdf:resource="#Role"/>
+        <rdfs:label>InsuranceAgent</rdfs:label>
+        <rdfs:comment>Insurance agent with limited access for billing verification</rdfs:comment>
+    </owl:Class>
+
+    <!-- ============================================ -->
+    <!-- CLASSES: Entities                            -->
+    <!-- ============================================ -->
+
+    <owl:Class rdf:about="#Entity">
+        <rdfs:label>Entity</rdfs:label>
+        <rdfs:comment>Base class for all hospital entities</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#PatientRecord">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>PatientRecord</rdfs:label>
+        <rdfs:comment>Patient demographic and contact information</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#MedicalRecord">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>MedicalRecord</rdfs:label>
+        <rdfs:comment>Patient medical history, diagnoses, and treatment notes (PHI)</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Prescription">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>Prescription</rdfs:label>
+        <rdfs:comment>Medication prescriptions issued by doctors</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Appointment">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>Appointment</rdfs:label>
+        <rdfs:comment>Scheduled appointments between patients and medical staff</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#LabResult">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>LabResult</rdfs:label>
+        <rdfs:comment>Laboratory test results</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Department">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>Department</rdfs:label>
+        <rdfs:comment>Hospital departments (Cardiology, Neurology, etc.)</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Billing">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>Billing</rdfs:label>
+        <rdfs:comment>Patient billing and insurance claims</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Staff">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>Staff</rdfs:label>
+        <rdfs:comment>Hospital staff records</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Medication">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>Medication</rdfs:label>
+        <rdfs:comment>Medication inventory and information</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Equipment">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>Equipment</rdfs:label>
+        <rdfs:comment>Medical equipment inventory</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Room">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>Room</rdfs:label>
+        <rdfs:comment>Hospital rooms and beds</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#EmergencyCase">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>EmergencyCase</rdfs:label>
+        <rdfs:comment>Emergency department cases</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Surgery">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>Surgery</rdfs:label>
+        <rdfs:comment>Surgical procedures and schedules</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#Insurance">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>Insurance</rdfs:label>
+        <rdfs:comment>Insurance policy information</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#AuditLog">
+        <rdfs:subClassOf rdf:resource="#Entity"/>
+        <rdfs:label>AuditLog</rdfs:label>
+        <rdfs:comment>System audit logs for HIPAA compliance</rdfs:comment>
+    </owl:Class>
+
+    <!-- ============================================ -->
+    <!-- CLASSES: Actions                             -->
+    <!-- ============================================ -->
+
+    <owl:Class rdf:about="#Action">
+        <rdfs:label>Action</rdfs:label>
+        <rdfs:comment>Base class for all actions in the system</rdfs:comment>
+    </owl:Class>
+
+    <owl:Class rdf:about="#CreateAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Create</rdfs:label>
+    </owl:Class>
+
+    <owl:Class rdf:about="#ReadAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Read</rdfs:label>
+    </owl:Class>
+
+    <owl:Class rdf:about="#UpdateAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Update</rdfs:label>
+    </owl:Class>
+
+    <owl:Class rdf:about="#DeleteAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Delete</rdfs:label>
+    </owl:Class>
+
+    <owl:Class rdf:about="#ApproveAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Approve</rdfs:label>
+    </owl:Class>
+
+    <owl:Class rdf:about="#PrescribeAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Prescribe</rdfs:label>
+    </owl:Class>
+
+    <owl:Class rdf:about="#DispenseAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Dispense</rdfs:label>
+    </owl:Class>
+
+    <owl:Class rdf:about="#ScheduleAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Schedule</rdfs:label>
+    </owl:Class>
+
+    <owl:Class rdf:about="#CancelAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Cancel</rdfs:label>
+    </owl:Class>
+
+    <owl:Class rdf:about="#TransferAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Transfer</rdfs:label>
+    </owl:Class>
+
+    <owl:Class rdf:about="#DischargeAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Discharge</rdfs:label>
+    </owl:Class>
+
+    <owl:Class rdf:about="#ExportAction">
+        <rdfs:subClassOf rdf:resource="#Action"/>
+        <rdfs:label>Export</rdfs:label>
+    </owl:Class>
+
+    <!-- ============================================ -->
+    <!-- OBJECT PROPERTIES                            -->
+    <!-- ============================================ -->
+
+    <owl:ObjectProperty rdf:about="#requiresRole">
+        <rdfs:domain rdf:resource="#Action"/>
+        <rdfs:range rdf:resource="#Role"/>
+        <rdfs:label>requires role</rdfs:label>
+        <rdfs:comment>Links an action to the role(s) that can perform it</rdfs:comment>
+    </owl:ObjectProperty>
+
+    <owl:ObjectProperty rdf:about="#appliesTo">
+        <rdfs:domain rdf:resource="#Action"/>
+        <rdfs:range rdf:resource="#Entity"/>
+        <rdfs:label>applies to</rdfs:label>
+        <rdfs:comment>Links an action to the entity type it operates on</rdfs:comment>
+    </owl:ObjectProperty>
+
+    <owl:ObjectProperty rdf:about="#belongsToDepartment">
+        <rdfs:domain rdf:resource="#Staff"/>
+        <rdfs:range rdf:resource="#Department"/>
+        <rdfs:label>belongs to department</rdfs:label>
+    </owl:ObjectProperty>
+
+    <owl:ObjectProperty rdf:about="#hasPatient">
+        <rdfs:domain rdf:resource="#Appointment"/>
+        <rdfs:range rdf:resource="#PatientRecord"/>
+        <rdfs:label>has patient</rdfs:label>
+    </owl:ObjectProperty>
+
+    <owl:ObjectProperty rdf:about="#hasDoctor">
+        <rdfs:domain rdf:resource="#Appointment"/>
+        <rdfs:range rdf:resource="#Staff"/>
+        <rdfs:label>has doctor</rdfs:label>
+    </owl:ObjectProperty>
+
+    <owl:ObjectProperty rdf:about="#prescribedBy">
+        <rdfs:domain rdf:resource="#Prescription"/>
+        <rdfs:range rdf:resource="#Staff"/>
+        <rdfs:label>prescribed by</rdfs:label>
+    </owl:ObjectProperty>
+
+    <!-- ============================================ -->
+    <!-- DATA PROPERTIES                              -->
+    <!-- ============================================ -->
+
+    <owl:DatatypeProperty rdf:about="#patientId">
+        <rdfs:domain rdf:resource="#PatientRecord"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#dateOfBirth">
+        <rdfs:domain rdf:resource="#PatientRecord"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#date"/>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#ssn">
+        <rdfs:domain rdf:resource="#PatientRecord"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+        <rdfs:comment>Social Security Number - highly sensitive PHI</rdfs:comment>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#diagnosis">
+        <rdfs:domain rdf:resource="#MedicalRecord"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    </owl:DatatypeProperty>
+
+    <owl:DatatypeProperty rdf:about="#isSensitive">
+        <rdfs:domain rdf:resource="#Entity"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+        <rdfs:comment>Marks entity as containing sensitive PHI data</rdfs:comment>
+    </owl:DatatypeProperty>
+
+    <!-- ============================================ -->
+    <!-- ACTION RULES: Admin                          -->
+    <!-- ============================================ -->
+
+    <!-- Admin can do everything -->
+    <owl:NamedIndividual rdf:about="#AdminCreatePatientRecord">
+        <rdf:type rdf:resource="#CreateAction"/>
+        <requiresRole rdf:resource="#Admin"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#AdminReadPatientRecord">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Admin"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#AdminUpdatePatientRecord">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#Admin"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#AdminDeletePatientRecord">
+        <rdf:type rdf:resource="#DeleteAction"/>
+        <requiresRole rdf:resource="#Admin"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#AdminReadMedicalRecord">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Admin"/>
+        <appliesTo rdf:resource="#MedicalRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#AdminReadAuditLog">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Admin"/>
+        <appliesTo rdf:resource="#AuditLog"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#AdminExportAuditLog">
+        <rdf:type rdf:resource="#ExportAction"/>
+        <requiresRole rdf:resource="#Admin"/>
+        <appliesTo rdf:resource="#AuditLog"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#AdminCreateStaff">
+        <rdf:type rdf:resource="#CreateAction"/>
+        <requiresRole rdf:resource="#Admin"/>
+        <appliesTo rdf:resource="#Staff"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#AdminDeleteStaff">
+        <rdf:type rdf:resource="#DeleteAction"/>
+        <requiresRole rdf:resource="#Admin"/>
+        <appliesTo rdf:resource="#Staff"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#AdminCreateDepartment">
+        <rdf:type rdf:resource="#CreateAction"/>
+        <requiresRole rdf:resource="#Admin"/>
+        <appliesTo rdf:resource="#Department"/>
+    </owl:NamedIndividual>
+
+    <!-- ============================================ -->
+    <!-- ACTION RULES: Doctor                         -->
+    <!-- ============================================ -->
+
+    <owl:NamedIndividual rdf:about="#DoctorReadPatientRecord">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Doctor"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#DoctorReadMedicalRecord">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Doctor"/>
+        <appliesTo rdf:resource="#MedicalRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#DoctorCreateMedicalRecord">
+        <rdf:type rdf:resource="#CreateAction"/>
+        <requiresRole rdf:resource="#Doctor"/>
+        <appliesTo rdf:resource="#MedicalRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#DoctorUpdateMedicalRecord">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#Doctor"/>
+        <appliesTo rdf:resource="#MedicalRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#DoctorCreatePrescription">
+        <rdf:type rdf:resource="#CreateAction"/>
+        <requiresRole rdf:resource="#Doctor"/>
+        <appliesTo rdf:resource="#Prescription"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#DoctorPrescribeMedication">
+        <rdf:type rdf:resource="#PrescribeAction"/>
+        <requiresRole rdf:resource="#Doctor"/>
+        <appliesTo rdf:resource="#Prescription"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#DoctorReadLabResult">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Doctor"/>
+        <appliesTo rdf:resource="#LabResult"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#DoctorReadAppointment">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Doctor"/>
+        <appliesTo rdf:resource="#Appointment"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#DoctorScheduleSurgery">
+        <rdf:type rdf:resource="#ScheduleAction"/>
+        <requiresRole rdf:resource="#Doctor"/>
+        <appliesTo rdf:resource="#Surgery"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#DoctorDischargePatient">
+        <rdf:type rdf:resource="#DischargeAction"/>
+        <requiresRole rdf:resource="#Doctor"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#DoctorReadEmergencyCase">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Doctor"/>
+        <appliesTo rdf:resource="#EmergencyCase"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#DoctorUpdateEmergencyCase">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#Doctor"/>
+        <appliesTo rdf:resource="#EmergencyCase"/>
+    </owl:NamedIndividual>
+
+    <!-- ============================================ -->
+    <!-- ACTION RULES: Nurse                          -->
+    <!-- ============================================ -->
+
+    <owl:NamedIndividual rdf:about="#NurseReadPatientRecord">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Nurse"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#NurseReadMedicalRecord">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Nurse"/>
+        <appliesTo rdf:resource="#MedicalRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#NurseUpdateMedicalRecord">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#Nurse"/>
+        <appliesTo rdf:resource="#MedicalRecord"/>
+        <rdfs:comment>Nurse can update vitals and notes only</rdfs:comment>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#NurseReadPrescription">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Nurse"/>
+        <appliesTo rdf:resource="#Prescription"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#NurseReadAppointment">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Nurse"/>
+        <appliesTo rdf:resource="#Appointment"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#NurseReadLabResult">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Nurse"/>
+        <appliesTo rdf:resource="#LabResult"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#NurseReadRoom">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Nurse"/>
+        <appliesTo rdf:resource="#Room"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#NurseUpdateRoom">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#Nurse"/>
+        <appliesTo rdf:resource="#Room"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#NurseReadEmergencyCase">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Nurse"/>
+        <appliesTo rdf:resource="#EmergencyCase"/>
+    </owl:NamedIndividual>
+
+    <!-- ============================================ -->
+    <!-- ACTION RULES: Receptionist                   -->
+    <!-- ============================================ -->
+
+    <owl:NamedIndividual rdf:about="#ReceptionistCreatePatientRecord">
+        <rdf:type rdf:resource="#CreateAction"/>
+        <requiresRole rdf:resource="#Receptionist"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#ReceptionistReadPatientRecord">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Receptionist"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+        <rdfs:comment>Receptionist can only see basic info, not SSN or sensitive data</rdfs:comment>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#ReceptionistUpdatePatientRecord">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#Receptionist"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+        <rdfs:comment>Receptionist can update contact info only</rdfs:comment>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#ReceptionistCreateAppointment">
+        <rdf:type rdf:resource="#CreateAction"/>
+        <requiresRole rdf:resource="#Receptionist"/>
+        <appliesTo rdf:resource="#Appointment"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#ReceptionistReadAppointment">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Receptionist"/>
+        <appliesTo rdf:resource="#Appointment"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#ReceptionistUpdateAppointment">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#Receptionist"/>
+        <appliesTo rdf:resource="#Appointment"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#ReceptionistCancelAppointment">
+        <rdf:type rdf:resource="#CancelAction"/>
+        <requiresRole rdf:resource="#Receptionist"/>
+        <appliesTo rdf:resource="#Appointment"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#ReceptionistScheduleAppointment">
+        <rdf:type rdf:resource="#ScheduleAction"/>
+        <requiresRole rdf:resource="#Receptionist"/>
+        <appliesTo rdf:resource="#Appointment"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#ReceptionistReadDepartment">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Receptionist"/>
+        <appliesTo rdf:resource="#Department"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#ReceptionistReadStaff">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Receptionist"/>
+        <appliesTo rdf:resource="#Staff"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#ReceptionistCreateEmergencyCase">
+        <rdf:type rdf:resource="#CreateAction"/>
+        <requiresRole rdf:resource="#Receptionist"/>
+        <appliesTo rdf:resource="#EmergencyCase"/>
+    </owl:NamedIndividual>
+
+    <!-- ============================================ -->
+    <!-- ACTION RULES: Patient                        -->
+    <!-- ============================================ -->
+
+    <owl:NamedIndividual rdf:about="#PatientReadOwnPatientRecord">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Patient"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+        <rdfs:comment>Patient can only read their own record</rdfs:comment>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PatientUpdateOwnPatientRecord">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#Patient"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+        <rdfs:comment>Patient can update their contact info only</rdfs:comment>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PatientReadOwnMedicalRecord">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Patient"/>
+        <appliesTo rdf:resource="#MedicalRecord"/>
+        <rdfs:comment>Patient can only read their own medical records</rdfs:comment>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PatientReadOwnPrescription">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Patient"/>
+        <appliesTo rdf:resource="#Prescription"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PatientReadOwnAppointment">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Patient"/>
+        <appliesTo rdf:resource="#Appointment"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PatientCancelOwnAppointment">
+        <rdf:type rdf:resource="#CancelAction"/>
+        <requiresRole rdf:resource="#Patient"/>
+        <appliesTo rdf:resource="#Appointment"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PatientScheduleAppointment">
+        <rdf:type rdf:resource="#ScheduleAction"/>
+        <requiresRole rdf:resource="#Patient"/>
+        <appliesTo rdf:resource="#Appointment"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PatientReadOwnLabResult">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Patient"/>
+        <appliesTo rdf:resource="#LabResult"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PatientReadOwnBilling">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Patient"/>
+        <appliesTo rdf:resource="#Billing"/>
+    </owl:NamedIndividual>
+
+    <!-- ============================================ -->
+    <!-- ACTION RULES: LabTechnician                  -->
+    <!-- ============================================ -->
+
+    <owl:NamedIndividual rdf:about="#LabTechCreateLabResult">
+        <rdf:type rdf:resource="#CreateAction"/>
+        <requiresRole rdf:resource="#LabTechnician"/>
+        <appliesTo rdf:resource="#LabResult"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#LabTechReadLabResult">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#LabTechnician"/>
+        <appliesTo rdf:resource="#LabResult"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#LabTechUpdateLabResult">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#LabTechnician"/>
+        <appliesTo rdf:resource="#LabResult"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#LabTechReadPatientRecord">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#LabTechnician"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+        <rdfs:comment>Lab tech needs patient ID for sample matching</rdfs:comment>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#LabTechReadEquipment">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#LabTechnician"/>
+        <appliesTo rdf:resource="#Equipment"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#LabTechUpdateEquipment">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#LabTechnician"/>
+        <appliesTo rdf:resource="#Equipment"/>
+    </owl:NamedIndividual>
+
+    <!-- ============================================ -->
+    <!-- ACTION RULES: Pharmacist                     -->
+    <!-- ============================================ -->
+
+    <owl:NamedIndividual rdf:about="#PharmacistReadPrescription">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Pharmacist"/>
+        <appliesTo rdf:resource="#Prescription"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PharmacistUpdatePrescription">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#Pharmacist"/>
+        <appliesTo rdf:resource="#Prescription"/>
+        <rdfs:comment>Pharmacist can mark as dispensed</rdfs:comment>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PharmacistDispenseMedication">
+        <rdf:type rdf:resource="#DispenseAction"/>
+        <requiresRole rdf:resource="#Pharmacist"/>
+        <appliesTo rdf:resource="#Prescription"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PharmacistReadMedication">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Pharmacist"/>
+        <appliesTo rdf:resource="#Medication"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PharmacistUpdateMedication">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#Pharmacist"/>
+        <appliesTo rdf:resource="#Medication"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PharmacistReadPatientRecord">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#Pharmacist"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+        <rdfs:comment>Pharmacist needs allergy info for safety check</rdfs:comment>
+    </owl:NamedIndividual>
+
+    <!-- ============================================ -->
+    <!-- ACTION RULES: InsuranceAgent                 -->
+    <!-- ============================================ -->
+
+    <owl:NamedIndividual rdf:about="#InsuranceReadBilling">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#InsuranceAgent"/>
+        <appliesTo rdf:resource="#Billing"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#InsuranceApproveBilling">
+        <rdf:type rdf:resource="#ApproveAction"/>
+        <requiresRole rdf:resource="#InsuranceAgent"/>
+        <appliesTo rdf:resource="#Billing"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#InsuranceReadInsurance">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#InsuranceAgent"/>
+        <appliesTo rdf:resource="#Insurance"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#InsuranceUpdateInsurance">
+        <rdf:type rdf:resource="#UpdateAction"/>
+        <requiresRole rdf:resource="#InsuranceAgent"/>
+        <appliesTo rdf:resource="#Insurance"/>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#InsuranceReadPatientRecord">
+        <rdf:type rdf:resource="#ReadAction"/>
+        <requiresRole rdf:resource="#InsuranceAgent"/>
+        <appliesTo rdf:resource="#PatientRecord"/>
+        <rdfs:comment>Insurance can only see demographics, not medical info</rdfs:comment>
+    </owl:NamedIndividual>
+
+    <!-- ============================================ -->
+    <!-- SECURITY CONSTRAINTS                         -->
+    <!-- ============================================ -->
+
+    <!-- PHI (Protected Health Information) markers -->
+    <owl:NamedIndividual rdf:about="#MedicalRecordSensitivity">
+        <rdf:type rdf:resource="#MedicalRecord"/>
+        <isSensitive rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</isSensitive>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#PrescriptionSensitivity">
+        <rdf:type rdf:resource="#Prescription"/>
+        <isSensitive rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</isSensitive>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#LabResultSensitivity">
+        <rdf:type rdf:resource="#LabResult"/>
+        <isSensitive rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</isSensitive>
+    </owl:NamedIndividual>
+
+    <owl:NamedIndividual rdf:about="#AuditLogSensitivity">
+        <rdf:type rdf:resource="#AuditLog"/>
+        <isSensitive rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</isSensitive>
+    </owl:NamedIndividual>
+
+    <!-- ============================================ -->
+    <!-- DENIED ACTIONS (Explicit prohibitions)       -->
+    <!-- ============================================ -->
+
+    <!-- Patients cannot delete any records -->
+    <!-- Nurses cannot prescribe medications -->
+    <!-- Receptionists cannot access medical records -->
+    <!-- Lab technicians cannot view prescriptions -->
+    <!-- Insurance agents cannot access medical records -->
+    <!-- No one except Admin can delete patient records -->
+    <!-- No one except Admin can access audit logs -->
+
+</rdf:RDF>

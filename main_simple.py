@@ -214,10 +214,10 @@ def _initialize_ontoguard(app: Flask) -> None:
     try:
         from ai_agent_connector.app.security import initialize_ontoguard
 
-        # Get ontology path from config or use default
+        # Get ontology path from config or use default (hospital.owl for hospital domain)
         ontology_path = os.getenv(
             'ONTOGUARD_ONTOLOGY_PATH',
-            os.path.join(os.path.dirname(__file__), 'ontologies', 'ecommerce.owl')
+            os.path.join(os.path.dirname(__file__), 'ontologies', 'hospital.owl')
         )
 
         config = {
