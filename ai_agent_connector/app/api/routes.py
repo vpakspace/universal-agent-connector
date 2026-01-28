@@ -791,22 +791,57 @@ def revoke_resource_permissions(agent_id: str, resource_id: str):
 
 @api_bp.route('/agents/<agent_id>/query', methods=['POST'])
 def execute_query(agent_id: str):
-    """Execute a SQL query with permission enforcement"""
+    """Execute a SQL query with permission enforcement and OntoGuard validation"""
     agent_id_from_auth = authenticate_agent()
     if not agent_id_from_auth or agent_id_from_auth != agent_id:
         return jsonify({'error': 'Unauthorized'}), 401
-    
+
     if not agent_registry.get_agent(agent_id):
         return jsonify({'error': f'Agent {agent_id} not found'}), 404
-    
+
     data = request.get_json() or {}
     query = data.get('query')
     params = data.get('params')
     as_dict = data.get('as_dict', False)
-    
+
     if not query:
         return jsonify({'error': 'query is required'}), 400
-    
+
+    # OntoGuard semantic validation
+    adapter = get_ontoguard_adapter()
+    if adapter.is_active:
+        # Map SQL operation to semantic action
+        query_type = get_query_type(query)
+        action_map = {
+            QueryType.SELECT: 'read',
+            QueryType.INSERT: 'create',
+            QueryType.UPDATE: 'update',
+            QueryType.DELETE: 'delete'
+        }
+        action = action_map.get(query_type, 'query')
+
+        # Get tables from query and validate each
+        tables = extract_tables_from_query(query)
+        context = get_ontoguard_context()
+
+        for table in tables:
+            # Convert table name to entity type (e.g., medical_records -> MedicalRecord)
+            entity_type = ''.join(word.capitalize() for word in table.replace('_', ' ').split())
+
+            result = adapter.validate_action(action, entity_type, context)
+            if not result.allowed:
+                audit_logger.log(ActionType.QUERY_EXECUTION, agent_id=agent_id, status='denied',
+                                details={'query_preview': query[:100], 'ontoguard_denial': result.reason})
+                return jsonify({
+                    'error': 'Action denied by OntoGuard',
+                    'reason': result.reason,
+                    'table': table,
+                    'entity_type': entity_type,
+                    'action': action,
+                    'constraints': result.constraints,
+                    'suggestions': result.suggestions
+                }), 403
+
     # Check permissions
     has_permission, denied_resources = check_permissions(agent_id, query)
     if not has_permission:
@@ -887,7 +922,40 @@ def natural_language_query(agent_id: str):
             }), 400
         
         generated_sql = conversion_result['sql']
-        
+
+        # OntoGuard semantic validation on generated SQL
+        adapter = get_ontoguard_adapter()
+        if adapter.is_active:
+            query_type = get_query_type(generated_sql)
+            action_map = {
+                QueryType.SELECT: 'read',
+                QueryType.INSERT: 'create',
+                QueryType.UPDATE: 'update',
+                QueryType.DELETE: 'delete'
+            }
+            action = action_map.get(query_type, 'query')
+
+            tables = extract_tables_from_query(generated_sql)
+            context = get_ontoguard_context()
+
+            for table in tables:
+                entity_type = ''.join(word.capitalize() for word in table.replace('_', ' ').split())
+                result = adapter.validate_action(action, entity_type, context)
+                if not result.allowed:
+                    audit_logger.log(ActionType.NATURAL_LANGUAGE_QUERY, agent_id=agent_id, status='denied',
+                                    details={'query': query, 'generated_sql': generated_sql, 'ontoguard_denial': result.reason})
+                    return jsonify({
+                        'error': 'Action denied by OntoGuard',
+                        'reason': result.reason,
+                        'table': table,
+                        'entity_type': entity_type,
+                        'action': action,
+                        'natural_language_query': query,
+                        'generated_sql': generated_sql,
+                        'constraints': result.constraints,
+                        'suggestions': result.suggestions
+                    }), 403
+
         # Check permissions on generated SQL
         has_permission, denied_resources = check_permissions(agent_id, generated_sql)
         if not has_permission:
