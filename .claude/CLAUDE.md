@@ -19,6 +19,7 @@ Universal Agent Connector - MCP инфраструктура для AI-аген�
 - **Resource Permissions** - двухуровневая система прав
 - **GraphQL API** - альтернативный интерфейс
 - **Audit Logging** - логирование всех операций
+- **E2E Testing** - PostgreSQL + OntoGuard тесты
 
 ---
 
@@ -93,19 +94,74 @@ table_entity_map = {
     'lab_results': 'LabResult',
     'appointments': 'Appointment',
     'billing': 'Billing',
-    ...
+    'staff': 'Staff'
 }
 ```
 
 ---
 
-## Тестирование
+## E2E PostgreSQL Testing
 
-### E2E Query Validation Tests (21/21 passed)
+### Конфигурация
+
+```bash
+# Запуск PostgreSQL контейнера
+docker-compose up -d
+
+# PostgreSQL на порту 5433
+# Database: hospital_db
+# User: uac_user
+```
+
+### Тестовые данные (init_db.sql)
+
+| Таблица | Записей | Описание |
+|---------|---------|----------|
+| patients | 5 | John Doe, Jane Smith, Bob Wilson, Alice Brown, Charlie Davis |
+| medical_records | 7 | Диагнозы, рецепты, осмотры |
+| lab_results | 8 | Анализы крови, МРТ, HbA1c |
+| appointments | 7 | 5 scheduled, 2 completed |
+| billing | 7 | 4 paid, 3 pending |
+| staff | 7 | 2 Doctor, 2 Nurse, 1 LabTech, 1 Receptionist, 1 Admin |
+
+### E2E PostgreSQL Tests (15/15 passed) ✅
+
+```bash
+python e2e_postgres_tests.py
+```
+
+**ALLOWED (9/9)** - реальные SQL запросы в PostgreSQL:
+
+| # | Тест | Роль | Результат |
+|---|------|------|-----------|
+| E2E-01 | SELECT patients | Doctor | 5 rows |
+| E2E-02 | SELECT staff | Admin | 7 rows |
+| E2E-03 | SELECT lab_results | LabTech | 8 rows |
+| E2E-04 | SELECT appointments | Receptionist | 5 rows |
+| E2E-05 | SELECT patients | Nurse | 5 rows |
+| E2E-06 | DELETE staff (id=999) | Admin | 0 rows |
+| E2E-11 | SELECT with JOIN | Doctor | 2 rows |
+| E2E-12 | SELECT billing | Admin | 3 rows |
+| E2E-13 | INSERT appointment | Receptionist | 0 rows |
+
+**DENIED (6/6)** - OntoGuard блокирует по OWL правилам:
+
+| # | Тест | Роль | Причина отказа |
+|---|------|------|----------------|
+| E2E-07 | DELETE patients | Nurse | requires Admin |
+| E2E-08 | DELETE medical_records | Receptionist | no delete permission |
+| E2E-09 | DELETE lab_results | LabTech | no rule found |
+| E2E-10 | UPDATE patients | Doctor | requires Patient/Receptionist/Admin |
+| E2E-14 | INSERT patients | Nurse | requires Admin/Receptionist |
+| E2E-15 | UPDATE billing | Admin | can only update PatientRecord |
+
+---
+
+## Semantic Validation Tests (21/21 passed)
 
 **Двухуровневая защита**: OntoGuard (semantic RBAC) + Resource Permissions
 
-#### Round 1 (11/11)
+### Round 1 (11/11)
 
 **ALLOWED (5/5)**:
 - ✅ Doctor SELECT patients
@@ -122,7 +178,7 @@ table_entity_map = {
 - ✅ Nurse UPDATE patients
 - ✅ Doctor UPDATE patients (OWL: only Patient/Receptionist/Admin)
 
-#### Round 2 (10/10)
+### Round 2 (10/10)
 
 **ALLOWED (3/3)**:
 - ✅ Admin INSERT lab_results
@@ -150,52 +206,97 @@ pytest tests/ -v
 ## Запуск
 
 ```bash
-# Запуск сервера
-cd ~/universal-agent-connector
+# 1. Запуск PostgreSQL
+docker-compose up -d
+
+# 2. Запуск сервера
 python main_simple.py
 
-# Проверка статуса
+# 3. Проверка статуса
 curl http://localhost:5000/api/ontoguard/status
 
-# Регистрация агента
+# 4. Регистрация агента с PostgreSQL
 curl -X POST http://localhost:5000/api/agents/register \
   -H "Content-Type: application/json" \
-  -d '{"agent_id": "my-agent", "name": "My Agent", "role": "Doctor"}'
+  -d '{
+    "agent_id": "doctor-1",
+    "agent_info": {"name": "Dr. Smith", "role": "Doctor"},
+    "agent_credentials": {"api_key": "doc-key", "api_secret": "doc-secret"},
+    "database": {
+      "type": "postgresql",
+      "host": "localhost",
+      "port": 5433,
+      "database": "hospital_db",
+      "user": "uac_user",
+      "password": "uac_password"
+    }
+  }'
 
-# Выполнение запроса
-curl -X POST http://localhost:5000/api/agents/my-agent/query \
+# 5. Выполнение запроса
+curl -X POST http://localhost:5000/api/agents/doctor-1/query \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: <agent_api_key>" \
+  -H "X-API-Key: <api_key>" \
   -H "X-User-Role: Doctor" \
   -d '{"query": "SELECT * FROM patients"}'
+
+# 6. E2E тесты
+python e2e_postgres_tests.py
 ```
 
 ---
 
-## Commits (2026-01-28)
+## Commits
 
-| Commit | Описание |
-|--------|----------|
-| `1fb9d14` | feat: OntoGuard + Universal Agent Connector Integration (7 фаз) |
-| `2950716` | feat: Add OntoGuard validation to query endpoints |
-| `03ccff7` | feat: Add SQL table to OWL entity type mapping |
+| Commit | Дата | Описание |
+|--------|------|----------|
+| `3129e82` | 2026-01-28 | feat: Add PostgreSQL E2E testing with OntoGuard validation |
+| `25f509a` | 2026-01-28 | docs: Update project memory with Round 2 test results |
+| `03ccff7` | 2026-01-28 | feat: Add SQL table to OWL entity type mapping |
+| `2950716` | 2026-01-28 | feat: Add OntoGuard validation to query endpoints |
+| `1fb9d14` | 2026-01-28 | feat: OntoGuard + Universal Agent Connector Integration (7 фаз) |
+
+---
+
+## Файлы проекта
+
+```
+universal-agent-connector/
+├── main_simple.py              # Flask entry point
+├── docker-compose.yml          # PostgreSQL container (port 5433)
+├── init_db.sql                 # Test data (hospital)
+├── e2e_postgres_tests.py       # E2E test script (15 tests)
+├── ai_agent_connector/
+│   └── app/
+│       ├── api/routes.py       # REST API endpoints
+│       ├── security/           # OntoGuard adapter, exceptions
+│       ├── mcp/tools/          # MCP tools for AI agents
+│       └── db/connectors.py    # PostgreSQL/MySQL/SQLite connectors
+├── ontologies/
+│   └── hospital.owl            # Medical domain OWL ontology
+├── config/
+│   └── ontoguard.yaml          # OntoGuard configuration
+└── tests/
+    └── test_ontoguard_*.py     # Unit tests
+```
 
 ---
 
 ## Связанные проекты
 
 - **OntoGuard AI**: `~/ontoguard-ai/` - Semantic Firewall (OWL validator)
-- **Hospital OWL**: `ontologies/hospital.owl` - Medical domain ontology
+- **Hospital OWL**: `ontologies/hospital.owl` - Medical domain ontology (478 triples)
 
 ---
 
 ## TODO
 
-- [ ] Добавить PostgreSQL для production
+- [x] ~~Docker Compose setup~~ (done: port 5433)
+- [x] ~~PostgreSQL E2E тесты~~ (done: 15/15 passed)
 - [ ] Natural Language Query с LLM
 - [ ] GraphQL mutations для OntoGuard
 - [ ] WebSocket для real-time validation
-- [ ] Docker Compose setup
+- [ ] CI/CD pipeline (GitHub Actions)
+- [ ] Prometheus metrics
 
 ---
 

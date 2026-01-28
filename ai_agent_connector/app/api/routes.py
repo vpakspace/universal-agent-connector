@@ -1024,6 +1024,7 @@ def natural_language_query(agent_id: str):
             }), 403
         
         # Execute query
+        connector.connect()
         query_type = get_query_type(generated_sql)
         result = connector.execute_query(generated_sql, as_dict=as_dict)
         row_count = len(result) if result else 0

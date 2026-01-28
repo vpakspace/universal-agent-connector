@@ -11,14 +11,14 @@ ontoguard:
   # Ontology files to load
   # Each ontology defines business rules for a specific domain
   ontologies:
-    - path: "ontologies/ecommerce.owl"
-      name: "E-Commerce Domain"
-      description: "Business rules for e-commerce operations including users, orders, products"
+    - path: "ontologies/hospital.owl"
+      name: "Hospital Management"
+      description: "HIPAA-compliant rules for hospital operations with role-based access"
 
-    # Additional ontologies can be added here:
-    # - path: "ontologies/database_access.owl"
-    #   name: "Database Access"
-    #   description: "Rules for database operations and permissions"
+    # E-Commerce ontology (disabled - using Hospital)
+    # - path: "ontologies/ecommerce.owl"
+    #   name: "E-Commerce Domain"
+    #   description: "Business rules for e-commerce operations including users, orders, products"
 
   # Default validation settings
   defaults:

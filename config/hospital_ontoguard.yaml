@@ -1,0 +1,208 @@
+# OntoGuard Configuration for Hospital Management System
+# This configuration extends OntoGuard to support hospital domain
+
+ontoguard:
+  enabled: true
+  domain: hospital
+
+  # Ontology files to load
+  ontologies:
+    - path: "ontologies/hospital.owl"
+      name: "Hospital Management"
+      description: "HIPAA-compliant rules for hospital operations"
+
+  # Role definitions with hierarchy
+  roles:
+    Admin:
+      description: "System administrator with full access"
+      permissions:
+        - action: "*"
+          entities: ["*"]
+
+    Doctor:
+      description: "Medical doctor with clinical access"
+      permissions:
+        - action: read
+          entities: [PatientRecord, MedicalRecord, Prescription, LabResult, Appointment, Surgery, EmergencyCase]
+        - action: create
+          entities: [MedicalRecord, Prescription]
+        - action: update
+          entities: [MedicalRecord, EmergencyCase]
+        - action: prescribe
+          entities: [Prescription]
+        - action: schedule
+          entities: [Surgery]
+        - action: discharge
+          entities: [PatientRecord]
+
+    Nurse:
+      description: "Nurse with limited clinical access"
+      permissions:
+        - action: read
+          entities: [PatientRecord, MedicalRecord, Prescription, LabResult, Appointment, Room, EmergencyCase]
+        - action: update
+          entities: [MedicalRecord, Room]
+
+    Receptionist:
+      description: "Front desk with scheduling access"
+      permissions:
+        - action: create
+          entities: [PatientRecord, Appointment, EmergencyCase]
+        - action: read
+          entities: [PatientRecord, Appointment, Department, Staff]
+        - action: update
+          entities: [PatientRecord, Appointment]
+        - action: cancel
+          entities: [Appointment]
+        - action: schedule
+          entities: [Appointment]
+
+    Patient:
+      description: "Patient with self-service access"
+      permissions:
+        - action: read
+          entities: [PatientRecord, MedicalRecord, Prescription, Appointment, LabResult, Billing]
+          constraint: "owner_only"
+        - action: update
+          entities: [PatientRecord]
+          constraint: "contact_info_only"
+        - action: schedule
+          entities: [Appointment]
+        - action: cancel
+          entities: [Appointment]
+          constraint: "owner_only"
+
+    LabTechnician:
+      description: "Lab technician with lab access"
+      permissions:
+        - action: create
+          entities: [LabResult]
+        - action: read
+          entities: [LabResult, PatientRecord, Equipment]
+        - action: update
+          entities: [LabResult, Equipment]
+
+    Pharmacist:
+      description: "Pharmacist with prescription access"
+      permissions:
+        - action: read
+          entities: [Prescription, Medication, PatientRecord]
+        - action: update
+          entities: [Prescription, Medication]
+        - action: dispense
+          entities: [Prescription]
+
+    InsuranceAgent:
+      description: "Insurance agent with billing access"
+      permissions:
+        - action: read
+          entities: [Billing, Insurance, PatientRecord]
+        - action: approve
+          entities: [Billing]
+        - action: update
+          entities: [Insurance]
+
+  # Entity classifications
+  entities:
+    PHI:  # Protected Health Information
+      - MedicalRecord
+      - Prescription
+      - LabResult
+      - Surgery
+      - EmergencyCase
+
+    PII:  # Personally Identifiable Information
+      - PatientRecord
+      - Insurance
+
+    Administrative:
+      - Appointment
+      - Billing
+      - Department
+      - Staff
+      - Room
+      - Equipment
+      - Medication
+
+    Audit:
+      - AuditLog
+
+  # Action mappings
+  actions:
+    read:
+      sql_operations: [SELECT]
+      description: "View/read data"
+
+    create:
+      sql_operations: [INSERT]
+      description: "Create new records"
+
+    update:
+      sql_operations: [UPDATE]
+      description: "Modify existing records"
+
+    delete:
+      sql_operations: [DELETE]
+      description: "Remove records"
+      restricted_roles: [Admin]
+
+    prescribe:
+      description: "Issue medication prescription"
+      restricted_roles: [Doctor]
+
+    dispense:
+      description: "Dispense medication"
+      restricted_roles: [Pharmacist]
+
+    schedule:
+      description: "Schedule appointments/surgeries"
+
+    cancel:
+      description: "Cancel scheduled items"
+
+    approve:
+      description: "Approve requests/claims"
+
+    discharge:
+      description: "Discharge patient"
+      restricted_roles: [Doctor]
+
+    export:
+      description: "Export data"
+      restricted_roles: [Admin]
+      audit_required: true
+
+  # HIPAA compliance settings
+  hipaa:
+    enabled: true
+    audit_all_phi_access: true
+    minimum_necessary: true
+    break_glass_enabled: false
+
+    # Break-glass allows emergency access
+    break_glass_roles: [Doctor, Nurse]
+    break_glass_entities: [MedicalRecord, Prescription]
+
+  # Validation settings
+  validation:
+    strict_mode: true
+    deny_unknown_roles: true
+    deny_unknown_actions: true
+    deny_unknown_entities: false  # Allow pass-through for non-hospital entities
+    log_violations: true
+    cache_results: true
+    cache_ttl: 300
+
+  # Default constraints
+  constraints:
+    owner_only:
+      description: "User can only access their own records"
+      check: "context.user_id == resource.patient_id"
+
+    contact_info_only:
+      description: "Can only update contact information"
+      fields: [email, phone, address, city, state, zip_code]
+
+    same_department:
+      description: "Must be in same department"
+      check: "user.department_id == resource.department_id"
