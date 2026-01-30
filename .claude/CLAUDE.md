@@ -369,6 +369,7 @@ universal-agent-connector/
 - [ ] WebSocket для real-time validation
 - [x] ~~CI/CD pipeline~~ (done: GitHub Actions — pytest, black, isort, bandit, dependabot)
 - [x] ~~Code audit (Kimi K2)~~ (done: SECRET_KEY, .dockerignore, requirements split, src/ cleanup)
+- [x] ~~Unit tests для core modules~~ (done: 94 passed, CI green — lint + test 3.10/3.11/3.12)
 - [ ] Prometheus metrics
 
 ---
