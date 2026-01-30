@@ -416,8 +416,13 @@ def main():
         if query_mode == "Natural Language (AI)":
             st.markdown("Задайте вопрос на естественном языке, AI преобразует его в SQL.")
 
+            # Примеры заполняют через отдельный ключ, text_area читает из него
+            if "nl_prefill" not in st.session_state:
+                st.session_state.nl_prefill = ""
+
             question = st.text_area(
                 "Ваш вопрос",
+                value=st.session_state.nl_prefill,
                 placeholder="Например: Покажи всех пациентов с диабетом",
                 height=100
             )
@@ -436,7 +441,8 @@ def main():
             for i, q in enumerate(example_questions):
                 with cols[i % 3]:
                     if st.button(q, key=f"example_{i}"):
-                        question = q
+                        st.session_state.nl_prefill = q
+                        st.rerun()
 
             if st.button("🚀 Выполнить", type="primary") and question:
                 with st.spinner("Обработка запроса..."):
@@ -479,8 +485,12 @@ def main():
         else:  # SQL режим
             st.markdown("Введите SQL запрос напрямую.")
 
+            if "sql_prefill" not in st.session_state:
+                st.session_state.sql_prefill = ""
+
             sql_query = st.text_area(
                 "SQL запрос",
+                value=st.session_state.sql_prefill,
                 placeholder="SELECT * FROM patients LIMIT 10",
                 height=150
             )
@@ -498,7 +508,8 @@ def main():
             for i, q in enumerate(example_sqls):
                 with cols[i % 2]:
                     if st.button(q[:40] + "...", key=f"sql_example_{i}"):
-                        sql_query = q
+                        st.session_state.sql_prefill = q
+                        st.rerun()
 
             if st.button("🚀 Выполнить SQL", type="primary") and sql_query:
                 with st.spinner("Выполнение запроса..."):
