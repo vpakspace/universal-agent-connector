@@ -18,7 +18,7 @@ anthropic==0.39.0
 
 # GraphQL
 graphene==3.3
-flask-graphql==2.0.3
+flask-graphql==2.0.1
 
 # Ontology parsing
 rdflib==7.0.0
