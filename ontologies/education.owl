@@ -1,0 +1,996 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#"
+         xmlns:education="http://ontology.example.org/education#">
+
+  <!-- ============================================ -->
+  <!-- Education Domain Ontology                     -->
+  <!-- School + University RBAC                      -->
+  <!-- 9 Roles, 7 Entities, 8 Actions, 103 Rules    -->
+  <!-- Created: 2026-01-30                           -->
+  <!-- ============================================ -->
+
+  <owl:Ontology rdf:about="http://ontology.example.org/education">
+    <rdfs:label>Education Domain Ontology</rdfs:label>
+    <rdfs:comment>OWL ontology for role-based access control in educational institutions (school + university)</rdfs:comment>
+    <owl:versionInfo>1.0</owl:versionInfo>
+  </owl:Ontology>
+
+  <!-- ============================================ -->
+  <!-- ROLES (9)                                     -->
+  <!-- ============================================ -->
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Pupil">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Role"/>
+    <rdfs:label>Pupil</rdfs:label>
+    <rdfs:comment>School student (K-12)</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Student">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Role"/>
+    <rdfs:label>Student</rdfs:label>
+    <rdfs:comment>University/college student</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Teacher">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Role"/>
+    <rdfs:label>Teacher</rdfs:label>
+    <rdfs:comment>School teacher</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Professor">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Role"/>
+    <rdfs:label>Professor</rdfs:label>
+    <rdfs:comment>University professor</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Principal">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Role"/>
+    <rdfs:label>Principal</rdfs:label>
+    <rdfs:comment>School principal / director</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Dean">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Role"/>
+    <rdfs:label>Dean</rdfs:label>
+    <rdfs:comment>University dean / faculty head</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Admin">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Role"/>
+    <rdfs:label>Admin</rdfs:label>
+    <rdfs:comment>System administrator</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Librarian">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Role"/>
+    <rdfs:label>Librarian</rdfs:label>
+    <rdfs:comment>Library staff</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Parent">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Role"/>
+    <rdfs:label>Parent</rdfs:label>
+    <rdfs:comment>Parent or legal guardian</rdfs:comment>
+  </owl:Class>
+
+  <!-- Base Role class -->
+  <owl:Class rdf:about="http://ontology.example.org/education#Role">
+    <rdfs:label>Role</rdfs:label>
+  </owl:Class>
+
+  <!-- ============================================ -->
+  <!-- ENTITY TYPES (7)                              -->
+  <!-- ============================================ -->
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Course">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#EntityType"/>
+    <rdfs:label>Course</rdfs:label>
+    <rdfs:comment>Academic course or subject</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Grade">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#EntityType"/>
+    <rdfs:label>Grade</rdfs:label>
+    <rdfs:comment>Academic grade or mark</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Assignment">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#EntityType"/>
+    <rdfs:label>Assignment</rdfs:label>
+    <rdfs:comment>Homework, essay, lab work, exam</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#StudentRecord">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#EntityType"/>
+    <rdfs:label>StudentRecord</rdfs:label>
+    <rdfs:comment>Personal student file / academic record</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#LibraryResource">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#EntityType"/>
+    <rdfs:label>LibraryResource</rdfs:label>
+    <rdfs:comment>Book, journal, digital resource</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Schedule">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#EntityType"/>
+    <rdfs:label>Schedule</rdfs:label>
+    <rdfs:comment>Class schedule / timetable</rdfs:comment>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#Diploma">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#EntityType"/>
+    <rdfs:label>Diploma</rdfs:label>
+    <rdfs:comment>Diploma, certificate, degree (immutable - no update/delete)</rdfs:comment>
+  </owl:Class>
+
+  <!-- Base EntityType class -->
+  <owl:Class rdf:about="http://ontology.example.org/education#EntityType">
+    <rdfs:label>EntityType</rdfs:label>
+  </owl:Class>
+
+  <!-- ============================================ -->
+  <!-- ACTIONS (8)                                   -->
+  <!-- ============================================ -->
+
+  <owl:Class rdf:about="http://ontology.example.org/education#ReadAction">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Action"/>
+    <rdfs:label>ReadAction</rdfs:label>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#CreateAction">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Action"/>
+    <rdfs:label>CreateAction</rdfs:label>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#UpdateAction">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Action"/>
+    <rdfs:label>UpdateAction</rdfs:label>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#DeleteAction">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Action"/>
+    <rdfs:label>DeleteAction</rdfs:label>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#ApproveAction">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Action"/>
+    <rdfs:label>ApproveAction</rdfs:label>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#EnrollAction">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Action"/>
+    <rdfs:label>EnrollAction</rdfs:label>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#GradeAction">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Action"/>
+    <rdfs:label>GradeAction</rdfs:label>
+  </owl:Class>
+
+  <owl:Class rdf:about="http://ontology.example.org/education#ExportAction">
+    <rdfs:subClassOf rdf:resource="http://ontology.example.org/education#Action"/>
+    <rdfs:label>ExportAction</rdfs:label>
+  </owl:Class>
+
+  <!-- Base Action class -->
+  <owl:Class rdf:about="http://ontology.example.org/education#Action">
+    <rdfs:label>Action</rdfs:label>
+  </owl:Class>
+
+  <!-- ============================================ -->
+  <!-- PROPERTIES                                    -->
+  <!-- ============================================ -->
+
+  <owl:ObjectProperty rdf:about="http://ontology.example.org/education#requiresRole">
+    <rdfs:domain rdf:resource="http://ontology.example.org/education#Action"/>
+    <rdfs:range rdf:resource="http://ontology.example.org/education#Role"/>
+    <rdfs:label>requiresRole</rdfs:label>
+  </owl:ObjectProperty>
+
+  <owl:ObjectProperty rdf:about="http://ontology.example.org/education#appliesTo">
+    <rdfs:domain rdf:resource="http://ontology.example.org/education#Action"/>
+    <rdfs:range rdf:resource="http://ontology.example.org/education#EntityType"/>
+    <rdfs:label>appliesTo</rdfs:label>
+  </owl:ObjectProperty>
+
+  <!-- ============================================ -->
+  <!-- RULES: Course (19 rules)                      -->
+  <!-- ============================================ -->
+
+  <!-- Pupil: read Course -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PupilReadCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Pupil"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>PupilReadCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Student: read, enroll Course -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#StudentReadCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Student"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>StudentReadCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#StudentEnrollCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#EnrollAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Student"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>StudentEnrollCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Teacher: read, create, update Course -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherReadCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>TeacherReadCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherCreateCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>TeacherCreateCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherUpdateCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>TeacherUpdateCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Professor: read, create, update Course -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorReadCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>ProfessorReadCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorCreateCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>ProfessorCreateCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorUpdateCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>ProfessorUpdateCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Principal: read, update, approve Course -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalReadCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>PrincipalReadCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalUpdateCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>PrincipalUpdateCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalApproveCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ApproveAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>PrincipalApproveCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Dean: read, update, approve Course -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanReadCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>DeanReadCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanUpdateCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>DeanUpdateCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanApproveCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ApproveAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>DeanApproveCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Admin: read, create, update, delete Course -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminReadCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>AdminReadCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminCreateCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>AdminCreateCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminUpdateCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>AdminUpdateCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminDeleteCourse">
+    <rdf:type rdf:resource="http://ontology.example.org/education#DeleteAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Course"/>
+    <rdfs:label>AdminDeleteCourse</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- ============================================ -->
+  <!-- RULES: Grade (17 rules)                       -->
+  <!-- ============================================ -->
+
+  <!-- Pupil: read Grade -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PupilReadGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Pupil"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>PupilReadGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Student: read Grade -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#StudentReadGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Student"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>StudentReadGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Teacher: read, create, update Grade -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherReadGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>TeacherReadGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherCreateGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>TeacherCreateGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherUpdateGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>TeacherUpdateGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Professor: read, create, update, approve Grade -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorReadGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>ProfessorReadGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorCreateGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>ProfessorCreateGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorUpdateGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>ProfessorUpdateGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorApproveGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ApproveAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>ProfessorApproveGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Principal: read, approve Grade -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalReadGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>PrincipalReadGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalApproveGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ApproveAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>PrincipalApproveGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Dean: read, approve, export Grade -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanReadGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>DeanReadGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanApproveGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ApproveAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>DeanApproveGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanExportGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ExportAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>DeanExportGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Admin: read, export Grade -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminReadGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>AdminReadGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminExportGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ExportAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>AdminExportGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Parent: read Grade -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ParentReadGrade">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Parent"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Grade"/>
+    <rdfs:label>ParentReadGrade</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- ============================================ -->
+  <!-- RULES: Assignment (14 rules)                  -->
+  <!-- ============================================ -->
+
+  <!-- Pupil: read, create Assignment -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PupilReadAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Pupil"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>PupilReadAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PupilCreateAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Pupil"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>PupilCreateAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Student: read, create Assignment -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#StudentReadAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Student"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>StudentReadAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#StudentCreateAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Student"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>StudentCreateAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Teacher: read, create, update, delete Assignment -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherReadAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>TeacherReadAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherCreateAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>TeacherCreateAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherUpdateAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>TeacherUpdateAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherDeleteAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#DeleteAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>TeacherDeleteAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Professor: read, create, update, delete Assignment -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorReadAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>ProfessorReadAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorCreateAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>ProfessorCreateAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorUpdateAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>ProfessorUpdateAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorDeleteAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#DeleteAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>ProfessorDeleteAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Principal: read Assignment -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalReadAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>PrincipalReadAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Dean: read Assignment -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanReadAssignment">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Assignment"/>
+    <rdfs:label>DeanReadAssignment</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- ============================================ -->
+  <!-- RULES: StudentRecord (14 rules)               -->
+  <!-- ============================================ -->
+
+  <!-- Pupil: read StudentRecord -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PupilReadStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Pupil"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>PupilReadStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Student: read StudentRecord -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#StudentReadStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Student"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>StudentReadStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Teacher: read StudentRecord -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherReadStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>TeacherReadStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Professor: read StudentRecord -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorReadStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>ProfessorReadStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Principal: read, update StudentRecord -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalReadStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>PrincipalReadStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalUpdateStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>PrincipalUpdateStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Dean: read, update, export StudentRecord -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanReadStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>DeanReadStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanUpdateStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>DeanUpdateStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanExportStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ExportAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>DeanExportStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Admin: read, create, update, delete StudentRecord -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminReadStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>AdminReadStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminCreateStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>AdminCreateStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminUpdateStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>AdminUpdateStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminDeleteStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#DeleteAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>AdminDeleteStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Parent: read StudentRecord -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ParentReadStudentRecord">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Parent"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#StudentRecord"/>
+    <rdfs:label>ParentReadStudentRecord</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- ============================================ -->
+  <!-- RULES: LibraryResource (12 rules)             -->
+  <!-- ============================================ -->
+
+  <!-- Pupil: read LibraryResource -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PupilReadLibraryResource">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Pupil"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#LibraryResource"/>
+    <rdfs:label>PupilReadLibraryResource</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Student: read LibraryResource -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#StudentReadLibraryResource">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Student"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#LibraryResource"/>
+    <rdfs:label>StudentReadLibraryResource</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Teacher: read LibraryResource -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherReadLibraryResource">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#LibraryResource"/>
+    <rdfs:label>TeacherReadLibraryResource</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Professor: read LibraryResource -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorReadLibraryResource">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#LibraryResource"/>
+    <rdfs:label>ProfessorReadLibraryResource</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Librarian: read, create, update, delete LibraryResource -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#LibrarianReadLibraryResource">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Librarian"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#LibraryResource"/>
+    <rdfs:label>LibrarianReadLibraryResource</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#LibrarianCreateLibraryResource">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Librarian"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#LibraryResource"/>
+    <rdfs:label>LibrarianCreateLibraryResource</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#LibrarianUpdateLibraryResource">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Librarian"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#LibraryResource"/>
+    <rdfs:label>LibrarianUpdateLibraryResource</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#LibrarianDeleteLibraryResource">
+    <rdf:type rdf:resource="http://ontology.example.org/education#DeleteAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Librarian"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#LibraryResource"/>
+    <rdfs:label>LibrarianDeleteLibraryResource</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Admin: read, create, update, delete LibraryResource -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminReadLibraryResource">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#LibraryResource"/>
+    <rdfs:label>AdminReadLibraryResource</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminCreateLibraryResource">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#LibraryResource"/>
+    <rdfs:label>AdminCreateLibraryResource</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminUpdateLibraryResource">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#LibraryResource"/>
+    <rdfs:label>AdminUpdateLibraryResource</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminDeleteLibraryResource">
+    <rdf:type rdf:resource="http://ontology.example.org/education#DeleteAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#LibraryResource"/>
+    <rdfs:label>AdminDeleteLibraryResource</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- ============================================ -->
+  <!-- RULES: Schedule (16 rules)                    -->
+  <!-- ============================================ -->
+
+  <!-- Pupil: read Schedule -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PupilReadSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Pupil"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>PupilReadSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Student: read Schedule -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#StudentReadSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Student"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>StudentReadSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Teacher: read, update Schedule -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherReadSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>TeacherReadSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#TeacherUpdateSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Teacher"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>TeacherUpdateSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Professor: read, update Schedule -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorReadSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>ProfessorReadSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ProfessorUpdateSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Professor"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>ProfessorUpdateSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Principal: read, create, update Schedule -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalReadSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>PrincipalReadSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalCreateSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>PrincipalCreateSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalUpdateSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>PrincipalUpdateSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Dean: read, create, update Schedule -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanReadSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>DeanReadSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanCreateSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>DeanCreateSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanUpdateSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>DeanUpdateSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Admin: read, create, update, delete Schedule -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminReadSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>AdminReadSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminCreateSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>AdminCreateSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminUpdateSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#UpdateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>AdminUpdateSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminDeleteSchedule">
+    <rdf:type rdf:resource="http://ontology.example.org/education#DeleteAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Schedule"/>
+    <rdfs:label>AdminDeleteSchedule</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- ============================================ -->
+  <!-- RULES: Diploma (11 rules)                     -->
+  <!-- Immutable: no update, no delete               -->
+  <!-- ============================================ -->
+
+  <!-- Student: read Diploma -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#StudentReadDiploma">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Student"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Diploma"/>
+    <rdfs:label>StudentReadDiploma</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Principal: read, create, approve Diploma -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalReadDiploma">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Diploma"/>
+    <rdfs:label>PrincipalReadDiploma</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalCreateDiploma">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Diploma"/>
+    <rdfs:label>PrincipalCreateDiploma</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#PrincipalApproveDiploma">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ApproveAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Principal"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Diploma"/>
+    <rdfs:label>PrincipalApproveDiploma</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Dean: read, create, approve Diploma -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanReadDiploma">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Diploma"/>
+    <rdfs:label>DeanReadDiploma</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanCreateDiploma">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Diploma"/>
+    <rdfs:label>DeanCreateDiploma</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#DeanApproveDiploma">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ApproveAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Dean"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Diploma"/>
+    <rdfs:label>DeanApproveDiploma</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Admin: read, create, export Diploma -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminReadDiploma">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Diploma"/>
+    <rdfs:label>AdminReadDiploma</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminCreateDiploma">
+    <rdf:type rdf:resource="http://ontology.example.org/education#CreateAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Diploma"/>
+    <rdfs:label>AdminCreateDiploma</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#AdminExportDiploma">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ExportAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Admin"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Diploma"/>
+    <rdfs:label>AdminExportDiploma</rdfs:label>
+  </owl:NamedIndividual>
+
+  <!-- Parent: read Diploma -->
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/education#ParentReadDiploma">
+    <rdf:type rdf:resource="http://ontology.example.org/education#ReadAction"/>
+    <education:requiresRole rdf:resource="http://ontology.example.org/education#Parent"/>
+    <education:appliesTo rdf:resource="http://ontology.example.org/education#Diploma"/>
+    <rdfs:label>ParentReadDiploma</rdfs:label>
+  </owl:NamedIndividual>
+
+</rdf:RDF>
