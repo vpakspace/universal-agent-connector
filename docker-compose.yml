@@ -12,7 +12,9 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - ./init_db.sql:/docker-entrypoint-initdb.d/01_hospital.sql
+      - ./init_finance_db.sql:/init_finance_db.sql:ro
+      - ./create_finance_db.sh:/docker-entrypoint-initdb.d/02_create_finance.sh
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U uac_user -d hospital_db"]
       interval: 5s

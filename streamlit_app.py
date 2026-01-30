@@ -3,6 +3,7 @@ Universal Agent Connector - Streamlit UI
 Простой интерфейс для работы с OntoGuard и базой данных
 """
 
+import os
 import streamlit as st
 import requests
 from typing import Optional, Dict, Any
@@ -11,19 +12,36 @@ import pandas as pd
 # Конфигурация
 API_BASE_URL = "http://localhost:5000"
 
-# Тестовые данные (hospital)
-DEFAULT_CONFIG = {
-    "ontology": "ontologies/hospital.owl",
-    "database": {
-        "type": "postgresql",
-        "host": "localhost",
-        "port": 5433,
-        "database": "hospital_db",
-        "user": "uac_user",
-        "password": "uac_password"
+# Конфигурации доменов
+DOMAIN_CONFIGS = {
+    "Hospital (Госпиталь)": {
+        "ontology": "ontologies/hospital.owl",
+        "database": {
+            "type": "postgresql",
+            "host": "localhost",
+            "port": 5433,
+            "database": "hospital_db",
+            "user": "uac_user",
+            "password": "uac_password"
+        },
+        "roles": ["Admin", "Doctor", "Nurse", "LabTech", "Receptionist", "Patient", "InsuranceAgent"]
     },
-    "roles": ["Admin", "Doctor", "Nurse", "LabTech", "Receptionist", "Patient", "InsuranceAgent"]
+    "Finance (Финансы)": {
+        "ontology": "ontologies/finance.owl",
+        "database": {
+            "type": "postgresql",
+            "host": "localhost",
+            "port": 5433,
+            "database": "finance_db",
+            "user": "uac_user",
+            "password": "uac_password"
+        },
+        "roles": ["Admin", "Manager", "Teller", "Analyst", "Auditor", "ComplianceOfficer",
+                   "IndividualCustomer", "CorporateCustomer"]
+    },
 }
+
+DEFAULT_CONFIG = DOMAIN_CONFIGS["Hospital (Госпиталь)"]
 
 
 def init_session_state():
@@ -56,6 +74,19 @@ def get_ontoguard_status() -> Dict[str, Any]:
     except:
         pass
     return {"enabled": False, "active": False}
+
+
+def reload_ontology(ontology_path: str) -> bool:
+    """Перезагрузка онтологии на сервере"""
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/api/ontoguard/reload",
+            json={"ontology_path": ontology_path},
+            timeout=10
+        )
+        return response.status_code == 200
+    except:
+        return False
 
 
 def register_agent(agent_id: str, role: str, db_config: Dict) -> Optional[Dict]:
@@ -220,32 +251,34 @@ def main():
 
         st.divider()
 
-        # Выбор онтологии
-        st.subheader("📚 Онтология")
-        ontology_options = ["hospital.owl (Medical)", "ecommerce.owl (E-commerce)"]
-        selected_ontology = st.selectbox(
-            "Файл онтологии",
-            ontology_options,
-            index=0
+        # Выбор домена
+        st.subheader("🌐 Домен")
+        domain_names = list(DOMAIN_CONFIGS.keys())
+        selected_domain = st.selectbox(
+            "Выберите домен",
+            domain_names,
+            index=0,
+            help="Домен определяет онтологию, БД и доступные роли"
         )
-        # TODO: Добавить логику переключения онтологий
-        st.caption(f"Активная: {selected_ontology.split(' ')[0]}")
+        domain_config = DOMAIN_CONFIGS[selected_domain]
+        st.caption(f"Онтология: {domain_config['ontology'].split('/')[-1]}")
 
         st.divider()
 
-        # База данных
+        # База данных (автозаполнение из домена)
         st.subheader("🗄️ База данных")
+        db_defaults = domain_config["database"]
         db_type = st.selectbox("Тип БД", ["PostgreSQL", "SQLite"], index=0)
 
         if db_type == "PostgreSQL":
             col1, col2 = st.columns(2)
             with col1:
-                db_host = st.text_input("Host", value="localhost")
-                db_port = st.number_input("Port", value=5433, min_value=1, max_value=65535)
+                db_host = st.text_input("Host", value=db_defaults.get("host", "localhost"))
+                db_port = st.number_input("Port", value=db_defaults.get("port", 5433), min_value=1, max_value=65535)
             with col2:
-                db_name = st.text_input("Database", value="hospital_db")
-                db_user = st.text_input("User", value="uac_user")
-            db_password = st.text_input("Password", value="uac_password", type="password")
+                db_name = st.text_input("Database", value=db_defaults.get("database", "hospital_db"))
+                db_user = st.text_input("User", value=db_defaults.get("user", "uac_user"))
+            db_password = st.text_input("Password", value=db_defaults.get("password", "uac_password"), type="password")
 
             db_config = {
                 "type": "postgresql",
@@ -264,11 +297,11 @@ def main():
 
         st.divider()
 
-        # Роль пользователя
+        # Роль пользователя (из домена)
         st.subheader("👤 Роль пользователя")
         selected_role = st.selectbox(
             "Выберите роль",
-            DEFAULT_CONFIG["roles"],
+            domain_config["roles"],
             index=0,
             help="Роль определяет доступные действия согласно OWL онтологии"
         )
@@ -279,7 +312,14 @@ def main():
         agent_id = f"streamlit-{selected_role.lower()}"
 
         if st.button("🔗 Подключиться", type="primary", use_container_width=True):
-            with st.spinner("Регистрация агента..."):
+            with st.spinner("Подключение..."):
+                # Reload ontology for selected domain
+                ontology_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), domain_config["ontology"])
+                if reload_ontology(ontology_path):
+                    st.success(f"✅ Онтология загружена: {domain_config['ontology'].split('/')[-1]}")
+                else:
+                    st.warning("⚠️ Не удалось переключить онтологию")
+
                 result = register_agent(agent_id, selected_role, db_config)
                 if result:
                     st.session_state.agent_registered = True

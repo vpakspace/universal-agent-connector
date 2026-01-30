@@ -37,6 +37,50 @@ from ..utils.adoption_analytics import adoption_analytics, FeatureType, QueryPat
 from ..utils.training_data_export import training_data_exporter, QuerySQLPair, ExportFormat
 from ..utils.security_monitor import SecurityMonitor
 
+# Table name → OWL entity type mappings per domain
+TABLE_ENTITY_MAPS = {
+    'hospital': {
+        'patients': 'PatientRecord',
+        'medical_records': 'MedicalRecord',
+        'lab_results': 'LabResult',
+        'prescriptions': 'Prescription',
+        'medications': 'Medication',
+        'billing': 'Billing',
+        'appointments': 'Appointment',
+        'staff': 'Staff',
+        'departments': 'Department',
+        'rooms': 'Room',
+        'insurance': 'Insurance',
+        'surgeries': 'Surgery',
+        'emergency_cases': 'EmergencyCase',
+        'equipment': 'Equipment',
+        'audit_log': 'AuditLog',
+    },
+    'finance': {
+        'accounts': 'Account',
+        'transactions': 'Transaction',
+        'loans': 'Loan',
+        'cards': 'Card',
+        'customer_profiles': 'CustomerProfile',
+        'reports': 'Report',
+        'audit_log': 'AuditLog',
+    },
+}
+
+def get_table_entity_map() -> dict:
+    """Get active table_entity_map based on loaded ontology."""
+    adapter = get_ontoguard_adapter()
+    if adapter and adapter.ontology_paths:
+        path = adapter.ontology_paths[0].lower()
+        for domain, mapping in TABLE_ENTITY_MAPS.items():
+            if domain in path:
+                return mapping
+    # Merge all maps as fallback
+    merged = {}
+    for m in TABLE_ENTITY_MAPS.values():
+        merged.update(m)
+    return merged
+
 # Initialize global instances
 agent_registry = AgentRegistry()
 access_control = AccessControl()
@@ -245,6 +289,33 @@ def ontoguard_status():
         'ontology_paths': adapter.ontology_paths,
         'config_path': adapter.config_path
     }), 200
+
+
+@api_bp.route('/ontoguard/reload', methods=['POST'])
+def reload_ontology():
+    """
+    Reload OntoGuard with a different ontology file.
+
+    Request body:
+        ontology_path: Path to OWL ontology file
+    """
+    data = request.get_json()
+    ontology_path = data.get('ontology_path')
+    if not ontology_path:
+        return jsonify({'error': 'ontology_path required'}), 400
+
+    if not os.path.exists(ontology_path):
+        return jsonify({'error': f'File not found: {ontology_path}'}), 404
+
+    try:
+        from ..security import initialize_ontoguard
+        config = {'ontology_paths': [ontology_path]}
+        if initialize_ontoguard(config):
+            return jsonify({'status': 'ok', 'ontology': ontology_path}), 200
+        else:
+            return jsonify({'error': 'Failed to reload ontology'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @api_bp.route('/ontoguard/validate', methods=['POST'])
@@ -820,24 +891,7 @@ def execute_query(agent_id: str):
         }
         action = action_map.get(query_type, 'query')
 
-        # Table name to entity type mapping (SQL tables → OWL entity types)
-        table_entity_map = {
-            'patients': 'PatientRecord',
-            'medical_records': 'MedicalRecord',
-            'lab_results': 'LabResult',
-            'prescriptions': 'Prescription',
-            'medications': 'Medication',
-            'billing': 'Billing',
-            'appointments': 'Appointment',
-            'staff': 'Staff',
-            'departments': 'Department',
-            'rooms': 'Room',
-            'insurance': 'Insurance',
-            'surgeries': 'Surgery',
-            'emergency_cases': 'EmergencyCase',
-            'equipment': 'Equipment',
-            'audit_log': 'AuditLog'
-        }
+        table_entity_map = get_table_entity_map()
 
         # Get tables from query and validate each
         tables = extract_tables_from_query(query)
@@ -969,24 +1023,7 @@ def natural_language_query(agent_id: str):
             }
             action = action_map.get(query_type, 'query')
 
-            # Table name to entity type mapping
-            table_entity_map = {
-                'patients': 'PatientRecord',
-                'medical_records': 'MedicalRecord',
-                'lab_results': 'LabResult',
-                'prescriptions': 'Prescription',
-                'medications': 'Medication',
-                'billing': 'Billing',
-                'appointments': 'Appointment',
-                'staff': 'Staff',
-                'departments': 'Department',
-                'rooms': 'Room',
-                'insurance': 'Insurance',
-                'surgeries': 'Surgery',
-                'emergency_cases': 'EmergencyCase',
-                'equipment': 'Equipment',
-                'audit_log': 'AuditLog'
-            }
+            table_entity_map = get_table_entity_map()
 
             tables = extract_tables_from_query(generated_sql)
             context = get_ontoguard_context()
