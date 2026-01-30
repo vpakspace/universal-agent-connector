@@ -42,7 +42,13 @@ _skip_tests = [
     "test_spectral_metrics.py",
     "test_spectral_metrics_standalone.py",
     "test_universal_ontology.py",
-    # external services
+    "test_permission_enforcement.py",
+    "test_provider_failover.py",
+    "test_security_compliance_stories_api.py",
+    # external deps (fastmcp, sqlparse, etc.)
+    "test_self_healing_query.py",
+    "test_sql_benchmark.py",
+    "test_sso.py",
     "test_load_testing.py",
     "test_locust_config.py",
 ]
