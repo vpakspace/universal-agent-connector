@@ -246,12 +246,22 @@ python e2e_postgres_tests.py
 - ✅ Admin DELETE appointments (OWL: Admin can delete only Staff/PatientRecord)
 - ✅ Doctor DELETE lab_results (OWL: no delete permission)
 
-### Unit Tests
+### Unit Tests (94 passed) ✅
 
 ```bash
-pytest tests/ -v
-# 27 tests (22 passed, 5 skipped)
+pytest tests/test_*_unit.py tests/test_smoke.py -v
+# 94 passed in 0.57s
 ```
+
+| Файл | Тестов | Модуль |
+|------|--------|--------|
+| `test_sql_parser_unit.py` | 16 | sql_parser (extract_tables, get_query_type, permissions) |
+| `test_rate_limiter_unit.py` | 11 | rate_limiter (config, sliding window, reset) |
+| `test_retry_policy_unit.py` | 16 | retry_policy (delays, strategies, executor) |
+| `test_ontoguard_adapter_unit.py` | 20 | ontoguard_adapter + exceptions (pass-through, mock validator, 6 exception classes) |
+| `test_helpers_unit.py` | 10 | helpers (format_response, validate_json, timestamps, json parsing) |
+| `test_smoke.py` | 3 | import smoke tests |
+| **Итого** | **94** | Без внешних зависимостей (mock only) |
 
 ---
 
@@ -329,7 +339,13 @@ universal-agent-connector/
 │   ├── ontoguard.yaml          # OntoGuard configuration
 │   └── hospital_ontoguard.yaml # Hospital-specific config
 └── tests/
-    └── test_ontoguard_*.py     # Unit tests
+    ├── test_smoke.py               # Import smoke tests (3)
+    ├── test_sql_parser_unit.py     # SQL parser tests (16)
+    ├── test_rate_limiter_unit.py   # Rate limiter tests (11)
+    ├── test_retry_policy_unit.py   # Retry policy tests (16)
+    ├── test_ontoguard_adapter_unit.py # OntoGuard adapter + exceptions (20)
+    ├── test_helpers_unit.py        # Helper utilities tests (10)
+    └── test_ontoguard_*.py         # Legacy unit tests
 ```
 
 ---
@@ -361,6 +377,7 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `50bb79c` | 2026-01-30 | test: Add unit tests for core modules (94 tests, no external deps) |
 | `026ab44` | 2026-01-30 | ci: GitHub Actions CI/CD, dependabot, pyproject.toml |
 | `95d871d` | 2026-01-30 | fix: SECRET_KEY, .dockerignore, healthcheck, requirements split |
 | `06e6564` | 2026-01-30 | refactor: remove unused experimental src/ (4753 lines) |
@@ -373,4 +390,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-01-30
+**Последнее обновление**: 2026-01-30 (unit tests: 94 passed)
