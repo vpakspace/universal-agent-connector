@@ -16,9 +16,9 @@ pymongo==4.10.1
 openai==1.54.5
 anthropic==0.39.0
 
-# GraphQL
-graphene==3.3
-flask-graphql==2.0.1
+# GraphQL (incompatible pair - use graphene 3.4+ when flask-graphql catches up)
+# graphene==3.3
+# flask-graphql==2.0.1
 
 # Ontology parsing
 rdflib==7.0.0

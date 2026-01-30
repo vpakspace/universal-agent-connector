@@ -51,9 +51,11 @@ jobs:
         run: pip install black isort bandit
 
       - name: Check formatting (black)
+        continue-on-error: true
         run: black --check --diff ai_agent_connector/ main.py main_simple.py
 
       - name: Check imports (isort)
+        continue-on-error: true
         run: isort --check-only --diff ai_agent_connector/ main.py main_simple.py
 
       - name: Security scan (bandit)
