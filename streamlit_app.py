@@ -25,7 +25,17 @@ DOMAIN_CONFIGS = {
             "password": "uac_password"
         },
         "roles": ["Admin", "Doctor", "Nurse", "LabTech", "Receptionist", "Patient", "InsuranceAgent"],
-        "tables": ["patients", "medical_records", "lab_results", "appointments", "billing", "staff"]
+        "tables": ["patients", "medical_records", "lab_results", "appointments", "billing", "staff"],
+        "entity_types": ["PatientRecord", "MedicalRecord", "LabResult", "Prescription", "Billing", "Appointment", "Staff"],
+        "permissions_matrix": {
+            "Роль": ["Admin", "Doctor", "Nurse", "LabTech", "Receptionist"],
+            "PatientRecord": ["CRUD", "R", "R", "-", "CR"],
+            "MedicalRecord": ["CRUD", "RU", "-", "-", "-"],
+            "LabResult": ["CRUD", "R", "-", "RU", "-"],
+            "Appointment": ["CRUD", "R", "R", "-", "CR"],
+            "Billing": ["CRUD", "-", "-", "-", "-"],
+            "Staff": ["CRUD", "-", "-", "-", "-"],
+        }
     },
     "Finance (Финансы)": {
         "ontology": "ontologies/finance.owl",
@@ -39,7 +49,18 @@ DOMAIN_CONFIGS = {
         },
         "roles": ["Admin", "Manager", "Teller", "Analyst", "Auditor", "ComplianceOfficer",
                    "IndividualCustomer", "CorporateCustomer"],
-        "tables": ["accounts", "transactions", "loans", "cards", "customer_profiles", "reports", "audit_log"]
+        "tables": ["accounts", "transactions", "loans", "cards", "customer_profiles", "reports", "audit_log"],
+        "entity_types": ["Account", "Transaction", "Loan", "Card", "CustomerProfile", "Report", "AuditLog"],
+        "permissions_matrix": {
+            "Роль": ["Admin", "Manager", "Teller", "Analyst", "Auditor", "ComplianceOfficer"],
+            "Account": ["CRUD", "CRUD", "RU", "R", "R", "R"],
+            "Transaction": ["CRUD", "RU", "CR", "R", "R", "R"],
+            "Loan": ["CRUD", "CRUD", "R", "R", "R", "-"],
+            "Card": ["CRUD", "CRU", "RU", "-", "R", "-"],
+            "CustomerProfile": ["CRUD", "RU", "R", "R", "R", "R"],
+            "Report": ["CRUD", "CR", "-", "CR", "R", "R"],
+            "AuditLog": ["CRUD", "-", "-", "-", "R", "R"],
+        }
     },
 }
 
@@ -535,10 +556,7 @@ def main():
             )
 
         with col2:
-            entity_types = [
-                "PatientRecord", "MedicalRecord", "LabResult", "Prescription",
-                "Billing", "Appointment", "Staff", "User", "Order", "Product"
-            ]
+            entity_types = domain_config.get("entity_types", ["PatientRecord", "MedicalRecord", "LabResult"])
             validate_entity = st.selectbox(
                 "Тип сущности",
                 entity_types,
@@ -560,21 +578,14 @@ def main():
 
         # Матрица прав
         st.divider()
-        st.subheader("📋 Матрица прав (Hospital Ontology)")
+        domain_label = selected_domain.split(" ")[0]
+        st.subheader(f"📋 Матрица прав ({domain_label} Ontology)")
 
-        permissions_matrix = {
-            "Роль": ["Admin", "Doctor", "Nurse", "LabTech", "Receptionist"],
-            "PatientRecord": ["CRUD", "R", "R", "-", "CR"],
-            "MedicalRecord": ["CRUD", "RU", "-", "-", "-"],
-            "LabResult": ["CRUD", "R", "-", "RU", "-"],
-            "Appointment": ["CRUD", "R", "R", "-", "CR"],
-            "Billing": ["CRUD", "-", "-", "-", "-"],
-            "Staff": ["CRUD", "-", "-", "-", "-"],
-        }
-
-        df_matrix = pd.DataFrame(permissions_matrix)
-        st.dataframe(df_matrix, use_container_width=True, hide_index=True)
-        st.caption("C=Create, R=Read, U=Update, D=Delete")
+        permissions_matrix = domain_config.get("permissions_matrix")
+        if permissions_matrix:
+            df_matrix = pd.DataFrame(permissions_matrix)
+            st.dataframe(df_matrix, use_container_width=True, hide_index=True)
+            st.caption("C=Create, R=Read, U=Update, D=Delete")
 
     with tab3:
         st.header("📊 История запросов")
