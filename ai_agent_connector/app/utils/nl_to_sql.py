@@ -195,8 +195,9 @@ Rules:
 2. Use proper table and column names from the schema
 3. For PostgreSQL, use proper schema.table notation when needed
 4. Return ONLY the SQL query, no explanations or markdown
-5. Use parameterized queries with %s for values when appropriate
+5. Use inline literal values in the SQL query. NEVER use parameter placeholders like %s, $1, ?, or :param
 6. Ensure the query is safe and follows best practices
+7. For text values, use single quotes (e.g., WHERE name = 'John Doe')
 
 Schema Information:"""
                 
