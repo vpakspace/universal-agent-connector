@@ -351,7 +351,7 @@ def main():
                     st.session_state.agent_id = agent_id
                     if result.get("already_exists"):
                         st.info(f"ℹ️ Агент уже существует: {agent_id}")
-                        st.session_state.api_key = st.session_state.get("api_key")
+                        st.session_state.api_key = f"streamlit-{agent_id}-key"
                     else:
                         st.session_state.api_key = result.get("api_key")
                         st.success(f"✅ Агент зарегистрирован: {agent_id}")

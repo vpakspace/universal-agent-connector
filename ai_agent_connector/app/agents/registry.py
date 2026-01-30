@@ -56,7 +56,8 @@ class AgentRegistry:
             raise ValueError(f"Agent {agent_id} already registered")
         
         timestamp = get_timestamp()
-        api_key = self._generate_api_key()
+        # Use provided api_key from credentials if available, otherwise generate
+        api_key = (credentials or {}).get('api_key') or self._generate_api_key()
         
         agent_record = {
             **agent_info,
