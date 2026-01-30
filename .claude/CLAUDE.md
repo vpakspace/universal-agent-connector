@@ -304,10 +304,18 @@ universal-agent-connector/
 ├── main_simple.py              # Flask entry point
 ├── streamlit_app.py            # Streamlit UI (~500 строк)
 ├── run_streamlit.sh            # Скрипт запуска Streamlit
+├── requirements.txt            # Production dependencies (UTF-8)
+├── requirements-dev.txt        # Dev dependencies (-r requirements.txt)
 ├── requirements_streamlit.txt  # Streamlit dependencies
+├── pyproject.toml              # black, isort, pytest, mypy config
+├── Dockerfile                  # Python 3.11-slim, non-root user
+├── .dockerignore               # venv, .git, .env, tests excluded
 ├── docker-compose.yml          # PostgreSQL container (port 5433)
 ├── init_db.sql                 # Test data (hospital)
 ├── e2e_postgres_tests.py       # E2E test script (15 tests)
+├── .github/
+│   ├── workflows/ci.yml        # GitHub Actions CI (pytest+lint+bandit)
+│   └── dependabot.yml          # Auto dependency updates
 ├── ai_agent_connector/
 │   └── app/
 │       ├── api/routes.py       # REST API endpoints
@@ -343,7 +351,8 @@ universal-agent-connector/
 - [ ] Настройка БД через UI (сейчас hardcoded hospital_db)
 - [ ] GraphQL mutations для OntoGuard
 - [ ] WebSocket для real-time validation
-- [ ] CI/CD pipeline (GitHub Actions)
+- [x] ~~CI/CD pipeline~~ (done: GitHub Actions — pytest, black, isort, bandit, dependabot)
+- [x] ~~Code audit (Kimi K2)~~ (done: SECRET_KEY, .dockerignore, requirements split, src/ cleanup)
 - [ ] Prometheus metrics
 
 ---
@@ -352,6 +361,9 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `026ab44` | 2026-01-30 | ci: GitHub Actions CI/CD, dependabot, pyproject.toml |
+| `95d871d` | 2026-01-30 | fix: SECRET_KEY, .dockerignore, healthcheck, requirements split |
+| `06e6564` | 2026-01-30 | refactor: remove unused experimental src/ (4753 lines) |
 | `9ebbea8` | 2026-01-28 | feat: Add Streamlit UI for Natural Language queries |
 | `3129e82` | 2026-01-28 | feat: Add PostgreSQL E2E testing with OntoGuard validation |
 | `25f509a` | 2026-01-28 | docs: Update project memory with Round 2 test results |
@@ -361,4 +373,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-01-28
+**Последнее обновление**: 2026-01-30
