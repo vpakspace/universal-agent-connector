@@ -35,7 +35,20 @@ DOMAIN_CONFIGS = {
             "Appointment": ["CRUD", "R", "R", "-", "CR"],
             "Billing": ["CRUD", "-", "-", "-", "-"],
             "Staff": ["CRUD", "-", "-", "-", "-"],
-        }
+        },
+        "nl_examples": [
+            "Покажи всех пациентов",
+            "Сколько записей в medical_records?",
+            "Покажи результаты анализов для пациента John Doe",
+            "Покажи все назначенные приёмы",
+            "Какие сотрудники работают в больнице?"
+        ],
+        "sql_examples": [
+            "SELECT * FROM patients",
+            "SELECT * FROM staff WHERE role = 'Doctor'",
+            "SELECT p.name, m.diagnosis FROM patients p JOIN medical_records m ON p.id = m.patient_id",
+            "DELETE FROM patients WHERE id = 999"
+        ]
     },
     "Finance (Финансы)": {
         "ontology": "ontologies/finance.owl",
@@ -60,7 +73,20 @@ DOMAIN_CONFIGS = {
             "CustomerProfile": ["CRUD", "RU", "R", "R", "R", "R"],
             "Report": ["CRUD", "CR", "-", "CR", "R", "R"],
             "AuditLog": ["CRUD", "-", "-", "-", "R", "R"],
-        }
+        },
+        "nl_examples": [
+            "Покажи все счета",
+            "Сколько транзакций за последний месяц?",
+            "Покажи все активные кредиты",
+            "Какие карты выпущены?",
+            "Покажи профили клиентов"
+        ],
+        "sql_examples": [
+            "SELECT * FROM accounts",
+            "SELECT * FROM transactions WHERE amount > 1000",
+            "SELECT a.id, a.balance, c.name FROM accounts a JOIN customer_profiles c ON a.customer_id = c.id",
+            "DELETE FROM transactions WHERE id = 999"
+        ]
     },
 }
 
@@ -423,19 +449,16 @@ def main():
             question = st.text_area(
                 "Ваш вопрос",
                 value=st.session_state.nl_prefill,
-                placeholder="Например: Покажи всех пациентов с диабетом",
+                placeholder=f"Например: {domain_config.get('nl_examples', ['Покажи все записи'])[0]}",
                 height=100
             )
 
-            # Примеры вопросов
+            # Примеры вопросов (из конфига домена)
             st.markdown("**Примеры:**")
-            example_questions = [
-                "Покажи всех пациентов",
-                "Сколько записей в medical_records?",
-                "Покажи результаты анализов для пациента John Doe",
-                "Покажи все назначенные приёмы",
-                "Какие сотрудники работают в больнице?"
-            ]
+            example_questions = domain_config.get("nl_examples", [
+                "Покажи все записи",
+                "Сколько записей в таблице?",
+            ])
 
             cols = st.columns(3)
             for i, q in enumerate(example_questions):
@@ -495,13 +518,10 @@ def main():
                 height=150
             )
 
-            # Примеры SQL
-            example_sqls = [
-                "SELECT * FROM patients",
-                "SELECT * FROM staff WHERE role = 'Doctor'",
-                "SELECT p.name, m.diagnosis FROM patients p JOIN medical_records m ON p.id = m.patient_id",
-                "DELETE FROM patients WHERE id = 999"
-            ]
+            # Примеры SQL (из конфига домена)
+            example_sqls = domain_config.get("sql_examples", [
+                "SELECT * FROM " + (domain_config.get("tables", ["data"])[0]),
+            ])
 
             st.markdown("**Примеры:**")
             cols = st.columns(2)
