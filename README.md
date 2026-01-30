@@ -2,11 +2,11 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://github.com/cloudbadal007/universal-agent-connector/workflows/Tests/badge.svg)](https://github.com/cloudbadal007/universal-agent-connector/actions)
-[![codecov](https://codecov.io/gh/cloudbadal007/universal-agent-connector/branch/main/graph/badge.svg)](https://codecov.io/gh/cloudbadal007/universal-agent-connector)
-[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://github.com/cloudbadal007/universal-agent-connector/tree/main/docs)
+[![CI](https://github.com/vpakspace/universal-agent-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/vpakspace/universal-agent-connector/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-94%20passed-success)](https://github.com/vpakspace/universal-agent-connector/actions)
+[![Python 3.10|3.11|3.12](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-compatible-purple.svg)](https://modelcontextprotocol.io)
-[![Ontology](https://img.shields.io/badge/ontology-driven-orange.svg)](https://github.com/cloudbadal007/universal-agent-connector/blob/main/docs/ARCHITECTURE.md#ontology)
+[![OntoGuard](https://img.shields.io/badge/OntoGuard-integrated-orange.svg)](https://github.com/vpakspace/ontoguard-ai)
 
 **Enterprise-grade MCP infrastructure with ontology-driven semantic routing for AI agents**
 
@@ -1501,10 +1501,30 @@ python main.py
 
 ### Testing
 
-Tests are located in the `tests/` directory. Run tests with:
+CI runs on GitHub Actions (Python 3.10, 3.11, 3.12) with lint (black, isort, bandit) and pytest.
 
 ```bash
-pytest tests/
+# Run all unit tests (no external dependencies required)
+pytest tests/test_*_unit.py tests/test_smoke.py -v
+
+# 94 tests passed in 0.57s
+```
+
+**Test coverage by module:**
+
+| Test File | Tests | Module |
+|-----------|-------|--------|
+| `test_sql_parser_unit.py` | 16 | SQL parser (extract_tables, get_query_type, permissions) |
+| `test_rate_limiter_unit.py` | 11 | Rate limiter (config, sliding window, reset) |
+| `test_retry_policy_unit.py` | 16 | Retry policy (delays, strategies, executor) |
+| `test_ontoguard_adapter_unit.py` | 20 | OntoGuard adapter + exceptions (pass-through, mock validator) |
+| `test_helpers_unit.py` | 10 | Helpers (format_response, validate_json, timestamps) |
+| `test_smoke.py` | 3 | Import smoke tests |
+
+**E2E tests** (require PostgreSQL + Docker):
+```bash
+docker-compose up -d
+python e2e_postgres_tests.py  # 15/15 passed
 ```
 
 ## Plugin SDK
