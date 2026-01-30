@@ -24,7 +24,8 @@ DOMAIN_CONFIGS = {
             "user": "uac_user",
             "password": "uac_password"
         },
-        "roles": ["Admin", "Doctor", "Nurse", "LabTech", "Receptionist", "Patient", "InsuranceAgent"]
+        "roles": ["Admin", "Doctor", "Nurse", "LabTech", "Receptionist", "Patient", "InsuranceAgent"],
+        "tables": ["patients", "medical_records", "lab_results", "appointments", "billing", "staff"]
     },
     "Finance (Финансы)": {
         "ontology": "ontologies/finance.owl",
@@ -37,7 +38,8 @@ DOMAIN_CONFIGS = {
             "password": "uac_password"
         },
         "roles": ["Admin", "Manager", "Teller", "Analyst", "Auditor", "ComplianceOfficer",
-                   "IndividualCustomer", "CorporateCustomer"]
+                   "IndividualCustomer", "CorporateCustomer"],
+        "tables": ["accounts", "transactions", "loans", "cards", "customer_profiles", "reports", "audit_log"]
     },
 }
 
@@ -115,8 +117,8 @@ def register_agent(agent_id: str, role: str, db_config: Dict) -> Optional[Dict]:
             # Сервер возвращает сгенерированный api_key
             return data
         elif response.status_code == 400:
-            st.warning("Агент уже существует. Перезапустите Flask API или используйте другой agent_id.")
-            return None
+            # Агент уже существует — переиспользуем
+            return {"agent_id": agent_id, "already_exists": True}
         else:
             st.error(f"Ошибка сервера: {response.status_code} - {response.text}")
             return None
@@ -125,9 +127,10 @@ def register_agent(agent_id: str, role: str, db_config: Dict) -> Optional[Dict]:
     return None
 
 
-def add_resource_permissions(agent_id: str) -> bool:
+def add_resource_permissions(agent_id: str, tables: list = None) -> bool:
     """Добавление прав доступа к таблицам"""
-    tables = ["patients", "medical_records", "lab_results", "appointments", "billing", "staff"]
+    if tables is None:
+        tables = ["patients", "medical_records", "lab_results", "appointments", "billing", "staff"]
     success = True
     for table in tables:
         try:
@@ -308,8 +311,9 @@ def main():
 
         st.divider()
 
-        # Регистрация агента
-        agent_id = f"streamlit-{selected_role.lower()}"
+        # Регистрация агента (уникальный ID = домен + роль)
+        domain_key = selected_domain.split(" ")[0].lower()
+        agent_id = f"st-{domain_key}-{selected_role.lower()}"
 
         if st.button("🔗 Подключиться", type="primary", use_container_width=True):
             with st.spinner("Подключение..."):
@@ -324,10 +328,15 @@ def main():
                 if result:
                     st.session_state.agent_registered = True
                     st.session_state.agent_id = agent_id
-                    st.session_state.api_key = result.get("api_key")
-                    st.success(f"✅ Агент зарегистрирован: {agent_id}")
+                    if result.get("already_exists"):
+                        st.info(f"ℹ️ Агент уже существует: {agent_id}")
+                        st.session_state.api_key = st.session_state.get("api_key")
+                    else:
+                        st.session_state.api_key = result.get("api_key")
+                        st.success(f"✅ Агент зарегистрирован: {agent_id}")
                     # Добавляем права доступа к таблицам
-                    if add_resource_permissions(agent_id):
+                    tables = domain_config.get("tables")
+                    if add_resource_permissions(agent_id, tables):
                         st.success("✅ Права доступа к таблицам добавлены")
                     else:
                         st.warning("⚠️ Не удалось добавить все права доступа")
@@ -514,8 +523,8 @@ def main():
         with col1:
             validate_role = st.selectbox(
                 "Роль",
-                DEFAULT_CONFIG["roles"],
-                index=DEFAULT_CONFIG["roles"].index(selected_role),
+                domain_config["roles"],
+                index=domain_config["roles"].index(selected_role),
                 key="validate_role"
             )
 
