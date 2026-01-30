@@ -197,680 +197,694 @@ Defines roles, entities, actions and access control rules for OntoGuard semantic
   <!-- ======================== Account ========================== -->
 
   <!-- IndividualCustomer: read own Account -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_IndividualCustomer_Read_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#IndividualCustomerReadAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#IndividualCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>IndividualCustomer can read Account</rdfs:label>
+    <rdfs:label>IndividualCustomerReadAccount</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- CorporateCustomer: read Account -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_CorporateCustomer_Read_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#CorporateCustomerReadAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#CorporateCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>CorporateCustomer can read Account</rdfs:label>
+    <rdfs:label>CorporateCustomerReadAccount</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Teller: read, create Account -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Teller_Read_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#TellerReadAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Teller"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>Teller can read Account</rdfs:label>
+    <rdfs:label>TellerReadAccount</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Teller_Create_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#TellerCreateAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Teller"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>Teller can create Account</rdfs:label>
+    <rdfs:label>TellerCreateAccount</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#TellerUpdateAccount">
+    <rdf:type rdf:resource="http://ontology.example.org/finance#UpdateAction"/>
+    <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Teller"/>
+    <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
+    <rdfs:label>TellerUpdateAccount</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Manager: read, create, update, block Account -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Read_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerReadAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>Manager can read Account</rdfs:label>
+    <rdfs:label>ManagerReadAccount</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Create_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerCreateAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>Manager can create Account</rdfs:label>
+    <rdfs:label>ManagerCreateAccount</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Update_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerUpdateAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#UpdateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>Manager can update Account</rdfs:label>
+    <rdfs:label>ManagerUpdateAccount</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Block_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerBlockAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#BlockAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>Manager can block Account</rdfs:label>
+    <rdfs:label>ManagerBlockAccount</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Auditor: read Account -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Auditor_Read_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AuditorReadAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Auditor"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>Auditor can read Account</rdfs:label>
+    <rdfs:label>AuditorReadAccount</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Admin: read, create, update, delete, block Account -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Read_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminReadAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>Admin can read Account</rdfs:label>
+    <rdfs:label>AdminReadAccount</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Create_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminCreateAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>Admin can create Account</rdfs:label>
+    <rdfs:label>AdminCreateAccount</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Update_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminUpdateAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#UpdateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>Admin can update Account</rdfs:label>
+    <rdfs:label>AdminUpdateAccount</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Delete_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminDeleteAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#DeleteAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>Admin can delete Account</rdfs:label>
+    <rdfs:label>AdminDeleteAccount</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Block_Account">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminBlockAccount">
     <rdf:type rdf:resource="http://ontology.example.org/finance#BlockAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Account"/>
-    <rdfs:label>Admin can block Account</rdfs:label>
+    <rdfs:label>AdminBlockAccount</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- ======================== Transaction ======================== -->
 
   <!-- IndividualCustomer: read, create (transfer) Transaction -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_IndividualCustomer_Read_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#IndividualCustomerReadTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#IndividualCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>IndividualCustomer can read Transaction</rdfs:label>
+    <rdfs:label>IndividualCustomerReadTransaction</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_IndividualCustomer_Create_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#IndividualCustomerCreateTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#IndividualCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>IndividualCustomer can create Transaction</rdfs:label>
+    <rdfs:label>IndividualCustomerCreateTransaction</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_IndividualCustomer_Transfer_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#IndividualCustomerTransferTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#TransferAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#IndividualCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>IndividualCustomer can transfer Transaction</rdfs:label>
+    <rdfs:label>IndividualCustomerTransferTransaction</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- CorporateCustomer: read, create, transfer Transaction -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_CorporateCustomer_Read_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#CorporateCustomerReadTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#CorporateCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>CorporateCustomer can read Transaction</rdfs:label>
+    <rdfs:label>CorporateCustomerReadTransaction</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_CorporateCustomer_Create_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#CorporateCustomerCreateTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#CorporateCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>CorporateCustomer can create Transaction</rdfs:label>
+    <rdfs:label>CorporateCustomerCreateTransaction</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_CorporateCustomer_Transfer_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#CorporateCustomerTransferTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#TransferAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#CorporateCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>CorporateCustomer can transfer Transaction</rdfs:label>
+    <rdfs:label>CorporateCustomerTransferTransaction</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Teller: read, create Transaction -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Teller_Read_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#TellerReadTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Teller"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>Teller can read Transaction</rdfs:label>
+    <rdfs:label>TellerReadTransaction</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Teller_Create_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#TellerCreateTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Teller"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>Teller can create Transaction</rdfs:label>
+    <rdfs:label>TellerCreateTransaction</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Manager: read, create, approve Transaction -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Read_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerReadTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>Manager can read Transaction</rdfs:label>
+    <rdfs:label>ManagerReadTransaction</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Create_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerCreateTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>Manager can create Transaction</rdfs:label>
+    <rdfs:label>ManagerCreateTransaction</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Approve_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerApproveTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ApproveAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>Manager can approve Transaction</rdfs:label>
+    <rdfs:label>ManagerApproveTransaction</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Analyst: read Transaction -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Analyst_Read_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AnalystReadTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Analyst"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>Analyst can read Transaction</rdfs:label>
+    <rdfs:label>AnalystReadTransaction</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Auditor: read Transaction -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Auditor_Read_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AuditorReadTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Auditor"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>Auditor can read Transaction</rdfs:label>
+    <rdfs:label>AuditorReadTransaction</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- ComplianceOfficer: read, block Transaction -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_ComplianceOfficer_Read_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ComplianceOfficerReadTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#ComplianceOfficer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>ComplianceOfficer can read Transaction</rdfs:label>
+    <rdfs:label>ComplianceOfficerReadTransaction</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_ComplianceOfficer_Block_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ComplianceOfficerBlockTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#BlockAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#ComplianceOfficer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>ComplianceOfficer can block Transaction</rdfs:label>
+    <rdfs:label>ComplianceOfficerBlockTransaction</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Admin: full access to Transaction -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Read_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminReadTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>Admin can read Transaction</rdfs:label>
+    <rdfs:label>AdminReadTransaction</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Delete_Transaction">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminDeleteTransaction">
     <rdf:type rdf:resource="http://ontology.example.org/finance#DeleteAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Transaction"/>
-    <rdfs:label>Admin can delete Transaction</rdfs:label>
+    <rdfs:label>AdminDeleteTransaction</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- ======================== Loan =============================== -->
 
   <!-- IndividualCustomer: read own Loan -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_IndividualCustomer_Read_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#IndividualCustomerReadLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#IndividualCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>IndividualCustomer can read Loan</rdfs:label>
+    <rdfs:label>IndividualCustomerReadLoan</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- CorporateCustomer: read, create Loan -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_CorporateCustomer_Read_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#CorporateCustomerReadLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#CorporateCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>CorporateCustomer can read Loan</rdfs:label>
+    <rdfs:label>CorporateCustomerReadLoan</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_CorporateCustomer_Create_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#CorporateCustomerCreateLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#CorporateCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>CorporateCustomer can create Loan application</rdfs:label>
+    <rdfs:label>CorporateCustomerCreateLoan</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Teller: read, create Loan application -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Teller_Read_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#TellerReadLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Teller"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>Teller can read Loan</rdfs:label>
+    <rdfs:label>TellerReadLoan</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Teller_Create_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#TellerCreateLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Teller"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>Teller can create Loan application</rdfs:label>
+    <rdfs:label>TellerCreateLoan</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Manager: read, create, update, approve, delete Loan -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Read_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerReadLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>Manager can read Loan</rdfs:label>
+    <rdfs:label>ManagerReadLoan</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Create_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerCreateLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>Manager can create Loan</rdfs:label>
+    <rdfs:label>ManagerCreateLoan</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Update_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerUpdateLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#UpdateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>Manager can update Loan</rdfs:label>
+    <rdfs:label>ManagerUpdateLoan</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Approve_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerApproveLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ApproveAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>Manager can approve Loan</rdfs:label>
+    <rdfs:label>ManagerApproveLoan</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Delete_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerDeleteLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#DeleteAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>Manager can delete Loan</rdfs:label>
+    <rdfs:label>ManagerDeleteLoan</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Analyst: read Loan -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Analyst_Read_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AnalystReadLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Analyst"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>Analyst can read Loan</rdfs:label>
+    <rdfs:label>AnalystReadLoan</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Auditor: read Loan -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Auditor_Read_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AuditorReadLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Auditor"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>Auditor can read Loan</rdfs:label>
+    <rdfs:label>AuditorReadLoan</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Admin: read, delete Loan -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Read_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminReadLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>Admin can read Loan</rdfs:label>
+    <rdfs:label>AdminReadLoan</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Delete_Loan">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminDeleteLoan">
     <rdf:type rdf:resource="http://ontology.example.org/finance#DeleteAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Loan"/>
-    <rdfs:label>Admin can delete Loan</rdfs:label>
+    <rdfs:label>AdminDeleteLoan</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- ======================== Card =============================== -->
 
   <!-- IndividualCustomer: read, block own Card -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_IndividualCustomer_Read_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#IndividualCustomerReadCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#IndividualCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>IndividualCustomer can read Card</rdfs:label>
+    <rdfs:label>IndividualCustomerReadCard</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_IndividualCustomer_Block_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#IndividualCustomerBlockCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#BlockAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#IndividualCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>IndividualCustomer can block own Card</rdfs:label>
+    <rdfs:label>IndividualCustomerBlockOwnCard</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- CorporateCustomer: read, block Card -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_CorporateCustomer_Read_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#CorporateCustomerReadCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#CorporateCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>CorporateCustomer can read Card</rdfs:label>
+    <rdfs:label>CorporateCustomerReadCard</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_CorporateCustomer_Block_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#CorporateCustomerBlockCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#BlockAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#CorporateCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>CorporateCustomer can block Card</rdfs:label>
+    <rdfs:label>CorporateCustomerBlockCard</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Teller: read, create Card -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Teller_Read_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#TellerReadCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Teller"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>Teller can read Card</rdfs:label>
+    <rdfs:label>TellerReadCard</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Teller_Create_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#TellerCreateCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Teller"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>Teller can create Card</rdfs:label>
+    <rdfs:label>TellerCreateCard</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Manager: read, create, update, block, delete Card -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Read_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerReadCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>Manager can read Card</rdfs:label>
+    <rdfs:label>ManagerReadCard</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Create_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerCreateCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>Manager can create Card</rdfs:label>
+    <rdfs:label>ManagerCreateCard</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Block_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerBlockCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#BlockAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>Manager can block Card</rdfs:label>
+    <rdfs:label>ManagerBlockCard</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- ComplianceOfficer: read, block Card -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_ComplianceOfficer_Read_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ComplianceOfficerReadCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#ComplianceOfficer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>ComplianceOfficer can read Card</rdfs:label>
+    <rdfs:label>ComplianceOfficerReadCard</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_ComplianceOfficer_Block_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ComplianceOfficerBlockCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#BlockAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#ComplianceOfficer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>ComplianceOfficer can block Card</rdfs:label>
+    <rdfs:label>ComplianceOfficerBlockCard</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Admin: full access to Card -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Read_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminReadCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>Admin can read Card</rdfs:label>
+    <rdfs:label>AdminReadCard</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Create_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminCreateCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>Admin can create Card</rdfs:label>
+    <rdfs:label>AdminCreateCard</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Delete_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminDeleteCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#DeleteAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>Admin can delete Card</rdfs:label>
+    <rdfs:label>AdminDeleteCard</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Block_Card">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminBlockCard">
     <rdf:type rdf:resource="http://ontology.example.org/finance#BlockAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Card"/>
-    <rdfs:label>Admin can block Card</rdfs:label>
+    <rdfs:label>AdminBlockCard</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- ======================== CustomerProfile ==================== -->
 
   <!-- IndividualCustomer: read, update own CustomerProfile -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_IndividualCustomer_Read_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#IndividualCustomerReadCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#IndividualCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>IndividualCustomer can read own CustomerProfile</rdfs:label>
+    <rdfs:label>IndividualCustomerReadOwnCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_IndividualCustomer_Update_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#IndividualCustomerUpdateCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#UpdateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#IndividualCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>IndividualCustomer can update own CustomerProfile</rdfs:label>
+    <rdfs:label>IndividualCustomerUpdateOwnCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- CorporateCustomer: read, update CustomerProfile -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_CorporateCustomer_Read_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#CorporateCustomerReadCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#CorporateCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>CorporateCustomer can read CustomerProfile</rdfs:label>
+    <rdfs:label>CorporateCustomerReadCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_CorporateCustomer_Update_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#CorporateCustomerUpdateCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#UpdateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#CorporateCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>CorporateCustomer can update CustomerProfile</rdfs:label>
+    <rdfs:label>CorporateCustomerUpdateCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Teller: read, create, update CustomerProfile -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Teller_Read_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#TellerReadCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Teller"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>Teller can read CustomerProfile</rdfs:label>
+    <rdfs:label>TellerReadCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Teller_Create_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#TellerCreateCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Teller"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>Teller can create CustomerProfile</rdfs:label>
+    <rdfs:label>TellerCreateCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Teller_Update_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#TellerUpdateCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#UpdateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Teller"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>Teller can update CustomerProfile</rdfs:label>
+    <rdfs:label>TellerUpdateCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Manager: read, create, update, delete CustomerProfile -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Read_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerReadCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>Manager can read CustomerProfile</rdfs:label>
+    <rdfs:label>ManagerReadCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Update_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerUpdateCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#UpdateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>Manager can update CustomerProfile</rdfs:label>
+    <rdfs:label>ManagerUpdateCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Delete_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerDeleteCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#DeleteAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>Manager can delete CustomerProfile</rdfs:label>
+    <rdfs:label>ManagerDeleteCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- ComplianceOfficer: read CustomerProfile (KYC verification) -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_ComplianceOfficer_Read_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ComplianceOfficerReadCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#ComplianceOfficer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>ComplianceOfficer can read CustomerProfile for KYC</rdfs:label>
+    <rdfs:label>ComplianceOfficerReadCustomerProfileForKyc</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Auditor: read CustomerProfile -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Auditor_Read_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AuditorReadCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Auditor"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>Auditor can read CustomerProfile</rdfs:label>
+    <rdfs:label>AuditorReadCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Admin: full access to CustomerProfile -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Read_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminReadCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>Admin can read CustomerProfile</rdfs:label>
+    <rdfs:label>AdminReadCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Delete_CustomerProfile">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminDeleteCustomerProfile">
     <rdf:type rdf:resource="http://ontology.example.org/finance#DeleteAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#CustomerProfile"/>
-    <rdfs:label>Admin can delete CustomerProfile</rdfs:label>
+    <rdfs:label>AdminDeleteCustomerProfile</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- ======================== Report ============================= -->
 
   <!-- CorporateCustomer: read Report -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_CorporateCustomer_Read_Report">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#CorporateCustomerReadReport">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#CorporateCustomer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Report"/>
-    <rdfs:label>CorporateCustomer can read Report</rdfs:label>
+    <rdfs:label>CorporateCustomerReadReport</rdfs:label>
+  </owl:NamedIndividual>
+
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#CorporateCustomerExportReport">
+    <rdf:type rdf:resource="http://ontology.example.org/finance#ExportAction"/>
+    <finance:requiresRole rdf:resource="http://ontology.example.org/finance#CorporateCustomer"/>
+    <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Report"/>
+    <rdfs:label>CorporateCustomerExportReport</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Analyst: read, create, export Report -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Analyst_Read_Report">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AnalystReadReport">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Analyst"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Report"/>
-    <rdfs:label>Analyst can read Report</rdfs:label>
+    <rdfs:label>AnalystReadReport</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Analyst_Create_Report">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AnalystCreateReport">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Analyst"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Report"/>
-    <rdfs:label>Analyst can create Report</rdfs:label>
+    <rdfs:label>AnalystCreateReport</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Analyst_Export_Report">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AnalystExportReport">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ExportAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Analyst"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Report"/>
-    <rdfs:label>Analyst can export Report</rdfs:label>
+    <rdfs:label>AnalystExportReport</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Manager: read, create, export Report -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Read_Report">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerReadReport">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Report"/>
-    <rdfs:label>Manager can read Report</rdfs:label>
+    <rdfs:label>ManagerReadReport</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Create_Report">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerCreateReport">
     <rdf:type rdf:resource="http://ontology.example.org/finance#CreateAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Report"/>
-    <rdfs:label>Manager can create Report</rdfs:label>
+    <rdfs:label>ManagerCreateReport</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Manager_Export_Report">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ManagerExportReport">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ExportAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Manager"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Report"/>
-    <rdfs:label>Manager can export Report</rdfs:label>
+    <rdfs:label>ManagerExportReport</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Auditor: read, export Report -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Auditor_Read_Report">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AuditorReadReport">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Auditor"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Report"/>
-    <rdfs:label>Auditor can read Report</rdfs:label>
+    <rdfs:label>AuditorReadReport</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Auditor_Export_Report">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AuditorExportReport">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ExportAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Auditor"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Report"/>
-    <rdfs:label>Auditor can export Report</rdfs:label>
+    <rdfs:label>AuditorExportReport</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Admin: read, delete Report -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Read_Report">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminReadReport">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Report"/>
-    <rdfs:label>Admin can read Report</rdfs:label>
+    <rdfs:label>AdminReadReport</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Delete_Report">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminDeleteReport">
     <rdf:type rdf:resource="http://ontology.example.org/finance#DeleteAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#Report"/>
-    <rdfs:label>Admin can delete Report</rdfs:label>
+    <rdfs:label>AdminDeleteReport</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- ======================== AuditLog =========================== -->
 
   <!-- Auditor: read, export AuditLog -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Auditor_Read_AuditLog">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AuditorReadAuditLog">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Auditor"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#AuditLog"/>
-    <rdfs:label>Auditor can read AuditLog</rdfs:label>
+    <rdfs:label>AuditorReadAuditlog</rdfs:label>
   </owl:NamedIndividual>
 
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Auditor_Export_AuditLog">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AuditorExportAuditLog">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ExportAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Auditor"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#AuditLog"/>
-    <rdfs:label>Auditor can export AuditLog</rdfs:label>
+    <rdfs:label>AuditorExportAuditlog</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- ComplianceOfficer: read AuditLog -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_ComplianceOfficer_Read_AuditLog">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#ComplianceOfficerReadAuditLog">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#ComplianceOfficer"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#AuditLog"/>
-    <rdfs:label>ComplianceOfficer can read AuditLog</rdfs:label>
+    <rdfs:label>ComplianceOfficerReadAuditlog</rdfs:label>
   </owl:NamedIndividual>
 
   <!-- Admin: read AuditLog (no delete - audit logs are immutable) -->
-  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#Rule_Admin_Read_AuditLog">
+  <owl:NamedIndividual rdf:about="http://ontology.example.org/finance#AdminReadAuditLog">
     <rdf:type rdf:resource="http://ontology.example.org/finance#ReadAction"/>
     <finance:requiresRole rdf:resource="http://ontology.example.org/finance#Admin"/>
     <finance:appliesTo rdf:resource="http://ontology.example.org/finance#AuditLog"/>
-    <rdfs:label>Admin can read AuditLog</rdfs:label>
+    <rdfs:label>AdminReadAuditlog</rdfs:label>
   </owl:NamedIndividual>
 
 </rdf:RDF>
