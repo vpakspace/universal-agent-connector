@@ -5,11 +5,16 @@ This is the main entry point for the AI Agent Connector application,
 providing a Flask-based web server with OntoGuard integration.
 """
 
+import os
+from dotenv import load_dotenv
+
+# Load .env BEFORE any app imports (NLToSQLConverter reads OPENAI_API_KEY at import time)
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
+
 from flask import Flask, render_template, session, request, jsonify
 from ai_agent_connector.app.api import api_bp
 from ai_agent_connector.app.widgets import widget_bp
 from ai_agent_connector.app.prompts import prompt_bp
-import os
 import secrets
 import logging
 
