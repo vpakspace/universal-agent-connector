@@ -1,5 +1,6 @@
 # Development dependencies for Universal Agent Connector
 # Install with: pip install -r requirements-dev.txt
+-r requirements.txt
 
 # Testing
 pytest==9.0.1
@@ -25,3 +26,15 @@ sphinx-rtd-theme==2.0.0
 # Development tools
 ipython==8.20.0
 ipdb==0.13.13
+
+# Load testing
+locust==2.24.1
+
+# Graph analysis (experimental)
+networkx==3.3
+numpy==1.26.4
+scipy==1.13.1
+
+# Cloud connectors (optional)
+google-cloud-bigquery==3.27.0
+snowflake-connector-python==3.12.0

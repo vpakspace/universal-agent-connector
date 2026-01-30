@@ -29,7 +29,7 @@ def create_app(config_name: str = None) -> Flask:
     config_name = config_name or os.getenv('FLASK_ENV', 'development')
     app.config['ENV'] = config_name
     app.config['DEBUG'] = config_name == 'development'
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
     
     # Air-gapped mode configuration
     app.config['AIR_GAPPED_MODE'] = os.getenv('AIR_GAPPED_MODE', 'false').lower() in ('true', '1', 'yes')
