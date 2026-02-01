@@ -53,7 +53,14 @@ class AgentRegistry:
             Dict[str, Any]: Registration metadata containing issued API key and linked resources
         """
         if agent_id in self.agents:
-            raise ValueError(f"Agent {agent_id} already registered")
+            # Re-register: remove old agent data first
+            self.agents.pop(agent_id, None)
+            old_keys = [k for k, v in self.api_keys.items() if v == agent_id]
+            for k in old_keys:
+                self.api_keys.pop(k, None)
+            self.agent_credentials.pop(agent_id, None)
+            self.agent_database_links.pop(agent_id, None)
+            self._agent_database_configs.pop(agent_id, None)
         
         timestamp = get_timestamp()
         # Use provided api_key from credentials if available, otherwise generate

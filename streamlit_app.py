@@ -164,7 +164,15 @@ def register_agent(agent_id: str, role: str, db_config: Dict) -> Optional[Dict]:
             # Сервер возвращает сгенерированный api_key
             return data
         elif response.status_code == 400:
-            # Агент уже существует — переиспользуем
+            # Агент уже существует — удаляем и перерегистрируем
+            requests.delete(f"{API_BASE_URL}/api/agents/{agent_id}", timeout=5)
+            retry = requests.post(
+                f"{API_BASE_URL}/api/agents/register",
+                json=payload,
+                timeout=10
+            )
+            if retry.status_code in [200, 201]:
+                return retry.json()
             return {"agent_id": agent_id, "already_exists": True}
         else:
             st.error(f"Ошибка сервера: {response.status_code} - {response.text}")
@@ -377,9 +385,9 @@ def main():
                     st.session_state.agent_id = agent_id
                     if result.get("already_exists"):
                         st.info(f"ℹ️ Агент уже существует: {agent_id}")
-                        st.session_state.api_key = f"streamlit-{agent_id}-key"
+                        st.session_state.api_key = result.get("api_key", f"streamlit-{agent_id}-key")
                     else:
-                        st.session_state.api_key = result.get("api_key")
+                        st.session_state.api_key = result.get("api_key", f"streamlit-{agent_id}-key")
                         st.success(f"✅ Агент зарегистрирован: {agent_id}")
                     # Добавляем права доступа к таблицам
                     tables = domain_config.get("tables")
