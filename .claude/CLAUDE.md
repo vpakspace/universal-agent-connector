@@ -363,8 +363,9 @@ universal-agent-connector/
 - [x] ~~PostgreSQL E2E тесты~~ (done: 15/15 passed)
 - [x] ~~Natural Language Query с LLM~~ (done: OpenAI API, русский/английский)
 - [x] ~~Streamlit UI~~ (done: NL queries, SQL, OntoGuard validation)
-- [ ] Выбор онтологии через UI (сейчас hardcoded hospital.owl)
-- [ ] Настройка БД через UI (сейчас hardcoded hospital_db)
+- [x] ~~Выбор онтологии через UI~~ (done: Hospital/Finance domains, auto-switch ontology)
+- [x] ~~Настройка БД через UI~~ (done: hospital_db/finance_db auto-switch)
+- [x] ~~Agent re-registration fix~~ (done: re-register instead of 400 error)
 - [ ] GraphQL mutations для OntoGuard
 - [ ] WebSocket для real-time validation
 - [x] ~~CI/CD pipeline~~ (done: GitHub Actions — pytest, black, isort, bandit, dependabot)
@@ -378,6 +379,7 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `3747ed0` | 2026-02-01 | fix: Allow agent re-registration and fix Streamlit auth flow |
 | `50bb79c` | 2026-01-30 | test: Add unit tests for core modules (94 tests, no external deps) |
 | `026ab44` | 2026-01-30 | ci: GitHub Actions CI/CD, dependabot, pyproject.toml |
 | `95d871d` | 2026-01-30 | fix: SECRET_KEY, .dockerignore, healthcheck, requirements split |
@@ -391,4 +393,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-01-30 (unit tests: 94 passed)
+**Последнее обновление**: 2026-02-01 (agent re-registration fix, Finance domain tested)
