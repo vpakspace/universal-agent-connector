@@ -21,6 +21,7 @@ Universal Agent Connector - MCP инфраструктура для AI-аген�
 - **Resource Permissions** - двухуровневая система прав
 - **GraphQL API** - альтернативный интерфейс
 - **Audit Logging** - логирование всех операций
+- **Schema Drift Detection** - обнаружение изменений схемы БД (missing/new columns, type changes, renames)
 - **E2E Testing** - PostgreSQL + OntoGuard тесты
 
 ---
@@ -30,17 +31,20 @@ Universal Agent Connector - MCP инфраструктура для AI-аген�
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    API Layer (Flask)                        │
-│  /api/agents/* │ /api/ontoguard/* │ /graphql               │
+│  /api/agents/* │ /api/ontoguard/* │ /api/schema/* │ /graphql │
 └────────────────────────┬────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────┐
 │                 Security Layer                               │
 │  ┌─────────────────┐  ┌─────────────────────────────────┐   │
+│  ┌─────────────────┐  ┌─────────────────────────────────┐   │
 │  │ Agent Auth      │  │ OntoGuard Adapter               │   │
 │  │ (X-API-Key)     │  │ - OWL Ontology Validation       │   │
 │  └─────────────────┘  │ - Role-based Access Control     │   │
-│                       │ - Semantic Action Mapping       │   │
-│                       └─────────────────────────────────┘   │
+│  ┌─────────────────┐  │ - Semantic Action Mapping       │   │
+│  │ Schema Drift    │  └─────────────────────────────────┘   │
+│  │ Detector        │                                        │
+│  └─────────────────┘                                        │
 └────────────────────────┬────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────┐
@@ -152,6 +156,63 @@ table_entity_map = {
 
 ---
 
+## Schema Drift Detection
+
+Обнаружение изменений схемы БД между ожидаемыми bindings и actual schema.
+
+### Компоненты
+
+| Файл | Описание |
+|------|----------|
+| `app/security/schema_drift.py` | SchemaDriftDetector, SchemaBinding, DriftReport, Fix |
+| `config/schema_bindings.yaml` | YAML конфигурация bindings (hospital: 6, finance: 5 entities) |
+| `policy_engine.py` | ExtendedPolicyEngine с `_check_schema_drift()` |
+| `tests/test_schema_drift.py` | 31 unit тест |
+
+### REST API Endpoints
+
+| Endpoint | Method | Описание |
+|----------|--------|----------|
+| `/api/schema/drift-check` | GET | Список bindings (фильтр по entity/domain) |
+| `/api/schema/drift-check` | POST | Проверка drift с actual schema |
+| `/api/schema/bindings` | GET | Список всех bindings |
+| `/api/schema/bindings` | POST | Создать/обновить binding |
+
+### Severity Levels
+
+| Severity | Trigger | Action |
+|----------|---------|--------|
+| **CRITICAL** | Missing columns | Запрос блокируется |
+| **WARNING** | Type changes, renames | Логирование, запрос проходит |
+| **INFO** | New columns / no drift | Без действий |
+
+### Features
+
+- **Type normalization**: `varchar(255)` == `text`, `int` == `integer`, `bool` == `boolean`
+- **Rename detection**: эвристика на containment + character similarity (>70%)
+- **Fix suggestions**: verify_column, update_mapping, add_column
+- **Multi-domain**: hospital (6 entities) + finance (5 entities)
+- **Policy Engine integration**: CRITICAL drift блокирует запрос в ExtendedPolicyEngine
+
+### Использование
+
+```bash
+# Проверить bindings
+curl http://localhost:5000/api/schema/bindings
+
+# Проверить drift с actual schema
+curl -X POST http://localhost:5000/api/schema/drift-check \
+  -H "Content-Type: application/json" \
+  -d '{"schemas": {"PatientRecord": {"id": "integer", "first_name": "text"}}}'
+
+# Добавить binding
+curl -X POST http://localhost:5000/api/schema/bindings \
+  -H "Content-Type: application/json" \
+  -d '{"entity": "NewEntity", "table": "new_table", "domain": "hospital", "columns": {"id": "integer"}}'
+```
+
+---
+
 ## E2E PostgreSQL Testing
 
 ### Конфигурация
@@ -246,11 +307,11 @@ python e2e_postgres_tests.py
 - ✅ Admin DELETE appointments (OWL: Admin can delete only Staff/PatientRecord)
 - ✅ Doctor DELETE lab_results (OWL: no delete permission)
 
-### Unit Tests (94 passed) ✅
+### Unit Tests (125 passed) ✅
 
 ```bash
-pytest tests/test_*_unit.py tests/test_smoke.py -v
-# 94 passed in 0.57s
+pytest tests/test_*_unit.py tests/test_smoke.py tests/test_schema_drift.py -v
+# 125 passed in 0.68s
 ```
 
 | Файл | Тестов | Модуль |
@@ -261,7 +322,8 @@ pytest tests/test_*_unit.py tests/test_smoke.py -v
 | `test_ontoguard_adapter_unit.py` | 20 | ontoguard_adapter + exceptions (pass-through, mock validator, 6 exception classes) |
 | `test_helpers_unit.py` | 10 | helpers (format_response, validate_json, timestamps, json parsing) |
 | `test_smoke.py` | 3 | import smoke tests |
-| **Итого** | **94** | Без внешних зависимостей (mock only) |
+| `test_schema_drift.py` | 31 | schema drift (detect, fixes, bindings, type normalization, renames) |
+| **Итого** | **125** | Без внешних зависимостей (mock only) |
 
 ---
 
@@ -329,7 +391,7 @@ universal-agent-connector/
 ├── ai_agent_connector/
 │   └── app/
 │       ├── api/routes.py       # REST API endpoints
-│       ├── security/           # OntoGuard adapter, exceptions
+│       ├── security/           # OntoGuard adapter, schema drift, exceptions
 │       ├── mcp/tools/          # MCP tools for AI agents
 │       ├── utils/nl_to_sql.py  # NL→SQL converter (OpenAI)
 │       └── db/connectors.py    # PostgreSQL/MySQL/SQLite connectors
@@ -337,7 +399,8 @@ universal-agent-connector/
 │   └── hospital.owl            # Medical domain OWL ontology
 ├── config/
 │   ├── ontoguard.yaml          # OntoGuard configuration
-│   └── hospital_ontoguard.yaml # Hospital-specific config
+│   ├── hospital_ontoguard.yaml # Hospital-specific config
+│   └── schema_bindings.yaml    # Schema drift bindings (hospital+finance)
 └── tests/
     ├── test_smoke.py               # Import smoke tests (3)
     ├── test_sql_parser_unit.py     # SQL parser tests (16)
@@ -345,6 +408,7 @@ universal-agent-connector/
     ├── test_retry_policy_unit.py   # Retry policy tests (16)
     ├── test_ontoguard_adapter_unit.py # OntoGuard adapter + exceptions (20)
     ├── test_helpers_unit.py        # Helper utilities tests (10)
+    ├── test_schema_drift.py        # Schema drift detection tests (31)
     └── test_ontoguard_*.py         # Legacy unit tests
 ```
 
@@ -366,6 +430,7 @@ universal-agent-connector/
 - [x] ~~Выбор онтологии через UI~~ (done: Hospital/Finance domains, auto-switch ontology)
 - [x] ~~Настройка БД через UI~~ (done: hospital_db/finance_db auto-switch)
 - [x] ~~Agent re-registration fix~~ (done: re-register instead of 400 error)
+- [x] ~~Schema Drift Detection~~ (done: detector, YAML bindings, REST endpoints, 31 tests, policy engine integration)
 - [ ] GraphQL mutations для OntoGuard
 - [ ] WebSocket для real-time validation
 - [x] ~~CI/CD pipeline~~ (done: GitHub Actions — pytest, black, isort, bandit, dependabot)
@@ -379,6 +444,7 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `aabb756` | 2026-02-02 | feat: Add schema drift detection module (31 tests, REST endpoints) |
 | `3747ed0` | 2026-02-01 | fix: Allow agent re-registration and fix Streamlit auth flow |
 | `50bb79c` | 2026-01-30 | test: Add unit tests for core modules (94 tests, no external deps) |
 | `026ab44` | 2026-01-30 | ci: GitHub Actions CI/CD, dependabot, pyproject.toml |
@@ -393,4 +459,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-01 (agent re-registration fix, Finance domain tested)
+**Последнее обновление**: 2026-02-02 (schema drift detection module)
