@@ -255,6 +255,32 @@ def execute_natural_query(agent_id: str, api_key: str, role: str, question: str)
         return {"error": str(e)}
 
 
+def check_live_drift(agent_id: str, api_key: str, entities: list = None) -> dict:
+    """Проверка schema drift через live DB connection"""
+    payload = {"agent_id": agent_id}
+    if entities:
+        payload["entities"] = entities
+    try:
+        resp = requests.post(
+            f"{API_BASE_URL}/api/schema/drift-check/live",
+            json=payload,
+            headers={"X-API-Key": api_key},
+            timeout=10
+        )
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def get_schema_bindings() -> dict:
+    """Получение списка schema bindings"""
+    try:
+        resp = requests.get(f"{API_BASE_URL}/api/schema/bindings", timeout=5)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def call_validate_action(role: str, action: str, entity_type: str) -> Dict:
     """Валидация действия через OntoGuard"""
     payload = {
@@ -435,7 +461,7 @@ def main():
         return
 
     # Tabs
-    tab1, tab2, tab3 = st.tabs(["💬 Запросы", "🔍 OntoGuard Валидация", "📊 История"])
+    tab1, tab2, tab3, tab4 = st.tabs(["💬 Запросы", "🔍 OntoGuard Валидация", "📊 История", "🔄 Schema Drift"])
 
     with tab1:
         st.header("💬 Задать вопрос к базе данных")
@@ -648,6 +674,72 @@ def main():
             if st.button("🗑️ Очистить историю"):
                 st.session_state.query_history = []
                 st.rerun()
+
+    with tab4:
+        st.header("🔄 Schema Drift Monitor")
+        st.markdown("Проверка соответствия схемы БД ожидаемым bindings через live DB connection.")
+
+        # Фильтр по entity types
+        available_entities = domain_config.get("entity_types", [])
+        selected_entities = st.multiselect(
+            "Фильтр по entity types (пусто = все)",
+            available_entities,
+            default=[],
+            key="drift_entities"
+        )
+
+        if st.button("🔍 Проверить drift", type="primary"):
+            with st.spinner("Проверка schema drift..."):
+                result = check_live_drift(
+                    st.session_state.agent_id,
+                    st.session_state.api_key,
+                    selected_entities if selected_entities else None
+                )
+
+                if result.get("error"):
+                    st.error(f"Ошибка: {result['error']}")
+                else:
+                    reports = result.get("reports", [])
+                    if not reports:
+                        st.success("✅ Drift не обнаружен — схема соответствует bindings.")
+                    else:
+                        for report in reports:
+                            entity = report.get("entity", "Unknown")
+                            severity = report.get("max_severity", "INFO")
+                            diffs = report.get("diffs", [])
+
+                            if severity == "CRITICAL":
+                                st.error(f"🔴 **{entity}** — CRITICAL drift ({len(diffs)} проблем)")
+                            elif severity == "WARNING":
+                                st.warning(f"🟡 **{entity}** — WARNING drift ({len(diffs)} проблем)")
+                            else:
+                                st.success(f"🟢 **{entity}** — OK")
+
+                            if diffs:
+                                with st.expander(f"Детали drift: {entity}"):
+                                    for d in diffs:
+                                        st.markdown(f"- **{d.get('type', '')}**: `{d.get('column', '')}` — {d.get('detail', '')}")
+
+                            fixes = report.get("fixes", [])
+                            if fixes:
+                                with st.expander(f"Рекомендации: {entity}"):
+                                    for f in fixes:
+                                        st.markdown(f"- **{f.get('action', '')}**: `{f.get('column', '')}` — {f.get('detail', '')}")
+
+        # Текущие bindings
+        st.divider()
+        with st.expander("📋 Текущие Schema Bindings"):
+            bindings = get_schema_bindings()
+            if bindings.get("error"):
+                st.error(f"Ошибка: {bindings['error']}")
+            elif bindings.get("bindings"):
+                for b in bindings["bindings"]:
+                    st.markdown(f"**{b.get('entity', '')}** → `{b.get('table', '')}` ({b.get('domain', '')})")
+                    cols = b.get("columns", {})
+                    if cols:
+                        st.code(", ".join(f"{k}: {v}" for k, v in cols.items()), language="text")
+            else:
+                st.info("Bindings не настроены.")
 
 
 if __name__ == "__main__":
