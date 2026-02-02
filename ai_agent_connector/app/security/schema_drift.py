@@ -244,6 +244,30 @@ class SchemaDriftDetector:
 
         return fixes
 
+    def fetch_live_schema(self, connector, table: str) -> Dict[str, str]:
+        """Query information_schema.columns for actual column names and types."""
+        query = (
+            "SELECT column_name, data_type "
+            "FROM information_schema.columns "
+            "WHERE table_name = %s "
+            "ORDER BY ordinal_position"
+        )
+        rows = connector.execute_query(query, params=(table,), fetch=True, as_dict=True)
+        return {row['column_name']: row['data_type'] for row in (rows or [])}
+
+    def check_live(self, connector, entities: List[str] = None) -> List[DriftReport]:
+        """Check drift for bindings against live DB schema."""
+        targets = entities or list(self._bindings.keys())
+        reports = []
+        for entity in targets:
+            binding = self._bindings.get(entity)
+            if not binding:
+                continue
+            live_schema = self.fetch_live_schema(connector, binding.table)
+            report = self.detect_drift(entity, live_schema)
+            reports.append(report)
+        return reports
+
     def check_all(self, current_schemas: Dict[str, Dict[str, str]]) -> List[DriftReport]:
         """
         Check drift for all bindings.

@@ -2145,6 +2145,70 @@ def schema_drift_check_with_schema():
     }), 200
 
 
+@api_bp.route('/schema/drift-check/live', methods=['POST'])
+def schema_drift_check_live():
+    """
+    Check schema drift against live database connection.
+
+    Body JSON:
+        {
+            "agent_id": "doctor-1",
+            "entities": ["PatientRecord", "Staff"]  // optional, all if omitted
+        }
+
+    Requires X-API-Key header for agent authentication.
+    """
+    agent_id_from_auth = authenticate_agent()
+    if not agent_id_from_auth:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json() or {}
+    agent_id = data.get('agent_id', agent_id_from_auth)
+    entities = data.get('entities')
+
+    if not agent_registry.get_agent(agent_id):
+        return jsonify({'error': f'Agent {agent_id} not found'}), 404
+
+    connector = agent_registry.get_database_connector(agent_id)
+    if not connector:
+        return jsonify({'error': 'Agent does not have a database connection'}), 400
+
+    detector = get_schema_drift_detector()
+    if not detector.bindings:
+        return jsonify({
+            'status': 'no_bindings',
+            'message': 'No schema bindings configured.',
+            'reports': []
+        }), 200
+
+    try:
+        connector.connect()
+        drift_reports = detector.check_live(connector, entities)
+
+        reports = []
+        for report in drift_reports:
+            fixes = detector.suggest_fixes(report) if report.has_drift else []
+            reports.append({
+                **report.to_dict(),
+                'fixes': [f.to_dict() for f in fixes],
+            })
+
+        has_critical = any(r['severity'] == 'CRITICAL' for r in reports)
+
+        return jsonify({
+            'status': 'critical_drift' if has_critical else 'ok',
+            'agent_id': agent_id,
+            'reports': reports,
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Live drift check failed: {str(e)}'}), 500
+    finally:
+        try:
+            connector.disconnect()
+        except Exception:
+            pass
+
+
 @api_bp.route('/schema/bindings', methods=['GET'])
 def list_schema_bindings():
     """List all schema bindings."""
