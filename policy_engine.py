@@ -513,17 +513,18 @@ class OntoGuardValidator:
 
 class ExtendedPolicyEngine(PolicyEngine):
     """
-    Extended policy engine with OntoGuard integration.
+    Extended policy engine with OntoGuard integration and schema drift detection.
 
     This class extends the base PolicyEngine to include OntoGuard
-    semantic validation as an additional policy check.
+    semantic validation and schema drift checks as additional policy checks.
     """
 
     def __init__(
         self,
         max_calls_per_hour: int = 100,
         max_complexity_score: int = 100,
-        enable_ontoguard: bool = True
+        enable_ontoguard: bool = True,
+        schema_bindings_path: Optional[str] = None
     ):
         """
         Initialize the extended policy engine.
@@ -532,10 +533,16 @@ class ExtendedPolicyEngine(PolicyEngine):
             max_calls_per_hour: Maximum tool calls per hour per user
             max_complexity_score: Maximum allowed query complexity score
             enable_ontoguard: Whether to enable OntoGuard validation
+            schema_bindings_path: Path to schema_bindings.yaml (None to disable drift checks)
         """
         super().__init__(max_calls_per_hour, max_complexity_score)
         self._ontoguard_enabled = enable_ontoguard
         self._ontoguard_validator = OntoGuardValidator() if enable_ontoguard else None
+        self._schema_drift_detector = None
+        self._schema_bindings_path = schema_bindings_path
+
+        if schema_bindings_path:
+            self._init_schema_drift(schema_bindings_path)
 
     async def validate(
         self,
@@ -562,6 +569,12 @@ class ExtendedPolicyEngine(PolicyEngine):
         if not base_result.is_allowed:
             return base_result
 
+        # Schema drift check (if detector configured and query has schema info)
+        if self._schema_drift_detector:
+            drift_result = self._check_schema_drift(arguments)
+            if drift_result and not drift_result.is_allowed:
+                return drift_result
+
         # Then, run OntoGuard validation if enabled
         if self._ontoguard_enabled and self._ontoguard_validator:
             # Extract action and entity from tool_name and arguments
@@ -586,6 +599,52 @@ class ExtendedPolicyEngine(PolicyEngine):
                 return ontoguard_result
 
         return base_result
+
+    def _init_schema_drift(self, config_path: str) -> None:
+        """Initialize schema drift detector from config."""
+        try:
+            from ai_agent_connector.app.security.schema_drift import SchemaDriftDetector
+            self._schema_drift_detector = SchemaDriftDetector()
+            count = self._schema_drift_detector.load_bindings(config_path)
+            logger.info("Schema drift detector initialized with %d bindings", count)
+        except Exception as e:
+            logger.warning("Failed to initialize schema drift detector: %s", e)
+            self._schema_drift_detector = None
+
+    def _check_schema_drift(self, arguments: Dict[str, Any]) -> Optional[ValidationResult]:
+        """
+        Check schema drift for entities referenced in the query.
+
+        Only blocks on CRITICAL severity (missing columns).
+        WARNING severity is logged but allowed.
+        """
+        entity_type = self._extract_entity_type(arguments)
+        current_schema = arguments.get("current_schema")
+
+        if not current_schema or not entity_type:
+            return None
+
+        report = self._schema_drift_detector.detect_drift(entity_type, current_schema)
+
+        if report.severity == "CRITICAL":
+            fixes = self._schema_drift_detector.suggest_fixes(report)
+            return ValidationResult(
+                is_allowed=False,
+                reason=f"Schema drift detected: {report.message}",
+                suggestions=[f.description for f in fixes],
+                failed_policy="schema_drift",
+                metadata=report.to_dict(),
+            )
+
+        if report.severity == "WARNING":
+            logger.warning("Schema drift warning for %s: %s", entity_type, report.message)
+
+        return None
+
+    @property
+    def schema_drift_detector(self):
+        """Access the schema drift detector (for REST endpoints)."""
+        return self._schema_drift_detector
 
     def _extract_action(self, tool_name: str) -> str:
         """Extract action from tool name."""

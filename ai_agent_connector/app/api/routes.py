@@ -15,7 +15,9 @@ from . import api_bp
 from ..security import (
     get_ontoguard_adapter,
     ValidationResult,
-    ValidationDeniedError
+    ValidationDeniedError,
+    SchemaDriftDetector,
+    SchemaBinding,
 )
 
 # Core components
@@ -2032,4 +2034,170 @@ def execute_ai_agent_query(agent_id: str):
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# ============================================================
+# Schema Drift Detection Endpoints
+# ============================================================
+
+# Module-level detector instance
+_schema_drift_detector: Optional[SchemaDriftDetector] = None
+
+
+def get_schema_drift_detector() -> SchemaDriftDetector:
+    """Get or create the schema drift detector singleton."""
+    global _schema_drift_detector
+    if _schema_drift_detector is None:
+        _schema_drift_detector = SchemaDriftDetector()
+        config_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+            'config', 'schema_bindings.yaml'
+        )
+        if os.path.exists(config_path):
+            _schema_drift_detector.load_bindings(config_path)
+    return _schema_drift_detector
+
+
+@api_bp.route('/schema/drift-check', methods=['GET'])
+def schema_drift_check():
+    """
+    Check schema drift for all bindings.
+
+    Query params:
+        entity: (optional) Check a specific entity only
+        domain: (optional) Filter by domain
+
+    Returns:
+        JSON with drift reports for all (or filtered) bindings.
+    """
+    detector = get_schema_drift_detector()
+    entity_filter = request.args.get('entity')
+    domain_filter = request.args.get('domain')
+
+    bindings = detector.bindings
+    if not bindings:
+        return jsonify({
+            'status': 'no_bindings',
+            'message': 'No schema bindings configured. POST to /api/schema/bindings to add.',
+            'reports': []
+        }), 200
+
+    reports = []
+    for entity_name, binding in bindings.items():
+        if entity_filter and entity_name != entity_filter:
+            continue
+        if domain_filter and binding.domain != domain_filter:
+            continue
+
+        reports.append({
+            'entity': entity_name,
+            'table': binding.table,
+            'domain': binding.domain,
+            'expected_columns': binding.columns,
+            'status': 'binding_loaded',
+            'message': 'Use POST /api/schema/drift-check with current_schema to detect drift',
+        })
+
+    return jsonify({
+        'status': 'ok',
+        'total_bindings': len(bindings),
+        'reports': reports,
+    }), 200
+
+
+@api_bp.route('/schema/drift-check', methods=['POST'])
+def schema_drift_check_with_schema():
+    """
+    Check schema drift with actual current schemas.
+
+    Body JSON:
+        {
+            "schemas": {
+                "PatientRecord": {"id": "integer", "name": "text", ...},
+                ...
+            }
+        }
+
+    Returns:
+        JSON with drift reports including missing/new columns, type changes, renames.
+    """
+    detector = get_schema_drift_detector()
+    data = request.get_json() or {}
+    schemas = data.get('schemas', {})
+
+    if not schemas:
+        return jsonify({'error': 'schemas field is required'}), 400
+
+    reports = []
+    for entity_name, current_schema in schemas.items():
+        report = detector.detect_drift(entity_name, current_schema)
+        fixes = detector.suggest_fixes(report) if report.has_drift else []
+        reports.append({
+            **report.to_dict(),
+            'fixes': [f.to_dict() for f in fixes],
+        })
+
+    has_critical = any(r['severity'] == 'CRITICAL' for r in reports)
+
+    return jsonify({
+        'status': 'critical_drift' if has_critical else 'ok',
+        'reports': reports,
+    }), 200
+
+
+@api_bp.route('/schema/bindings', methods=['GET'])
+def list_schema_bindings():
+    """List all schema bindings."""
+    detector = get_schema_drift_detector()
+    bindings = []
+    for name, b in detector.bindings.items():
+        bindings.append({
+            'entity': b.entity,
+            'table': b.table,
+            'domain': b.domain,
+            'columns': b.columns,
+        })
+    return jsonify({'bindings': bindings, 'total': len(bindings)}), 200
+
+
+@api_bp.route('/schema/bindings', methods=['POST'])
+def create_schema_binding():
+    """
+    Create or update a schema binding.
+
+    Body JSON:
+        {
+            "entity": "PatientRecord",
+            "table": "patients",
+            "domain": "hospital",
+            "columns": {"id": "integer", "name": "text"}
+        }
+    """
+    detector = get_schema_drift_detector()
+    data = request.get_json() or {}
+
+    entity = data.get('entity')
+    table = data.get('table')
+    columns = data.get('columns', {})
+
+    if not entity or not table:
+        return jsonify({'error': 'entity and table are required'}), 400
+
+    binding = SchemaBinding(
+        entity=entity,
+        table=table,
+        columns=columns,
+        domain=data.get('domain', 'default'),
+    )
+    detector.add_binding(binding)
+
+    return jsonify({
+        'status': 'created',
+        'binding': {
+            'entity': binding.entity,
+            'table': binding.table,
+            'domain': binding.domain,
+            'columns': binding.columns,
+        }
+    }), 201
 

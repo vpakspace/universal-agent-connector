@@ -1,0 +1,137 @@
+# Schema Bindings Configuration
+# Maps logical entities to physical tables and expected columns.
+# Used by SchemaDriftDetector to detect schema changes.
+
+domains:
+  hospital:
+    entities:
+      PatientRecord:
+        table: patients
+        columns:
+          id: integer
+          first_name: text
+          last_name: text
+          date_of_birth: date
+          gender: text
+          phone: text
+          email: text
+          address: text
+          insurance_id: text
+          created_at: timestamp
+
+      MedicalRecord:
+        table: medical_records
+        columns:
+          id: integer
+          patient_id: integer
+          doctor_id: integer
+          diagnosis: text
+          treatment: text
+          notes: text
+          record_date: date
+          created_at: timestamp
+
+      LabResult:
+        table: lab_results
+        columns:
+          id: integer
+          patient_id: integer
+          test_name: text
+          result_value: text
+          unit: text
+          reference_range: text
+          status: text
+          test_date: date
+          created_at: timestamp
+
+      Appointment:
+        table: appointments
+        columns:
+          id: integer
+          patient_id: integer
+          doctor_id: integer
+          appointment_date: timestamp
+          status: text
+          notes: text
+          created_at: timestamp
+
+      Billing:
+        table: billing
+        columns:
+          id: integer
+          patient_id: integer
+          amount: decimal
+          description: text
+          status: text
+          billing_date: date
+          created_at: timestamp
+
+      Staff:
+        table: staff
+        columns:
+          id: integer
+          name: text
+          role: text
+          department: text
+          email: text
+          phone: text
+          created_at: timestamp
+
+  finance:
+    entities:
+      Account:
+        table: accounts
+        columns:
+          id: integer
+          account_number: text
+          account_type: text
+          balance: decimal
+          currency: text
+          owner_name: text
+          status: text
+          created_at: timestamp
+
+      Transaction:
+        table: transactions
+        columns:
+          id: integer
+          account_id: integer
+          amount: decimal
+          transaction_type: text
+          description: text
+          status: text
+          transaction_date: timestamp
+          created_at: timestamp
+
+      Loan:
+        table: loans
+        columns:
+          id: integer
+          account_id: integer
+          amount: decimal
+          interest_rate: decimal
+          term_months: integer
+          status: text
+          start_date: date
+          created_at: timestamp
+
+      Card:
+        table: cards
+        columns:
+          id: integer
+          account_id: integer
+          card_number: text
+          card_type: text
+          expiry_date: date
+          status: text
+          created_at: timestamp
+
+      CustomerProfile:
+        table: customer_profiles
+        columns:
+          id: integer
+          name: text
+          email: text
+          phone: text
+          address: text
+          created_at: timestamp

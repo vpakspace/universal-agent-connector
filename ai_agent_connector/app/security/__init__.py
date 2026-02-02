@@ -15,6 +15,13 @@ from .ontoguard_adapter import (
     reset_ontoguard_adapter
 )
 
+from .schema_drift import (
+    SchemaBinding,
+    DriftReport,
+    Fix,
+    SchemaDriftDetector,
+)
+
 from .exceptions import (
     OntoGuardError,
     ValidationDeniedError,
@@ -34,6 +41,12 @@ __all__ = [
     'get_ontoguard_adapter',
     'initialize_ontoguard',
     'reset_ontoguard_adapter',
+
+    # Schema drift
+    'SchemaBinding',
+    'DriftReport',
+    'Fix',
+    'SchemaDriftDetector',
 
     # Exceptions
     'OntoGuardError',
