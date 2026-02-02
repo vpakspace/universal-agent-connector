@@ -168,6 +168,7 @@ table_entity_map = {
 | `config/schema_bindings.yaml` | YAML конфигурация bindings (hospital: 6, finance: 5 entities) |
 | `policy_engine.py` | ExtendedPolicyEngine с `_check_schema_drift()` |
 | `tests/test_schema_drift.py` | 31 unit тест |
+| `tests/test_schema_drift_live.py` | 9 unit тестов (live drift via information_schema) |
 
 ### REST API Endpoints
 
@@ -175,6 +176,7 @@ table_entity_map = {
 |----------|--------|----------|
 | `/api/schema/drift-check` | GET | Список bindings (фильтр по entity/domain) |
 | `/api/schema/drift-check` | POST | Проверка drift с actual schema |
+| `/api/schema/drift-check/live` | POST | Auto-detect drift через live DB (information_schema) |
 | `/api/schema/bindings` | GET | Список всех bindings |
 | `/api/schema/bindings` | POST | Создать/обновить binding |
 
@@ -193,6 +195,7 @@ table_entity_map = {
 - **Fix suggestions**: verify_column, update_mapping, add_column
 - **Multi-domain**: hospital (6 entities) + finance (5 entities)
 - **Policy Engine integration**: CRITICAL drift блокирует запрос в ExtendedPolicyEngine
+- **Live DB auto-detect**: `fetch_live_schema()` + `check_live()` через `information_schema.columns`
 
 ### Использование
 
@@ -307,11 +310,11 @@ python e2e_postgres_tests.py
 - ✅ Admin DELETE appointments (OWL: Admin can delete only Staff/PatientRecord)
 - ✅ Doctor DELETE lab_results (OWL: no delete permission)
 
-### Unit Tests (125 passed) ✅
+### Unit Tests (134 passed) ✅
 
 ```bash
-pytest tests/test_*_unit.py tests/test_smoke.py tests/test_schema_drift.py -v
-# 125 passed in 0.68s
+pytest tests/ -v
+# 134 passed in 0.19s
 ```
 
 | Файл | Тестов | Модуль |
@@ -323,7 +326,8 @@ pytest tests/test_*_unit.py tests/test_smoke.py tests/test_schema_drift.py -v
 | `test_helpers_unit.py` | 10 | helpers (format_response, validate_json, timestamps, json parsing) |
 | `test_smoke.py` | 3 | import smoke tests |
 | `test_schema_drift.py` | 31 | schema drift (detect, fixes, bindings, type normalization, renames) |
-| **Итого** | **125** | Без внешних зависимостей (mock only) |
+| `test_schema_drift_live.py` | 9 | live drift (fetch_live_schema, check_live, mock connector) |
+| **Итого** | **134** | Без внешних зависимостей (mock only) |
 
 ---
 
@@ -409,6 +413,7 @@ universal-agent-connector/
     ├── test_ontoguard_adapter_unit.py # OntoGuard adapter + exceptions (20)
     ├── test_helpers_unit.py        # Helper utilities tests (10)
     ├── test_schema_drift.py        # Schema drift detection tests (31)
+    ├── test_schema_drift_live.py   # Live drift detection tests (9)
     └── test_ontoguard_*.py         # Legacy unit tests
 ```
 
@@ -436,7 +441,7 @@ universal-agent-connector/
 - [x] ~~CI/CD pipeline~~ (done: GitHub Actions — pytest, black, isort, bandit, dependabot)
 - [x] ~~Code audit (Kimi K2)~~ (done: SECRET_KEY, .dockerignore, requirements split, src/ cleanup)
 - [x] ~~Unit tests для core modules~~ (done: 125 passed, CI green — lint + test 3.10/3.11/3.12)
-- [ ] Schema drift: auto-detect from live DB connection (information_schema)
+- [x] ~~Schema drift: auto-detect from live DB connection~~ (done: fetch_live_schema, check_live, POST /api/schema/drift-check/live, 9 tests)
 - [ ] Schema drift: Streamlit UI tab for drift monitoring
 - [ ] GraphQL mutations для OntoGuard
 - [ ] WebSocket для real-time validation
@@ -448,6 +453,7 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `3122c45` | 2026-02-02 | feat: Add live schema drift detection via information_schema |
 | `aabb756` | 2026-02-02 | feat: Add schema drift detection module (31 tests, REST endpoints) |
 | `3747ed0` | 2026-02-01 | fix: Allow agent re-registration and fix Streamlit auth flow |
 | `50bb79c` | 2026-01-30 | test: Add unit tests for core modules (94 tests, no external deps) |
@@ -463,4 +469,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-02 (schema drift detection module)
+**Последнее обновление**: 2026-02-02 (live schema drift detection via information_schema)
