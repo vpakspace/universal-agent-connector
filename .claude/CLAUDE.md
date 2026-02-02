@@ -87,6 +87,7 @@ streamlit run streamlit_app.py
 | **SQL запросы** | Прямые SQL запросы к БД |
 | **OntoGuard** | Проверка разрешений по OWL онтологии |
 | **История** | Лог выполненных запросов |
+| **Schema Drift** | Мониторинг drift через live DB connection |
 
 ### Natural Language Query
 
@@ -442,7 +443,7 @@ universal-agent-connector/
 - [x] ~~Code audit (Kimi K2)~~ (done: SECRET_KEY, .dockerignore, requirements split, src/ cleanup)
 - [x] ~~Unit tests для core modules~~ (done: 125 passed, CI green — lint + test 3.10/3.11/3.12)
 - [x] ~~Schema drift: auto-detect from live DB connection~~ (done: fetch_live_schema, check_live, POST /api/schema/drift-check/live, 9 tests)
-- [ ] Schema drift: Streamlit UI tab for drift monitoring
+- [x] ~~Schema drift: Streamlit UI tab for drift monitoring~~ (done: 4th tab with live drift check, severity colors, fix suggestions)
 - [ ] GraphQL mutations для OntoGuard
 - [ ] WebSocket для real-time validation
 - [ ] Prometheus metrics
@@ -453,6 +454,7 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `ba42ed8` | 2026-02-02 | feat: Add Schema Drift Monitor tab to Streamlit UI |
 | `3122c45` | 2026-02-02 | feat: Add live schema drift detection via information_schema |
 | `aabb756` | 2026-02-02 | feat: Add schema drift detection module (31 tests, REST endpoints) |
 | `3747ed0` | 2026-02-01 | fix: Allow agent re-registration and fix Streamlit auth flow |
@@ -469,4 +471,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-02 (live schema drift detection via information_schema)
+**Последнее обновление**: 2026-02-02 (Schema Drift Monitor tab in Streamlit UI)
