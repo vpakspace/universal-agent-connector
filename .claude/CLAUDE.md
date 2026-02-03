@@ -111,6 +111,58 @@ SQL: SELECT * FROM patients;
 
 ---
 
+## Prometheus Metrics
+
+Метрики для мониторинга через Prometheus.
+
+### Endpoint
+
+```
+GET /metrics
+```
+
+### Доступные метрики
+
+| Метрика | Тип | Описание |
+|---------|-----|----------|
+| `uac_http_requests_total` | Counter | HTTP запросы (method, endpoint, status) |
+| `uac_http_request_duration_seconds` | Histogram | Latency HTTP запросов |
+| `uac_ontoguard_validations_total` | Counter | OntoGuard валидации (action, entity, result, role) |
+| `uac_ontoguard_validation_duration_seconds` | Histogram | Latency валидаций |
+| `uac_websocket_connections` | Gauge | Текущие WebSocket соединения |
+| `uac_websocket_events_total` | Counter | WebSocket события |
+| `uac_schema_drift_checks_total` | Counter | Schema drift проверки (domain, severity) |
+| `uac_db_queries_total` | Counter | Database запросы (type, status, agent) |
+| `uac_db_query_duration_seconds` | Histogram | Latency DB запросов |
+| `uac_agent_operations_total` | Counter | Операции с агентами |
+| `uac_agents_registered` | Gauge | Количество зарегистрированных агентов |
+| `uac_build_info` | Info | Информация о версии |
+
+### Prometheus scrape config
+
+```yaml
+scrape_configs:
+  - job_name: 'uac'
+    static_configs:
+      - targets: ['localhost:5000']
+    metrics_path: '/metrics'
+```
+
+### Grafana Dashboard (пример PromQL)
+
+```promql
+# Request rate
+rate(uac_http_requests_total[5m])
+
+# OntoGuard denied rate
+rate(uac_ontoguard_validations_total{result="denied"}[5m])
+
+# 95th percentile latency
+histogram_quantile(0.95, rate(uac_http_request_duration_seconds_bucket[5m]))
+```
+
+---
+
 ## WebSocket Real-Time Validation
 
 WebSocket endpoints для real-time OntoGuard валидации.
@@ -376,11 +428,11 @@ python e2e_postgres_tests.py
 - ✅ Admin DELETE appointments (OWL: Admin can delete only Staff/PatientRecord)
 - ✅ Doctor DELETE lab_results (OWL: no delete permission)
 
-### Unit Tests (149 passed) ✅
+### Unit Tests (172 passed) ✅
 
 ```bash
 pytest tests/ -v
-# 149 passed, 9 skipped in 0.61s
+# 172 passed, 9 skipped in 0.50s
 ```
 
 | Файл | Тестов | Модуль |
@@ -395,7 +447,8 @@ pytest tests/ -v
 | `test_schema_drift_live.py` | 9 | live drift (fetch_live_schema, check_live, mock connector) |
 | `test_graphql_ontoguard.py` | 9 | GraphQL OntoGuard (types, inputs, mutations, queries) — skipped без graphene |
 | `test_websocket_ontoguard.py` | 15 | WebSocket (connect, validate, permissions, batch, subscribe) |
-| **Итого** | **149** | +9 skipped (optional deps) |
+| `test_prometheus_metrics.py` | 23 | Prometheus metrics (tracking, endpoint, normalization) |
+| **Итого** | **172** | +9 skipped (optional deps) |
 
 ---
 
@@ -513,7 +566,7 @@ universal-agent-connector/
 - [x] ~~Schema drift: Streamlit UI tab for drift monitoring~~ (done: 4th tab with live drift check, severity colors, fix suggestions)
 - [x] ~~GraphQL mutations для OntoGuard~~ (done: 3 mutations, 4 queries, 4 types, 3 inputs)
 - [x] ~~WebSocket для real-time validation~~ (done: flask-socketio, 8 events, 15 tests)
-- [ ] Prometheus metrics
+- [x] ~~Prometheus metrics~~ (done: prometheus-client, 9 metrics, /metrics endpoint, 23 tests)
 
 ---
 
@@ -521,6 +574,7 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `fb58c2b` | 2026-02-03 | feat: Add Prometheus metrics for monitoring |
 | `ac64002` | 2026-02-03 | feat: Add WebSocket support for real-time OntoGuard validation |
 | `cea11d3` | 2026-02-03 | feat: Add GraphQL mutations for OntoGuard semantic validation |
 | `ba42ed8` | 2026-02-02 | feat: Add Schema Drift Monitor tab to Streamlit UI |
@@ -540,4 +594,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-03 (WebSocket real-time validation)
+**Последнее обновление**: 2026-02-03 (Prometheus metrics)
