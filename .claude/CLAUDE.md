@@ -21,6 +21,7 @@ Universal Agent Connector - MCP инфраструктура для AI-аген�
 - **Resource Permissions** - двухуровневая система прав
 - **GraphQL API** - альтернативный интерфейс
 - **Audit Trail** - persistent logging (file/SQLite backends, rotation, export)
+- **Alerting Integration** - Slack/PagerDuty/webhook alerts при CRITICAL events
 - **Schema Drift Detection** - обнаружение изменений схемы БД (missing/new columns, type changes, renames)
 - **Validation Caching** - LRU кэш с TTL для OntoGuard валидаций (опционально Redis)
 - **Rate Limiting** - Ограничение запросов per agent (sliding window)
@@ -486,6 +487,105 @@ init_audit_logger(
 
 ---
 
+## Alerting Integration
+
+Интеграция с внешними системами оповещений: Slack, PagerDuty, generic webhooks.
+
+### Каналы оповещений
+
+| Канал | Описание | Min Severity |
+|-------|----------|--------------|
+| **Slack** | Webhook интеграция | WARNING |
+| **PagerDuty** | Events API v2 | ERROR |
+| **Webhook** | Generic HTTP POST | WARNING |
+
+### Features
+
+- **Deduplication**: предотвращение дублей (5 мин по умолчанию)
+- **Severity filtering**: отправка только >= min_severity
+- **Async dispatch**: неблокирующая отправка через threading
+- **Alert history**: история отправленных оповещений
+- **Statistics**: статистика по severity, type, channel
+
+### REST API Endpoints
+
+| Endpoint | Method | Описание |
+|----------|--------|----------|
+| `/api/alerts/channels` | GET | Список каналов |
+| `/api/alerts/channels/slack` | POST | Добавить Slack |
+| `/api/alerts/channels/pagerduty` | POST | Добавить PagerDuty |
+| `/api/alerts/channels/webhook` | POST | Добавить webhook |
+| `/api/alerts/channels/{name}` | DELETE | Удалить канал |
+| `/api/alerts/test` | POST | Тестовое оповещение |
+| `/api/alerts/send` | POST | Отправить alert |
+| `/api/alerts/history` | GET | История оповещений |
+| `/api/alerts/statistics` | GET | Статистика |
+| `/api/alerts/config` | GET | Конфигурация |
+
+### Alert Types
+
+| Type | Описание |
+|------|----------|
+| `QUERY_SLOW` | Медленный запрос |
+| `ONTOGUARD_DENIED` | OntoGuard отказ |
+| `SCHEMA_DRIFT_CRITICAL` | Критический drift |
+| `RATE_LIMIT_EXCEEDED` | Превышение лимита |
+| `AGENT_ERROR` | Ошибка агента |
+| `CUSTOM` | Пользовательский |
+
+### Использование
+
+```bash
+# Добавить Slack канал
+curl -X POST http://localhost:5000/api/alerts/channels/slack \
+  -H "Content-Type: application/json" \
+  -d '{"webhook_url": "https://hooks.slack.com/services/...", "min_severity": "WARNING"}'
+
+# Добавить PagerDuty канал
+curl -X POST http://localhost:5000/api/alerts/channels/pagerduty \
+  -H "Content-Type: application/json" \
+  -d '{"routing_key": "...", "min_severity": "ERROR"}'
+
+# Отправить тестовый alert
+curl -X POST http://localhost:5000/api/alerts/test
+
+# Отправить custom alert
+curl -X POST http://localhost:5000/api/alerts/send \
+  -H "Content-Type: application/json" \
+  -d '{"alert_type": "CUSTOM", "title": "Test", "severity": "WARNING", "message": "Test message"}'
+
+# Статистика
+curl http://localhost:5000/api/alerts/statistics?days=7
+```
+
+### Программная интеграция
+
+```python
+from ai_agent_connector.app.utils.alerting import (
+    get_notification_manager, init_notification_manager,
+    NotificationAlert, AlertType, AlertSeverity,
+    SlackChannel, PagerDutyChannel, WebhookChannel,
+)
+
+# Инициализация с каналами
+init_notification_manager(channels=[
+    SlackChannel(webhook_url="https://hooks.slack.com/...", min_severity=AlertSeverity.WARNING),
+    PagerDutyChannel(routing_key="...", min_severity=AlertSeverity.ERROR),
+])
+
+# Отправка alert
+manager = get_notification_manager()
+manager.send_alert(NotificationAlert(
+    alert_type=AlertType.CUSTOM,
+    title="Schema Drift Detected",
+    severity=AlertSeverity.CRITICAL,
+    message="Missing column 'email' in patients table",
+    details={"entity": "PatientRecord", "column": "email"}
+))
+```
+
+---
+
 ## WebSocket Real-Time Validation
 
 WebSocket endpoints для real-time OntoGuard валидации с поддержкой доменов.
@@ -803,7 +903,8 @@ pytest tests/ -v
 | `test_rate_limit_api.py` | 15 | Rate limit API (list, get, set, remove, reset, integration) |
 | `test_jwt_auth.py` | 27 | JWT authentication (config, tokens, refresh, revoke, API endpoints) |
 | `test_audit_logger.py` | 28 | Audit trail (backends, persistence, export, statistics, API endpoints) |
-| **Итого** | **282** | +9 skipped (optional deps) |
+| `test_alerting.py` | 42 | Alerting (channels, manager, deduplication, history, API endpoints) |
+| **Итого** | **324** | +9 skipped (optional deps) |
 
 ---
 
@@ -944,7 +1045,7 @@ universal-agent-connector/
 | # | Улучшение | Описание | Статус |
 |---|-----------|----------|--------|
 | 5 | **Audit Trail** | Persistent logging (file/SQLite, rotation, export) | ✅ done |
-| 6 | **Alerting Integration** | Slack/PagerDuty alerts при CRITICAL events | planned |
+| 6 | **Alerting Integration** | Slack/PagerDuty alerts при CRITICAL events | ✅ done |
 | 7 | **Load Testing** | Locust/k6 нагрузочное тестирование | planned |
 | 8 | **Kubernetes Deployment** | Helm charts, manifests, HPA | planned |
 
@@ -985,4 +1086,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-03 (Audit Trail + JWT Authentication + OpenAPI/Swagger)
+**Последнее обновление**: 2026-02-03 (Alerting Integration + Audit Trail + JWT Authentication)

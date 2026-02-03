@@ -39,6 +39,16 @@ from ..utils.adoption_analytics import adoption_analytics, FeatureType, QueryPat
 from ..utils.training_data_export import training_data_exporter, QuerySQLPair, ExportFormat
 from ..utils.security_monitor import SecurityMonitor
 from ..utils.rate_limiter import RateLimiter, RateLimitConfig
+from ..utils.alerting import (
+    get_notification_manager,
+    init_notification_manager,
+    NotificationAlert,
+    AlertType,
+    AlertSeverity,
+    SlackChannel,
+    PagerDutyChannel,
+    WebhookChannel,
+)
 
 # JWT Authentication
 from ..security.jwt_auth import (
@@ -1390,6 +1400,266 @@ def update_audit_config():
         'status': 'ok',
         'message': f'Audit logger reinitialized with {backend} backend',
         'backend': audit_logger.backend_type
+    }), 200
+
+
+# ============================================================================
+# Alerting Endpoints (Slack/PagerDuty Integration)
+# ============================================================================
+
+@api_bp.route('/alerts/channels', methods=['GET'])
+def get_alert_channels():
+    """Get configured alert channels"""
+    manager = get_notification_manager()
+    return jsonify({
+        'status': 'ok',
+        'channels': manager.get_channels(),
+        'config': manager.get_config()
+    }), 200
+
+
+@api_bp.route('/alerts/channels/slack', methods=['POST'])
+def add_slack_channel():
+    """
+    Add Slack channel.
+
+    Request body:
+    - webhook_url: Slack webhook URL (required)
+    - channel: Channel name (optional)
+    - username: Bot username (default: UAC Alerts)
+    """
+    data = request.get_json() or {}
+
+    webhook_url = data.get('webhook_url')
+    if not webhook_url:
+        return jsonify({'error': 'webhook_url is required'}), 400
+
+    channel = SlackChannel(
+        webhook_url=webhook_url,
+        channel=data.get('channel'),
+        username=data.get('username', 'UAC Alerts'),
+        icon_emoji=data.get('icon_emoji', ':warning:')
+    )
+
+    manager = get_notification_manager()
+    manager.add_channel(channel)
+
+    return jsonify({
+        'status': 'ok',
+        'message': 'Slack channel added',
+        'channel': 'slack'
+    }), 201
+
+
+@api_bp.route('/alerts/channels/pagerduty', methods=['POST'])
+def add_pagerduty_channel():
+    """
+    Add PagerDuty channel.
+
+    Request body:
+    - routing_key: PagerDuty routing key (required)
+    - service_name: Service name (default: Universal Agent Connector)
+    """
+    data = request.get_json() or {}
+
+    routing_key = data.get('routing_key')
+    if not routing_key:
+        return jsonify({'error': 'routing_key is required'}), 400
+
+    channel = PagerDutyChannel(
+        routing_key=routing_key,
+        service_name=data.get('service_name', 'Universal Agent Connector')
+    )
+
+    manager = get_notification_manager()
+    manager.add_channel(channel)
+
+    return jsonify({
+        'status': 'ok',
+        'message': 'PagerDuty channel added',
+        'channel': 'pagerduty'
+    }), 201
+
+
+@api_bp.route('/alerts/channels/webhook', methods=['POST'])
+def add_webhook_channel():
+    """
+    Add custom webhook channel.
+
+    Request body:
+    - url: Webhook URL (required)
+    - name: Channel name (default: webhook)
+    - headers: Optional headers dict
+    """
+    data = request.get_json() or {}
+
+    url = data.get('url')
+    if not url:
+        return jsonify({'error': 'url is required'}), 400
+
+    channel = WebhookChannel(
+        url=url,
+        headers=data.get('headers'),
+        name_override=data.get('name', 'webhook')
+    )
+
+    manager = get_notification_manager()
+    manager.add_channel(channel)
+
+    return jsonify({
+        'status': 'ok',
+        'message': 'Webhook channel added',
+        'channel': channel.name
+    }), 201
+
+
+@api_bp.route('/alerts/channels/<channel_name>', methods=['DELETE'])
+def remove_alert_channel(channel_name: str):
+    """Remove an alert channel"""
+    manager = get_notification_manager()
+
+    if manager.remove_channel(channel_name):
+        return jsonify({
+            'status': 'ok',
+            'message': f'Channel {channel_name} removed'
+        }), 200
+    else:
+        return jsonify({'error': 'Channel not found'}), 404
+
+
+@api_bp.route('/alerts/test', methods=['POST'])
+def test_alert_channels():
+    """Test all configured alert channels"""
+    manager = get_notification_manager()
+    results = manager.test_channels()
+
+    return jsonify({
+        'status': 'ok',
+        'results': results
+    }), 200
+
+
+@api_bp.route('/alerts/send', methods=['POST'])
+def send_alert():
+    """
+    Send an alert manually.
+
+    Request body:
+    - title: Alert title (required)
+    - message: Alert message (required)
+    - severity: info, warning, error, critical (default: warning)
+    - alert_type: Alert type (default: custom)
+    - agent_id: Agent ID (optional)
+    - details: Additional details dict (optional)
+    """
+    data = request.get_json() or {}
+
+    title = data.get('title')
+    message = data.get('message')
+
+    if not title or not message:
+        return jsonify({'error': 'title and message are required'}), 400
+
+    severity_str = data.get('severity', 'warning')
+    try:
+        severity = AlertSeverity(severity_str)
+    except ValueError:
+        return jsonify({'error': f'Invalid severity: {severity_str}'}), 400
+
+    alert_type_str = data.get('alert_type', 'custom')
+    try:
+        alert_type = AlertType(alert_type_str)
+    except ValueError:
+        alert_type = AlertType.CUSTOM
+
+    alert = NotificationAlert(
+        alert_type=alert_type,
+        severity=severity,
+        title=title,
+        message=message,
+        agent_id=data.get('agent_id'),
+        user_id=data.get('user_id'),
+        details=data.get('details', {})
+    )
+
+    manager = get_notification_manager()
+    results = manager.send(alert)
+
+    return jsonify({
+        'status': 'ok',
+        'message': 'Alert sent',
+        'channels': results
+    }), 200
+
+
+@api_bp.route('/alerts/history', methods=['GET'])
+def get_alert_history():
+    """Get alert history"""
+    limit = int(request.args.get('limit', 100))
+
+    manager = get_notification_manager()
+    history = manager.get_history(limit=limit)
+
+    return jsonify({
+        'status': 'ok',
+        'history': history,
+        'count': len(history)
+    }), 200
+
+
+@api_bp.route('/alerts/statistics', methods=['GET'])
+def get_alert_statistics():
+    """Get alert statistics"""
+    manager = get_notification_manager()
+    stats = manager.get_statistics()
+
+    return jsonify({
+        'status': 'ok',
+        **stats
+    }), 200
+
+
+@api_bp.route('/alerts/config', methods=['GET'])
+def get_alerting_config():
+    """Get alerting configuration"""
+    manager = get_notification_manager()
+
+    return jsonify({
+        'status': 'ok',
+        'config': manager.get_config(),
+        'alert_types': [at.value for at in AlertType],
+        'severity_levels': [s.value for s in AlertSeverity]
+    }), 200
+
+
+@api_bp.route('/alerts/config', methods=['POST'])
+def update_alerting_config():
+    """
+    Update alerting configuration.
+
+    Request body:
+    - min_severity: Minimum severity to send (info, warning, error, critical)
+    - dedup_window_seconds: Deduplication window in seconds
+    - async_dispatch: Whether to dispatch alerts asynchronously
+    """
+    data = request.get_json() or {}
+
+    min_severity_str = data.get('min_severity', 'warning')
+    try:
+        min_severity = AlertSeverity(min_severity_str)
+    except ValueError:
+        return jsonify({'error': f'Invalid min_severity: {min_severity_str}'}), 400
+
+    manager = init_notification_manager(
+        min_severity=min_severity,
+        dedup_window_seconds=data.get('dedup_window_seconds', 300),
+        async_dispatch=data.get('async_dispatch', True)
+    )
+
+    return jsonify({
+        'status': 'ok',
+        'message': 'Alerting configuration updated',
+        'config': manager.get_config()
     }), 200
 
 

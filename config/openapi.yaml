@@ -48,6 +48,8 @@ tags:
     description: Resource permissions management
   - name: Audit
     description: Audit trail and activity logging
+  - name: Alerts
+    description: Alerting integration (Slack, PagerDuty, webhooks)
 
 components:
   securitySchemes:
@@ -1124,8 +1126,314 @@ paths:
         '200':
           description: Configuration updated
 
+  # Alerting Endpoints
+  /api/alerts/channels:
+    get:
+      tags:
+        - Alerts
+      summary: List configured alert channels
+      responses:
+        '200':
+          description: Alert channels list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  channels:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        type:
+                          type: string
+                          enum: [slack, pagerduty, webhook]
+                        enabled:
+                          type: boolean
+
+  /api/alerts/channels/slack:
+    post:
+      tags:
+        - Alerts
+      summary: Add Slack channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - webhook_url
+              properties:
+                webhook_url:
+                  type: string
+                  description: Slack webhook URL
+                channel:
+                  type: string
+                  description: Optional channel name
+                username:
+                  type: string
+                  default: "UAC Alerts"
+                icon_emoji:
+                  type: string
+                  default: ":warning:"
+                min_severity:
+                  type: string
+                  enum: [INFO, WARNING, ERROR, CRITICAL]
+                  default: WARNING
+      responses:
+        '200':
+          description: Slack channel added
+        '400':
+          description: Invalid configuration
+
+  /api/alerts/channels/pagerduty:
+    post:
+      tags:
+        - Alerts
+      summary: Add PagerDuty channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - routing_key
+              properties:
+                routing_key:
+                  type: string
+                  description: PagerDuty Events API v2 routing key
+                min_severity:
+                  type: string
+                  enum: [INFO, WARNING, ERROR, CRITICAL]
+                  default: ERROR
+      responses:
+        '200':
+          description: PagerDuty channel added
+        '400':
+          description: Invalid configuration
+
+  /api/alerts/channels/webhook:
+    post:
+      tags:
+        - Alerts
+      summary: Add generic webhook channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  description: Webhook URL
+                headers:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: Optional HTTP headers
+                min_severity:
+                  type: string
+                  enum: [INFO, WARNING, ERROR, CRITICAL]
+                  default: WARNING
+      responses:
+        '200':
+          description: Webhook channel added
+        '400':
+          description: Invalid configuration
+
+  /api/alerts/channels/{channel_name}:
+    delete:
+      tags:
+        - Alerts
+      summary: Remove alert channel
+      parameters:
+        - name: channel_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Channel removed
+        '404':
+          description: Channel not found
+
+  /api/alerts/test:
+    post:
+      tags:
+        - Alerts
+      summary: Send test alert
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                channel:
+                  type: string
+                  description: Optional specific channel to test
+      responses:
+        '200':
+          description: Test alert sent
+
+  /api/alerts/send:
+    post:
+      tags:
+        - Alerts
+      summary: Send custom alert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - alert_type
+                - title
+                - severity
+              properties:
+                alert_type:
+                  type: string
+                  enum: [QUERY_SLOW, ONTOGUARD_DENIED, SCHEMA_DRIFT_CRITICAL, RATE_LIMIT_EXCEEDED, AGENT_ERROR, CUSTOM]
+                title:
+                  type: string
+                severity:
+                  type: string
+                  enum: [INFO, WARNING, ERROR, CRITICAL]
+                message:
+                  type: string
+                details:
+                  type: object
+      responses:
+        '200':
+          description: Alert sent
+        '400':
+          description: Invalid alert data
+
+  /api/alerts/history:
+    get:
+      tags:
+        - Alerts
+      summary: Get alert history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [INFO, WARNING, ERROR, CRITICAL]
+        - name: alert_type
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  alerts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AlertEntry'
+                  total:
+                    type: integer
+
+  /api/alerts/statistics:
+    get:
+      tags:
+        - Alerts
+      summary: Get alert statistics
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 7
+      responses:
+        '200':
+          description: Alert statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  total_alerts:
+                    type: integer
+                  by_severity:
+                    type: object
+                  by_type:
+                    type: object
+                  by_channel:
+                    type: object
+
+  /api/alerts/config:
+    get:
+      tags:
+        - Alerts
+      summary: Get alerting configuration
+      responses:
+        '200':
+          description: Alerting configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  deduplication_window_seconds:
+                    type: integer
+                  channels_count:
+                    type: integer
+                  default_min_severity:
+                    type: string
+
 components:
   schemas:
+    AlertEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        alert_type:
+          type: string
+        title:
+          type: string
+        severity:
+          type: string
+          enum: [INFO, WARNING, ERROR, CRITICAL]
+        message:
+          type: string
+        details:
+          type: object
+        channels_notified:
+          type: array
+          items:
+            type: string
+
     AuditLogEntry:
       type: object
       properties:
