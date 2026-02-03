@@ -28,7 +28,7 @@ ipython==8.20.0
 ipdb==0.13.13
 
 # Load testing
-locust==2.24.1
+locust>=2.24.1
 
 # Graph analysis (experimental)
 networkx==3.3

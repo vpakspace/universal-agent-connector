@@ -586,6 +586,69 @@ manager.send_alert(NotificationAlert(
 
 ---
 
+## Load Testing
+
+Нагрузочное тестирование с Locust для проверки производительности API.
+
+### Установка
+
+```bash
+pip install locust
+```
+
+### Запуск
+
+```bash
+# Web UI режим (рекомендуется для исследования)
+locust -f locustfile.py --host=http://localhost:5000
+
+# Headless режим (для CI/CD)
+./run_load_test.sh standard
+
+# Режимы тестирования
+./run_load_test.sh quick      # 10 users, 30s
+./run_load_test.sh standard   # 50 users, 2min
+./run_load_test.sh stress     # 200 users, 5min
+./run_load_test.sh endurance  # 100 users, 30min
+
+# Кастомные параметры
+./run_load_test.sh custom -u 100 -r 20 -t 5m
+```
+
+### User Classes
+
+| Class | Описание | Weight |
+|-------|----------|--------|
+| `AgentUser` | Регистрация, permissions, rate limits | 3 |
+| `QueryUser` | SQL и NL запросы к БД | 2 |
+| `OntoGuardUser` | Валидация, permissions, allowed actions | 3 |
+| `CacheUser` | Статистика и инвалидация кэша | 1 |
+| `AuditUser` | Audit logs и статистика | 1 |
+| `AlertUser` | Channels, history, send alerts | 1 |
+| `SchemaUser` | Schema bindings и drift check | 1 |
+| `JWTUser` | Token generation, verify, refresh | 1 |
+| `MixedUser` | Реалистичный микс всех операций | 5 |
+
+### Результаты
+
+Результаты сохраняются в `results/`:
+- `load_test_*_stats.csv` - статистика запросов
+- `load_test_*_stats_history.csv` - история по времени
+- `load_test_*_failures.csv` - ошибки
+- `load_test_*.html` - HTML отчёт
+
+### CI/CD интеграция
+
+```bash
+# GitHub Actions пример
+locust -f locustfile.py --host=http://localhost:5000 \
+       --headless -u 50 -r 10 -t 60s \
+       --csv=results/ci_load_test \
+       --exit-code-on-error 1
+```
+
+---
+
 ## WebSocket Real-Time Validation
 
 WebSocket endpoints для real-time OntoGuard валидации с поддержкой доменов.
@@ -966,6 +1029,9 @@ universal-agent-connector/
 ├── docker-compose.yml          # PostgreSQL container (port 5433)
 ├── init_db.sql                 # Test data (hospital)
 ├── e2e_postgres_tests.py       # E2E test script (15 tests)
+├── locustfile.py               # Load testing scenarios (9 user classes)
+├── run_load_test.sh            # Load test runner script
+├── results/                    # Load test results directory
 ├── .github/
 │   ├── workflows/ci.yml        # GitHub Actions CI (pytest+lint+bandit)
 │   └── dependabot.yml          # Auto dependency updates
@@ -1046,7 +1112,7 @@ universal-agent-connector/
 |---|-----------|----------|--------|
 | 5 | **Audit Trail** | Persistent logging (file/SQLite, rotation, export) | ✅ done |
 | 6 | **Alerting Integration** | Slack/PagerDuty alerts при CRITICAL events | ✅ done |
-| 7 | **Load Testing** | Locust/k6 нагрузочное тестирование | planned |
+| 7 | **Load Testing** | Locust нагрузочное тестирование | ✅ done |
 | 8 | **Kubernetes Deployment** | Helm charts, manifests, HPA | planned |
 
 ### 📦 Низкий приоритет
@@ -1086,4 +1152,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-03 (Alerting Integration + Audit Trail + JWT Authentication)
+**Последнее обновление**: 2026-02-03 (Load Testing + Alerting Integration + Audit Trail)
