@@ -22,6 +22,11 @@ from ..security import (
 
 # Core components
 from ..agents.registry import AgentRegistry
+from ..agents.multi_tenant_registry import (
+    MultiTenantAgentRegistry,
+    get_multi_tenant_registry,
+)
+from ..config.tenant_manager import get_tenant_manager
 from ..agents.ai_agent_manager import AIAgentManager, set_cost_tracker as set_ai_cost_tracker
 from ..permissions.access_control import AccessControl, Permission
 from ..db import DatabaseConnector
@@ -106,7 +111,9 @@ def get_table_entity_map() -> dict:
     return merged
 
 # Initialize global instances
-agent_registry = AgentRegistry()
+agent_registry = AgentRegistry()  # Legacy single-tenant
+multi_tenant_registry = get_multi_tenant_registry()  # Multi-tenant support
+tenant_manager = get_tenant_manager()
 access_control = AccessControl()
 ai_agent_manager = AIAgentManager()
 audit_logger = get_audit_logger()
@@ -139,11 +146,49 @@ DEFAULT_RATE_LIMIT = RateLimitConfig(
 # ============================================================================
 
 def authenticate_agent() -> Optional[str]:
-    """Authenticate agent from API key header"""
+    """Authenticate agent from API key header (legacy single-tenant)"""
     api_key = request.headers.get('X-API-Key')
     if not api_key:
         return None
     return agent_registry.authenticate_agent(api_key)
+
+
+def authenticate_agent_multi_tenant() -> Optional[Tuple[str, str]]:
+    """
+    Authenticate agent with multi-tenant support.
+
+    Returns:
+        Tuple of (tenant_id, agent_id) if authenticated, None otherwise.
+    """
+    api_key = request.headers.get('X-API-Key')
+    if not api_key:
+        return None
+    return multi_tenant_registry.authenticate_agent(api_key)
+
+
+def get_tenant_id_from_request() -> str:
+    """
+    Get tenant_id from request headers or authenticated agent.
+
+    Priority:
+    1. X-Tenant-ID header
+    2. tenant_id from authenticated agent (via API key)
+    3. 'default' if neither available
+
+    Returns:
+        Always returns a valid tenant_id string (never None).
+    """
+    # Check explicit header first
+    tenant_id = request.headers.get('X-Tenant-ID')
+    if tenant_id:
+        return tenant_id
+
+    # Try to get from authenticated agent
+    auth_result = authenticate_agent_multi_tenant()
+    if auth_result:
+        return auth_result[0]
+
+    return 'default'
 
 
 def require_auth() -> str:
@@ -152,6 +197,16 @@ def require_auth() -> str:
     if not agent_id:
         return None
     return agent_id
+
+
+def require_auth_with_tenant() -> Optional[Tuple[str, str]]:
+    """
+    Require authentication with tenant support.
+
+    Returns:
+        Tuple of (tenant_id, agent_id) if authenticated, None otherwise.
+    """
+    return authenticate_agent_multi_tenant()
 
 
 def check_rate_limit(agent_id: str) -> Tuple[bool, Optional[str]]:
@@ -684,6 +739,248 @@ def revoke_agent(agent_id: str):
             'rate_limits_removed': True
         }
     }), 200
+
+
+# ============================================================================
+# Multi-Tenant Agent Endpoints (v2)
+# ============================================================================
+
+@api_bp.route('/tenants', methods=['GET'])
+def list_tenants():
+    """List all available tenants"""
+    tenants = tenant_manager.list_tenants()
+    return jsonify({
+        'tenants': [
+            {
+                'tenant_id': t.tenant_id,
+                'name': t.name,
+                'plan': t.plan,
+                'is_active': t.is_active,
+            }
+            for t in tenants
+        ],
+        'count': len(tenants)
+    }), 200
+
+
+@api_bp.route('/tenants/<tenant_id>', methods=['GET'])
+def get_tenant(tenant_id: str):
+    """Get tenant information"""
+    tenant = tenant_manager.get_tenant(tenant_id)
+    if not tenant:
+        return jsonify({'error': f'Tenant {tenant_id} not found'}), 404
+
+    return jsonify({
+        'tenant_id': tenant.tenant_id,
+        'name': tenant.name,
+        'plan': tenant.plan,
+        'is_active': tenant.is_active,
+        'quotas': {
+            'max_agents': tenant.quotas.max_agents,
+            'max_queries_per_hour': tenant.quotas.max_queries_per_hour,
+            'max_queries_per_day': tenant.quotas.max_queries_per_day,
+        },
+        'features': {
+            'premium_support': tenant.features.premium_support,
+            'advanced_analytics': tenant.features.advanced_analytics,
+            'audit_trail': tenant.features.audit_trail,
+        }
+    }), 200
+
+
+@api_bp.route('/tenants/<tenant_id>/stats', methods=['GET'])
+def get_tenant_stats(tenant_id: str):
+    """Get statistics for a tenant"""
+    stats = multi_tenant_registry.get_tenant_stats(tenant_id)
+    if not stats:
+        return jsonify({'error': f'Tenant {tenant_id} not found'}), 404
+
+    return jsonify(stats), 200
+
+
+@api_bp.route('/v2/agents/register', methods=['POST'])
+def register_agent_v2():
+    """
+    Register a new AI agent with multi-tenant support.
+
+    Requires tenant_id in request body or X-Tenant-ID header.
+    """
+    data = request.get_json() or {}
+
+    # Get tenant_id from body or header
+    tenant_id = data.get('tenant_id') or request.headers.get('X-Tenant-ID') or 'default'
+    agent_id = data.get('agent_id')
+    agent_info = data.get('agent_info', {})
+    agent_credentials = data.get('agent_credentials', {})
+    database = data.get('database')
+    rate_limits_config = data.get('rate_limits')
+
+    if not agent_id:
+        return jsonify({'error': 'Missing required fields: agent_id'}), 400
+
+    try:
+        # Validate tenant
+        if not tenant_manager.validate_tenant(tenant_id):
+            return jsonify({'error': f'Invalid or inactive tenant: {tenant_id}'}), 400
+
+        # Register with multi-tenant registry
+        result = multi_tenant_registry.register_agent(
+            tenant_id=tenant_id,
+            agent_id=agent_id,
+            agent_info=agent_info,
+            credentials=agent_credentials,
+            database_config=database
+        )
+
+        # Set rate limits (custom or default)
+        # Use tenant-prefixed agent_id for rate limiter to ensure uniqueness
+        rate_limit_key = f"{tenant_id}:{agent_id}"
+        if rate_limits_config:
+            custom_config = RateLimitConfig(
+                queries_per_minute=rate_limits_config.get('queries_per_minute'),
+                queries_per_hour=rate_limits_config.get('queries_per_hour'),
+                queries_per_day=rate_limits_config.get('queries_per_day')
+            )
+            rate_limiter.set_rate_limit(rate_limit_key, custom_config)
+            result['rate_limits'] = custom_config.to_dict()
+        else:
+            rate_limiter.set_rate_limit(rate_limit_key, DEFAULT_RATE_LIMIT)
+            result['rate_limits'] = DEFAULT_RATE_LIMIT.to_dict()
+
+        audit_logger.log(
+            ActionType.AGENT_REGISTERED,
+            agent_id=agent_id,
+            details={'agent_info': agent_info, 'tenant_id': tenant_id}
+        )
+
+        return jsonify(result), 201
+
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        audit_logger.log(
+            ActionType.AGENT_REGISTERED,
+            agent_id=agent_id,
+            status='error',
+            error_message=str(e),
+            details={'tenant_id': tenant_id}
+        )
+        return jsonify({'error': f'Registration failed: {str(e)}'}), 500
+
+
+@api_bp.route('/v2/agents', methods=['GET'])
+def list_agents_v2():
+    """
+    List agents with multi-tenant support.
+
+    Optional tenant_id query parameter to filter by tenant.
+    Without tenant_id, lists agents grouped by tenant.
+    """
+    tenant_id = request.args.get('tenant_id')
+
+    if tenant_id:
+        # List agents for specific tenant
+        agents = multi_tenant_registry.list_agents(tenant_id)
+        return jsonify({
+            'tenant_id': tenant_id,
+            'agents': agents,
+            'count': len(agents)
+        }), 200
+    else:
+        # List all agents grouped by tenant
+        all_agents = multi_tenant_registry.list_all_agents()
+        total = sum(len(agents) for agents in all_agents.values())
+        return jsonify({
+            'agents_by_tenant': all_agents,
+            'total_count': total
+        }), 200
+
+
+@api_bp.route('/v2/agents/<agent_id>', methods=['GET'])
+def get_agent_v2(agent_id: str):
+    """
+    Get agent information with multi-tenant support.
+
+    Requires X-Tenant-ID header or authenticated via API key.
+    """
+    tenant_id = get_tenant_id_from_request()
+
+    agent = multi_tenant_registry.get_agent(tenant_id, agent_id)
+    if not agent:
+        return jsonify({'error': f'Agent {agent_id} not found in tenant {tenant_id}'}), 404
+
+    return jsonify(agent), 200
+
+
+@api_bp.route('/v2/agents/<agent_id>', methods=['DELETE'])
+def revoke_agent_v2(agent_id: str):
+    """
+    Revoke an agent with multi-tenant support.
+
+    Requires X-Tenant-ID header or authenticated via API key.
+    """
+    tenant_id = get_tenant_id_from_request()
+
+    if not multi_tenant_registry.get_agent(tenant_id, agent_id):
+        return jsonify({'error': f'Agent {agent_id} not found in tenant {tenant_id}'}), 404
+
+    # Revoke permissions (use tenant-prefixed key)
+    perm_key = f"{tenant_id}:{agent_id}"
+    access_control.permissions.pop(perm_key, None)
+    access_control.resource_permissions.pop(perm_key, None)
+
+    # Remove rate limits
+    rate_limiter.remove_agent(perm_key)
+
+    # Remove from multi-tenant registry
+    success = multi_tenant_registry.revoke_agent(tenant_id, agent_id)
+
+    if not success:
+        return jsonify({'error': f'Failed to revoke agent {agent_id}'}), 500
+
+    audit_logger.log(
+        ActionType.AGENT_REVOKED,
+        agent_id=agent_id,
+        details={'tenant_id': tenant_id}
+    )
+
+    return jsonify({
+        'message': f'Agent {agent_id} revoked from tenant {tenant_id} successfully',
+        'details': {
+            'agent_id': agent_id,
+            'tenant_id': tenant_id,
+            'permissions_revoked': True,
+            'api_keys_invalidated': True,
+            'database_access_removed': True,
+            'rate_limits_removed': True
+        }
+    }), 200
+
+
+@api_bp.route('/v2/agents/<agent_id>/database', methods=['PUT'])
+def update_agent_database_v2(agent_id: str):
+    """Update agent database connection with multi-tenant support"""
+    tenant_id = get_tenant_id_from_request()
+
+    if not multi_tenant_registry.get_agent(tenant_id, agent_id):
+        return jsonify({'error': f'Agent {agent_id} not found in tenant {tenant_id}'}), 404
+
+    data = request.get_json() or {}
+    connection_string = data.get('connection_string')
+
+    if not connection_string:
+        return jsonify({'error': 'connection_string is required'}), 400
+
+    try:
+        # Get the tenant's registry
+        registry = multi_tenant_registry.tenant_registries.get(tenant_id)
+        if not registry:
+            return jsonify({'error': f'Tenant {tenant_id} not found'}), 404
+
+        result = registry.update_database_connection(agent_id, {'connection_string': connection_string})
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to update database connection: {str(e)}'}), 400
 
 
 @api_bp.route('/agents/<agent_id>/database', methods=['PUT'])

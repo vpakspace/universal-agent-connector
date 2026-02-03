@@ -649,6 +649,59 @@ locust -f locustfile.py --host=http://localhost:5000 \
 
 ---
 
+## Admin Dashboard
+
+Streamlit UI для администрирования системы на порту 8502.
+
+### Запуск
+
+```bash
+# Терминал 1: Flask API
+python main_simple.py
+
+# Терминал 2: Admin Dashboard
+./run_admin.sh [port]  # default: 8502
+# или
+streamlit run admin_dashboard.py --server.port=8502
+```
+
+**URLs:**
+- Flask API: http://localhost:5000
+- User UI: http://localhost:8501 (streamlit_app.py)
+- Admin Dashboard: http://localhost:8502 (admin_dashboard.py)
+
+### Страницы
+
+| Страница | Описание |
+|----------|----------|
+| **Dashboard** | Обзор: агенты, OntoGuard, кэш, alerts |
+| **Agents** | Список агентов, регистрация, удаление |
+| **OntoGuard** | Статус, валидация действий, schema drift |
+| **Monitoring** | Кэш статистика, Prometheus метрики |
+| **Alerts** | Каналы оповещений, история, добавление |
+| **Audit** | Audit logs, статистика, экспорт |
+| **Cache & Limits** | Rate limits, инвалидация кэша |
+| **Settings** | JWT конфиг, audit backend, общие настройки |
+
+### Функционал
+
+- **Agent Management**: просмотр, регистрация, удаление агентов
+- **OntoGuard Validation**: проверка действий через UI
+- **Schema Drift Monitoring**: live проверка drift
+- **Alert Management**: добавление Slack/PagerDuty/webhook каналов
+- **Audit Explorer**: просмотр и экспорт логов
+- **Rate Limit Config**: управление лимитами per agent
+- **Cache Management**: статистика, инвалидация
+
+### Файлы
+
+| Файл | Описание |
+|------|----------|
+| `admin_dashboard.py` | Главное приложение (~650 строк) |
+| `run_admin.sh` | Скрипт запуска (порт 8502) |
+
+---
+
 ## Kubernetes Deployment
 
 Kubernetes манифесты и Helm chart для production deployment.
@@ -741,6 +794,92 @@ helm uninstall uac --namespace uac
 - **Security Context**: Non-root, read-only filesystem
 - **Prometheus**: ServiceMonitor для мониторинга
 - **PostgreSQL**: Опциональный subchart от Bitnami
+
+---
+
+## Multi-tenancy Support
+
+Поддержка нескольких организаций с изоляцией данных между тенантами.
+
+### Компоненты
+
+| Файл | Описание |
+|------|----------|
+| `app/config/tenant_manager.py` | TenantManager, TenantInfo, TenantQuotas, TenantFeatures |
+| `app/agents/multi_tenant_registry.py` | MultiTenantAgentRegistry с tenant isolation |
+| `tenant_configs/*.json` | Конфигурации тенантов (quotas, features, database) |
+| `tests/test_tenant_manager.py` | 27 тестов для TenantManager |
+| `tests/test_multi_tenant_registry.py` | 26 тестов для MultiTenantAgentRegistry |
+
+### REST API v2 Endpoints
+
+| Endpoint | Method | Описание |
+|----------|--------|----------|
+| `/api/tenants` | GET | Список тенантов |
+| `/api/tenants/<tenant_id>` | GET | Информация о тенанте |
+| `/api/tenants/<tenant_id>/stats` | GET | Статистика тенанта (agents, quotas) |
+| `/api/v2/agents/register` | POST | Регистрация агента с tenant_id |
+| `/api/v2/agents` | GET | Список агентов (по тенанту или все) |
+| `/api/v2/agents/<agent_id>` | GET | Информация об агенте (требует X-Tenant-ID) |
+| `/api/v2/agents/<agent_id>` | DELETE | Удаление агента (требует X-Tenant-ID) |
+| `/api/v2/agents/<agent_id>/database` | PUT | Обновление БД агента |
+
+### Features
+
+- **Tenant Isolation**: Каждый тенант имеет изолированный AgentRegistry
+- **Quota Enforcement**: Лимиты на количество агентов, запросов в час/день
+- **Feature Flags**: Premium support, advanced analytics, audit trail per tenant
+- **Plan Detection**: basic, professional, enterprise на основе features
+- **Backward Compatibility**: Legacy API (/api/agents/*) работает через default tenant
+- **JWT Integration**: tenant_id включён в JWT токены
+- **Audit Trail**: tenant_id добавлен в audit logs для фильтрации
+
+### Использование
+
+```bash
+# Создание агента в тенанте (v2 API)
+curl -X POST http://localhost:5000/api/v2/agents/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tenant_id": "org_acme",
+    "agent_id": "doctor-1",
+    "agent_info": {"name": "Dr. Smith", "role": "Doctor"}
+  }'
+
+# Список агентов тенанта
+curl "http://localhost:5000/api/v2/agents?tenant_id=org_acme"
+
+# Информация о тенанте
+curl http://localhost:5000/api/tenants/org_acme
+
+# Статистика тенанта
+curl http://localhost:5000/api/tenants/org_acme/stats
+```
+
+### Конфигурация тенанта (JSON)
+
+```json
+{
+  "tenant_id": "org_acme",
+  "name": "ACME Corporation",
+  "quotas": {
+    "max_agents": 50,
+    "max_queries_per_hour": 5000,
+    "max_queries_per_day": 100000
+  },
+  "features": {
+    "premium_support": true,
+    "advanced_analytics": true,
+    "audit_trail": true
+  },
+  "database": {
+    "type": "postgresql",
+    "host": "${DB_HOST:localhost}",
+    "port": 5432,
+    "database": "acme_db"
+  }
+}
+```
 
 ---
 
@@ -1201,6 +1340,7 @@ universal-agent-connector/
 - [x] ~~Alerting Integration~~ (done: Slack/PagerDuty/webhook, deduplication, history, 42 tests)
 - [x] ~~Load Testing~~ (done: Locust, 9 user classes, quick/standard/stress/endurance modes)
 - [x] ~~Kubernetes Deployment~~ (done: Kustomize base/overlays, Helm chart, HPA, PDB, ServiceMonitor)
+- [x] ~~Multi-tenancy~~ (done: TenantManager, MultiTenantAgentRegistry, tenant_id in JWT/Audit, v2 API endpoints)
 
 ---
 
@@ -1225,8 +1365,8 @@ universal-agent-connector/
 ### 📦 Низкий приоритет
 | # | Улучшение | Описание | Статус |
 |---|-----------|----------|--------|
-| 9 | **Admin Dashboard** | UI для управления agents, ontologies, permissions | backlog |
-| 10 | **Multi-tenancy** | Поддержка нескольких организаций | backlog |
+| 9 | **Admin Dashboard** | UI для управления agents, ontologies, permissions | ✅ done |
+| 10 | **Multi-tenancy** | Поддержка нескольких организаций (tenant isolation, quotas, features) | ✅ done |
 | 11 | **Async Query Execution** | Celery для долгих запросов | backlog |
 | 12 | **Test Coverage Report** | pytest-cov с 80%+ coverage | backlog |
 

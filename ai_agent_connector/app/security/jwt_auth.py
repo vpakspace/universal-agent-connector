@@ -46,6 +46,7 @@ class TokenPayload:
     """Decoded token payload."""
     agent_id: str
     role: Optional[str] = None
+    tenant_id: Optional[str] = None  # Multi-tenancy support
     token_type: str = "access"  # "access" or "refresh"
     exp: Optional[datetime] = None
     iat: Optional[datetime] = None
@@ -57,6 +58,7 @@ class TokenPayload:
         return cls(
             agent_id=data.get('sub', ''),
             role=data.get('role'),
+            tenant_id=data.get('tenant_id'),
             token_type=data.get('type', 'access'),
             exp=datetime.fromtimestamp(data['exp'], tz=timezone.utc) if 'exp' in data else None,
             iat=datetime.fromtimestamp(data['iat'], tz=timezone.utc) if 'iat' in data else None,
@@ -76,6 +78,7 @@ class JWTManager:
         self,
         agent_id: str,
         role: Optional[str] = None,
+        tenant_id: Optional[str] = None,
         additional_claims: Optional[Dict[str, Any]] = None
     ) -> str:
         """
@@ -84,6 +87,7 @@ class JWTManager:
         Args:
             agent_id: Agent identifier (becomes 'sub' claim)
             role: Optional user role for RBAC
+            tenant_id: Optional tenant identifier for multi-tenancy
             additional_claims: Optional extra claims to include
 
         Returns:
@@ -104,6 +108,9 @@ class JWTManager:
         if role:
             payload['role'] = role
 
+        if tenant_id:
+            payload['tenant_id'] = tenant_id
+
         if additional_claims:
             payload.update(additional_claims)
 
@@ -112,7 +119,8 @@ class JWTManager:
     def generate_refresh_token(
         self,
         agent_id: str,
-        role: Optional[str] = None
+        role: Optional[str] = None,
+        tenant_id: Optional[str] = None
     ) -> str:
         """
         Generate a long-lived refresh token.
@@ -120,6 +128,7 @@ class JWTManager:
         Args:
             agent_id: Agent identifier
             role: Optional user role
+            tenant_id: Optional tenant identifier for multi-tenancy
 
         Returns:
             JWT refresh token string
@@ -139,28 +148,34 @@ class JWTManager:
         if role:
             payload['role'] = role
 
+        if tenant_id:
+            payload['tenant_id'] = tenant_id
+
         return jwt.encode(payload, self.config.secret_key, algorithm=self.config.algorithm)
 
     def generate_token_pair(
         self,
         agent_id: str,
-        role: Optional[str] = None
-    ) -> Dict[str, str]:
+        role: Optional[str] = None,
+        tenant_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Generate both access and refresh tokens.
 
         Args:
             agent_id: Agent identifier
             role: Optional user role
+            tenant_id: Optional tenant identifier for multi-tenancy
 
         Returns:
-            Dictionary with 'access_token' and 'refresh_token'
+            Dictionary with 'access_token', 'refresh_token', 'token_type', 'expires_in'
         """
         return {
-            'access_token': self.generate_access_token(agent_id, role),
-            'refresh_token': self.generate_refresh_token(agent_id, role),
+            'access_token': self.generate_access_token(agent_id, role, tenant_id),
+            'refresh_token': self.generate_refresh_token(agent_id, role, tenant_id),
             'token_type': 'Bearer',
             'expires_in': self.config.access_token_expire_minutes * 60,  # seconds
+            'tenant_id': tenant_id,
         }
 
     def verify_token(
@@ -205,7 +220,7 @@ class JWTManager:
         except jwt.InvalidTokenError as e:
             return False, None, f"Invalid token: {str(e)}"
 
-    def refresh_access_token(self, refresh_token: str) -> Tuple[bool, Optional[Dict[str, str]], Optional[str]]:
+    def refresh_access_token(self, refresh_token: str) -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
         """
         Generate new access token using refresh token.
 
@@ -220,11 +235,16 @@ class JWTManager:
         if not is_valid or payload is None:
             return False, None, error or "Invalid refresh token"
 
-        # Generate new access token (keep the same role)
+        # Generate new access token (keep the same role and tenant_id)
         new_tokens = {
-            'access_token': self.generate_access_token(payload.agent_id, payload.role),
+            'access_token': self.generate_access_token(
+                payload.agent_id,
+                payload.role,
+                payload.tenant_id
+            ),
             'token_type': 'Bearer',
             'expires_in': self.config.access_token_expire_minutes * 60,
+            'tenant_id': payload.tenant_id,
         }
 
         return True, new_tokens, None

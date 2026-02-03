@@ -56,6 +56,7 @@ class AuditBackend:
         agent_id: Optional[str] = None,
         action_type: Optional[str] = None,
         status: Optional[str] = None,
+        tenant_id: Optional[str] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         limit: int = 100,
@@ -67,7 +68,8 @@ class AuditBackend:
         self,
         agent_id: Optional[str] = None,
         action_type: Optional[str] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        tenant_id: Optional[str] = None
     ) -> int:
         raise NotImplementedError
 
@@ -99,6 +101,7 @@ class MemoryBackend(AuditBackend):
         agent_id: Optional[str] = None,
         action_type: Optional[str] = None,
         status: Optional[str] = None,
+        tenant_id: Optional[str] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         limit: int = 100,
@@ -113,6 +116,8 @@ class MemoryBackend(AuditBackend):
             filtered = [l for l in filtered if l.get('action_type') == action_type]
         if status:
             filtered = [l for l in filtered if l.get('status') == status]
+        if tenant_id:
+            filtered = [l for l in filtered if l.get('tenant_id') == tenant_id]
         if start_date:
             start_str = start_date.isoformat()
             filtered = [l for l in filtered if l.get('timestamp', '') >= start_str]
@@ -129,7 +134,8 @@ class MemoryBackend(AuditBackend):
         self,
         agent_id: Optional[str] = None,
         action_type: Optional[str] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        tenant_id: Optional[str] = None
     ) -> int:
         with self._lock:
             filtered = self.logs.copy()
@@ -140,6 +146,8 @@ class MemoryBackend(AuditBackend):
             filtered = [l for l in filtered if l.get('action_type') == action_type]
         if status:
             filtered = [l for l in filtered if l.get('status') == status]
+        if tenant_id:
+            filtered = [l for l in filtered if l.get('tenant_id') == tenant_id]
 
         return len(filtered)
 
@@ -218,6 +226,7 @@ class FileBackend(AuditBackend):
         agent_id: Optional[str] = None,
         action_type: Optional[str] = None,
         status: Optional[str] = None,
+        tenant_id: Optional[str] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         limit: int = 100,
@@ -241,6 +250,8 @@ class FileBackend(AuditBackend):
                             if action_type and entry.get('action_type') != action_type:
                                 continue
                             if status and entry.get('status') != status:
+                                continue
+                            if tenant_id and entry.get('tenant_id') != tenant_id:
                                 continue
                             if start_date:
                                 ts = entry.get('timestamp', '')
@@ -266,7 +277,8 @@ class FileBackend(AuditBackend):
         self,
         agent_id: Optional[str] = None,
         action_type: Optional[str] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        tenant_id: Optional[str] = None
     ) -> int:
         count = 0
 
@@ -282,6 +294,8 @@ class FileBackend(AuditBackend):
                             if action_type and entry.get('action_type') != action_type:
                                 continue
                             if status and entry.get('status') != status:
+                                continue
+                            if tenant_id and entry.get('tenant_id') != tenant_id:
                                 continue
 
                             count += 1
@@ -317,6 +331,7 @@ class SQLiteBackend(AuditBackend):
                     action_type TEXT NOT NULL,
                     agent_id TEXT,
                     user_id TEXT,
+                    tenant_id TEXT,
                     status TEXT DEFAULT 'success',
                     error_message TEXT,
                     details TEXT
@@ -338,20 +353,32 @@ class SQLiteBackend(AuditBackend):
                 CREATE INDEX IF NOT EXISTS idx_audit_status
                 ON audit_logs(status)
             """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_audit_tenant
+                ON audit_logs(tenant_id)
+            """)
             conn.commit()
+
+            # Add tenant_id column if it doesn't exist (migration for existing DBs)
+            try:
+                conn.execute("SELECT tenant_id FROM audit_logs LIMIT 1")
+            except sqlite3.OperationalError:
+                conn.execute("ALTER TABLE audit_logs ADD COLUMN tenant_id TEXT")
+                conn.commit()
 
     def write(self, entry: Dict[str, Any]) -> None:
         with self._lock:
             with self._get_connection() as conn:
                 conn.execute("""
                     INSERT INTO audit_logs
-                    (timestamp, action_type, agent_id, user_id, status, error_message, details)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (timestamp, action_type, agent_id, user_id, tenant_id, status, error_message, details)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     entry.get('timestamp'),
                     entry.get('action_type'),
                     entry.get('agent_id'),
                     entry.get('user_id'),
+                    entry.get('tenant_id'),
                     entry.get('status', 'success'),
                     entry.get('error_message'),
                     json.dumps(entry.get('details', {}))
@@ -363,13 +390,14 @@ class SQLiteBackend(AuditBackend):
         agent_id: Optional[str] = None,
         action_type: Optional[str] = None,
         status: Optional[str] = None,
+        tenant_id: Optional[str] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         limit: int = 100,
         offset: int = 0
     ) -> List[Dict[str, Any]]:
         query = "SELECT * FROM audit_logs WHERE 1=1"
-        params = []
+        params: List[Any] = []
 
         if agent_id:
             query += " AND agent_id = ?"
@@ -380,6 +408,9 @@ class SQLiteBackend(AuditBackend):
         if status:
             query += " AND status = ?"
             params.append(status)
+        if tenant_id:
+            query += " AND tenant_id = ?"
+            params.append(tenant_id)
         if start_date:
             query += " AND timestamp >= ?"
             params.append(start_date.isoformat())
@@ -411,10 +442,11 @@ class SQLiteBackend(AuditBackend):
         self,
         agent_id: Optional[str] = None,
         action_type: Optional[str] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        tenant_id: Optional[str] = None
     ) -> int:
         query = "SELECT COUNT(*) FROM audit_logs WHERE 1=1"
-        params = []
+        params: List[Any] = []
 
         if agent_id:
             query += " AND agent_id = ?"
@@ -425,6 +457,9 @@ class SQLiteBackend(AuditBackend):
         if status:
             query += " AND status = ?"
             params.append(status)
+        if tenant_id:
+            query += " AND tenant_id = ?"
+            params.append(tenant_id)
 
         with self._get_connection() as conn:
             cursor = conn.execute(query, params)
@@ -486,6 +521,7 @@ class AuditLogger:
         action_type: ActionType,
         agent_id: Optional[str] = None,
         user_id: Optional[str] = None,
+        tenant_id: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
         status: str = "success",
         error_message: Optional[str] = None
@@ -497,6 +533,7 @@ class AuditLogger:
             action_type: Type of action being logged
             agent_id: Agent ID involved in the action
             user_id: User ID who performed the action
+            tenant_id: Tenant ID for multi-tenancy support
             details: Additional details about the action
             status: Status of the action (success, error, denied)
             error_message: Error message if status is error
@@ -509,6 +546,7 @@ class AuditLogger:
             'action_type': action_type.value,
             'agent_id': agent_id,
             'user_id': user_id,
+            'tenant_id': tenant_id,
             'status': status,
             'details': details or {},
             'error_message': error_message
@@ -529,6 +567,7 @@ class AuditLogger:
         agent_id: Optional[str] = None,
         action_type: Optional[Union[ActionType, str]] = None,
         status: Optional[str] = None,
+        tenant_id: Optional[str] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         limit: int = 100,
@@ -541,6 +580,7 @@ class AuditLogger:
             agent_id: Filter by agent ID
             action_type: Filter by action type
             status: Filter by status
+            tenant_id: Filter by tenant ID (for multi-tenancy)
             start_date: Filter by start date
             end_date: Filter by end date
             limit: Maximum number of logs to return
@@ -557,6 +597,7 @@ class AuditLogger:
             agent_id=agent_id,
             action_type=action_type_str,
             status=status,
+            tenant_id=tenant_id,
             start_date=start_date,
             end_date=end_date,
             limit=limit,
@@ -566,7 +607,8 @@ class AuditLogger:
         total = self._backend.count(
             agent_id=agent_id,
             action_type=action_type_str,
-            status=status
+            status=status,
+            tenant_id=tenant_id
         )
 
         return {

@@ -1,8 +1,19 @@
 """
 Configuration module for AI Agent Connector.
 
-Provides domain configurations, table mappings, and role definitions.
+Provides domain configurations, table mappings, role definitions,
+and multi-tenancy support.
 """
+
+from .tenant_manager import (
+    TenantInfo,
+    TenantQuotas,
+    TenantFeatures,
+    TenantDatabaseConfig,
+    TenantManager,
+    get_tenant_manager,
+    init_tenant_manager,
+)
 
 from .domains import (
     DomainConfig,
@@ -23,6 +34,15 @@ from .domains import (
 )
 
 __all__ = [
+    # Tenant Management (Multi-tenancy)
+    'TenantInfo',
+    'TenantQuotas',
+    'TenantFeatures',
+    'TenantDatabaseConfig',
+    'TenantManager',
+    'get_tenant_manager',
+    'init_tenant_manager',
+    # Domain Configuration
     'DomainConfig',
     'DOMAIN_CONFIGS',
     'DOMAIN_ALIASES',
