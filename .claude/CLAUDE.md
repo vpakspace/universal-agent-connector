@@ -111,6 +111,71 @@ SQL: SELECT * FROM patients;
 
 ---
 
+## WebSocket Real-Time Validation
+
+WebSocket endpoints для real-time OntoGuard валидации.
+
+### Подключение
+
+```javascript
+const socket = io('http://localhost:5000');
+
+socket.on('connected', (data) => {
+    console.log('Connected:', data.session_id);
+});
+```
+
+### События (Client → Server)
+
+| Event | Описание | Payload |
+|-------|----------|---------|
+| `validate_action` | Валидация действия | `{action, entity_type, context, request_id?}` |
+| `check_permissions` | Проверка разрешений | `{role, action, entity_type, request_id?}` |
+| `get_allowed_actions` | Список разрешённых действий | `{role, entity_type, request_id?}` |
+| `explain_rule` | Объяснение правила | `{action, entity_type, context, request_id?}` |
+| `validate_batch` | Batch валидация | `{validations: [{action, entity_type, context}], request_id?}` |
+| `subscribe_validation` | Подписка на события агента | `{agent_id}` |
+| `unsubscribe_validation` | Отписка от событий | `{agent_id}` |
+| `get_status` | Статус OntoGuard | `{request_id?}` |
+
+### События (Server → Client)
+
+| Event | Описание |
+|-------|----------|
+| `validation_result` | Результат валидации |
+| `permission_result` | Результат проверки разрешений |
+| `allowed_actions_result` | Список разрешённых действий |
+| `rule_explanation` | Объяснение правила |
+| `batch_result` | Результаты batch валидации |
+| `validation_event` | Real-time событие (для подписчиков) |
+| `error` | Сообщение об ошибке |
+
+### Пример использования
+
+```javascript
+// Валидация действия
+socket.emit('validate_action', {
+    action: 'delete',
+    entity_type: 'PatientRecord',
+    context: { role: 'Admin', user_id: '123' },
+    request_id: 'req-001'
+});
+
+socket.on('validation_result', (result) => {
+    console.log('Allowed:', result.allowed);
+    console.log('Reason:', result.reason);
+});
+
+// Подписка на события агента
+socket.emit('subscribe_validation', { agent_id: 'doctor-1' });
+
+socket.on('validation_event', (event) => {
+    console.log('Agent event:', event);
+});
+```
+
+---
+
 ## OntoGuard Integration
 
 ### Компоненты
@@ -311,11 +376,11 @@ python e2e_postgres_tests.py
 - ✅ Admin DELETE appointments (OWL: Admin can delete only Staff/PatientRecord)
 - ✅ Doctor DELETE lab_results (OWL: no delete permission)
 
-### Unit Tests (134 passed) ✅
+### Unit Tests (149 passed) ✅
 
 ```bash
 pytest tests/ -v
-# 134 passed in 0.19s
+# 149 passed, 9 skipped in 0.61s
 ```
 
 | Файл | Тестов | Модуль |
@@ -328,7 +393,9 @@ pytest tests/ -v
 | `test_smoke.py` | 3 | import smoke tests |
 | `test_schema_drift.py` | 31 | schema drift (detect, fixes, bindings, type normalization, renames) |
 | `test_schema_drift_live.py` | 9 | live drift (fetch_live_schema, check_live, mock connector) |
-| **Итого** | **134** | Без внешних зависимостей (mock only) |
+| `test_graphql_ontoguard.py` | 9 | GraphQL OntoGuard (types, inputs, mutations, queries) — skipped без graphene |
+| `test_websocket_ontoguard.py` | 15 | WebSocket (connect, validate, permissions, batch, subscribe) |
+| **Итого** | **149** | +9 skipped (optional deps) |
 
 ---
 
@@ -445,7 +512,7 @@ universal-agent-connector/
 - [x] ~~Schema drift: auto-detect from live DB connection~~ (done: fetch_live_schema, check_live, POST /api/schema/drift-check/live, 9 tests)
 - [x] ~~Schema drift: Streamlit UI tab for drift monitoring~~ (done: 4th tab with live drift check, severity colors, fix suggestions)
 - [x] ~~GraphQL mutations для OntoGuard~~ (done: 3 mutations, 4 queries, 4 types, 3 inputs)
-- [ ] WebSocket для real-time validation
+- [x] ~~WebSocket для real-time validation~~ (done: flask-socketio, 8 events, 15 tests)
 - [ ] Prometheus metrics
 
 ---
@@ -454,6 +521,7 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `ac64002` | 2026-02-03 | feat: Add WebSocket support for real-time OntoGuard validation |
 | `cea11d3` | 2026-02-03 | feat: Add GraphQL mutations for OntoGuard semantic validation |
 | `ba42ed8` | 2026-02-02 | feat: Add Schema Drift Monitor tab to Streamlit UI |
 | `3122c45` | 2026-02-02 | feat: Add live schema drift detection via information_schema |
@@ -472,4 +540,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-03 (GraphQL mutations for OntoGuard)
+**Последнее обновление**: 2026-02-03 (WebSocket real-time validation)
