@@ -649,6 +649,101 @@ locust -f locustfile.py --host=http://localhost:5000 \
 
 ---
 
+## Kubernetes Deployment
+
+Kubernetes манифесты и Helm chart для production deployment.
+
+### Структура
+
+```
+k8s/
+├── base/                    # Базовые манифесты (Kustomize)
+│   ├── namespace.yaml
+│   ├── configmap.yaml
+│   ├── secret.yaml
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   ├── hpa.yaml
+│   ├── pdb.yaml
+│   ├── ingress.yaml
+│   ├── rbac.yaml
+│   └── kustomization.yaml
+└── overlays/
+    ├── dev/                 # Dev environment
+    └── prod/                # Production environment
+
+helm/universal-agent-connector/
+├── Chart.yaml
+├── values.yaml
+└── templates/
+    ├── _helpers.tpl
+    ├── deployment.yaml
+    ├── service.yaml
+    ├── serviceaccount.yaml
+    ├── hpa.yaml
+    ├── pdb.yaml
+    ├── ingress.yaml
+    ├── secrets.yaml
+    ├── servicemonitor.yaml
+    └── NOTES.txt
+```
+
+### Kustomize Deployment
+
+```bash
+# Dev environment
+kubectl apply -k k8s/overlays/dev
+
+# Production environment
+kubectl apply -k k8s/overlays/prod
+
+# Preview generated manifests
+kubectl kustomize k8s/overlays/prod
+```
+
+### Helm Deployment
+
+```bash
+# Add dependencies
+helm dependency update helm/universal-agent-connector
+
+# Install
+helm install uac helm/universal-agent-connector \
+  --namespace uac --create-namespace \
+  --set secrets.jwtSecretKey=$(openssl rand -hex 32) \
+  --set postgresql.auth.password=secure-password
+
+# Upgrade
+helm upgrade uac helm/universal-agent-connector \
+  --namespace uac --reuse-values
+
+# Uninstall
+helm uninstall uac --namespace uac
+```
+
+### Environment Comparison
+
+| Feature | Dev | Prod |
+|---------|-----|------|
+| Replicas | 1 | 3 |
+| HPA min/max | 1/3 | 3/20 |
+| PDB minAvailable | 1 | 2 |
+| CPU request/limit | 100m/500m | 250m/1000m |
+| Memory request/limit | 256Mi/512Mi | 512Mi/1Gi |
+| Log level | DEBUG | WARNING |
+
+### Features
+
+- **HPA**: Auto-scaling на основе CPU/Memory (70%/80%)
+- **PDB**: Минимальная доступность при обновлениях
+- **Pod Anti-Affinity**: Распределение по нодам
+- **Topology Spread**: Распределение по зонам
+- **Security Context**: Non-root, read-only filesystem
+- **Prometheus**: ServiceMonitor для мониторинга
+- **PostgreSQL**: Опциональный subchart от Bitnami
+
+---
+
 ## WebSocket Real-Time Validation
 
 WebSocket endpoints для real-time OntoGuard валидации с поддержкой доменов.
@@ -1032,6 +1127,11 @@ universal-agent-connector/
 ├── locustfile.py               # Load testing scenarios (9 user classes)
 ├── run_load_test.sh            # Load test runner script
 ├── results/                    # Load test results directory
+├── k8s/                        # Kubernetes manifests (Kustomize)
+│   ├── base/                   # Base manifests (9 files)
+│   └── overlays/               # Environment overlays (dev, prod)
+├── helm/                       # Helm chart
+│   └── universal-agent-connector/  # Chart (values.yaml, templates/)
 ├── .github/
 │   ├── workflows/ci.yml        # GitHub Actions CI (pytest+lint+bandit)
 │   └── dependabot.yml          # Auto dependency updates
@@ -1100,6 +1200,7 @@ universal-agent-connector/
 - [x] ~~Audit Trail~~ (done: file/SQLite backends, rotation, export, statistics, 28 tests)
 - [x] ~~Alerting Integration~~ (done: Slack/PagerDuty/webhook, deduplication, history, 42 tests)
 - [x] ~~Load Testing~~ (done: Locust, 9 user classes, quick/standard/stress/endurance modes)
+- [x] ~~Kubernetes Deployment~~ (done: Kustomize base/overlays, Helm chart, HPA, PDB, ServiceMonitor)
 
 ---
 
@@ -1119,7 +1220,7 @@ universal-agent-connector/
 | 5 | **Audit Trail** | Persistent logging (file/SQLite, rotation, export) | ✅ done |
 | 6 | **Alerting Integration** | Slack/PagerDuty alerts при CRITICAL events | ✅ done |
 | 7 | **Load Testing** | Locust нагрузочное тестирование | ✅ done |
-| 8 | **Kubernetes Deployment** | Helm charts, manifests, HPA | planned |
+| 8 | **Kubernetes Deployment** | Helm charts, manifests, HPA | ✅ done |
 
 ### 📦 Низкий приоритет
 | # | Улучшение | Описание | Статус |
@@ -1135,6 +1236,7 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `2ddd447` | 2026-02-03 | feat: Add Kubernetes Deployment (Kustomize + Helm) |
 | `d0e9f79` | 2026-02-03 | feat: Add Load Testing with Locust (9 user classes) |
 | `d48d257` | 2026-02-03 | feat: Add Alerting Integration with Slack/PagerDuty support |
 | `c70d22c` | 2026-02-03 | feat: Add persistent Audit Trail with file/SQLite backends |
@@ -1160,4 +1262,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-03 (Load Testing + Alerting Integration + Audit Trail)
+**Последнее обновление**: 2026-02-03 (Kubernetes Deployment + Load Testing + Alerting)

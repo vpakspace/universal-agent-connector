@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: uac-dev
+
+resources:
+  - ../../base
+
+namePrefix: dev-
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: uac
+
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 3
+    target:
+      kind: HorizontalPodAutoscaler
+      name: uac
+
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: uac-dev.example.com
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: uac-dev.example.com
+    target:
+      kind: Ingress
+      name: uac
+
+configMapGenerator:
+  - name: uac-config
+    behavior: merge
+    literals:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=true
+      - LOG_LEVEL=DEBUG
+      - WORKERS=1
+
+images:
+  - name: universal-agent-connector
+    newName: ghcr.io/vpakspace/universal-agent-connector
+    newTag: dev

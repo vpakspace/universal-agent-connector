@@ -1,0 +1,45 @@
+Universal Agent Connector has been installed!
+
+{{- if .Values.ingress.enabled }}
+1. Access the application at:
+{{- range $host := .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+1. Get the application URL by running:
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "uac.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+1. Get the application URL by running:
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "uac.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+1. Get the application URL by running:
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "uac.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+  echo "Visit http://127.0.0.1:8080 to access the application"
+{{- end }}
+
+2. Check the application health:
+  kubectl --namespace {{ .Release.Namespace }} get pods -l "app.kubernetes.io/name={{ include "uac.name" . }}"
+
+3. View application logs:
+  kubectl --namespace {{ .Release.Namespace }} logs -l "app.kubernetes.io/name={{ include "uac.name" . }}" -f
+
+4. Access Prometheus metrics:
+  curl http://localhost:8080/metrics
+
+{{- if .Values.postgresql.enabled }}
+
+5. PostgreSQL is deployed with this release.
+   To connect to the database:
+   kubectl run --namespace {{ .Release.Namespace }} postgresql-client --rm --tty -i --restart='Never' \
+     --image docker.io/bitnami/postgresql:latest \
+     --env="PGPASSWORD=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ .Release.Name }}-postgresql -o jsonpath="{.data.password}" | base64 -d)" \
+     --command -- psql --host {{ .Release.Name }}-postgresql -U {{ .Values.postgresql.auth.username }} -d {{ .Values.postgresql.auth.database }}
+{{- end }}
+
+For more information, visit: https://github.com/vpakspace/universal-agent-connector

@@ -1,0 +1,214 @@
+# Universal Agent Connector Helm Values
+# Default values for universal-agent-connector
+
+# -- Number of replicas
+replicaCount: 2
+
+image:
+  # -- Image repository
+  repository: ghcr.io/vpakspace/universal-agent-connector
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+  # -- Image tag (defaults to chart appVersion)
+  tag: ""
+
+# -- Image pull secrets
+imagePullSecrets: []
+# -- Override chart name
+nameOverride: ""
+# -- Override full name
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Create service account
+  create: true
+  # -- Service account annotations
+  annotations: {}
+  # -- Service account name
+  name: ""
+
+# -- Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "5000"
+  prometheus.io/path: "/metrics"
+
+# -- Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# -- Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  # -- Service type
+  type: ClusterIP
+  # -- Service port
+  port: 80
+  # -- Container port
+  targetPort: 5000
+
+ingress:
+  # -- Enable ingress
+  enabled: false
+  # -- Ingress class name
+  className: nginx
+  # -- Ingress annotations
+  annotations: {}
+  # -- Ingress hosts
+  hosts:
+    - host: uac.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  # -- Ingress TLS
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+autoscaling:
+  # -- Enable HPA
+  enabled: true
+  # -- Minimum replicas
+  minReplicas: 2
+  # -- Maximum replicas
+  maxReplicas: 10
+  # -- Target CPU utilization
+  targetCPUUtilizationPercentage: 70
+  # -- Target memory utilization
+  targetMemoryUtilizationPercentage: 80
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Tolerations
+tolerations: []
+
+# -- Affinity
+affinity: {}
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  # -- Enable PDB
+  enabled: true
+  # -- Minimum available pods
+  minAvailable: 1
+
+# Application configuration
+config:
+  # -- Flask environment
+  flaskEnv: production
+  # -- Enable debug mode
+  debug: false
+  # -- Log level
+  logLevel: INFO
+  # -- Number of workers
+  workers: 4
+
+  # Audit configuration
+  audit:
+    # -- Audit backend (memory, file, sqlite)
+    backend: file
+    # -- Audit log directory
+    logDir: /app/logs/audit
+    # -- Max file size in MB
+    maxFileSizeMb: 100
+    # -- Max number of files
+    maxFiles: 10
+
+  # Cache configuration
+  cache:
+    # -- Max cache size
+    maxSize: 1000
+    # -- Cache TTL in seconds
+    ttlSeconds: 300
+
+  # Rate limiting
+  rateLimit:
+    # -- Queries per minute
+    queriesPerMinute: 60
+    # -- Queries per hour
+    queriesPerHour: 1000
+    # -- Queries per day
+    queriesPerDay: 10000
+
+  # OntoGuard configuration
+  ontoguard:
+    # -- Enable OntoGuard
+    enabled: true
+    # -- Default domain
+    defaultDomain: hospital
+
+# Secrets configuration
+secrets:
+  # -- Create secrets
+  create: true
+  # -- JWT secret key (generate with: openssl rand -hex 32)
+  jwtSecretKey: ""
+  # -- OpenAI API key
+  openaiApiKey: ""
+  # -- Slack webhook URL
+  slackWebhookUrl: ""
+  # -- PagerDuty routing key
+  pagerdutyRoutingKey: ""
+
+# External database configuration
+externalDatabase:
+  # -- Use external database
+  enabled: false
+  # -- Database host
+  host: ""
+  # -- Database port
+  port: 5432
+  # -- Database name
+  database: hospital_db
+  # -- Database user
+  user: uac_user
+  # -- Database password
+  password: ""
+
+# PostgreSQL subchart configuration
+postgresql:
+  # -- Enable PostgreSQL subchart
+  enabled: true
+  auth:
+    # -- PostgreSQL username
+    username: uac_user
+    # -- PostgreSQL password
+    password: ""
+    # -- PostgreSQL database
+    database: hospital_db
+  primary:
+    persistence:
+      # -- Enable persistence
+      enabled: true
+      # -- Persistence size
+      size: 10Gi
+
+# Metrics configuration
+metrics:
+  # -- Enable Prometheus metrics
+  enabled: true
+  serviceMonitor:
+    # -- Enable ServiceMonitor
+    enabled: false
+    # -- ServiceMonitor namespace
+    namespace: ""
+    # -- ServiceMonitor labels
+    labels: {}
+    # -- Scrape interval
+    interval: 30s

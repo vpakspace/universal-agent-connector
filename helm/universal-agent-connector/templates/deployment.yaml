@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "uac.fullname" . }}
+  labels:
+    {{- include "uac.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "uac.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "uac.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "uac.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            - name: FLASK_ENV
+              value: {{ .Values.config.flaskEnv | quote }}
+            - name: FLASK_DEBUG
+              value: {{ .Values.config.debug | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.config.logLevel | quote }}
+            - name: WORKERS
+              value: {{ .Values.config.workers | quote }}
+            - name: PORT
+              value: {{ .Values.service.targetPort | quote }}
+            - name: AUDIT_BACKEND
+              value: {{ .Values.config.audit.backend | quote }}
+            - name: AUDIT_LOG_DIR
+              value: {{ .Values.config.audit.logDir | quote }}
+            - name: CACHE_MAX_SIZE
+              value: {{ .Values.config.cache.maxSize | quote }}
+            - name: CACHE_TTL_SECONDS
+              value: {{ .Values.config.cache.ttlSeconds | quote }}
+            - name: ONTOGUARD_ENABLED
+              value: {{ .Values.config.ontoguard.enabled | quote }}
+            - name: ONTOGUARD_DEFAULT_DOMAIN
+              value: {{ .Values.config.ontoguard.defaultDomain | quote }}
+            - name: DB_HOST
+              value: {{ include "uac.databaseHost" . | quote }}
+            - name: DB_PORT
+              value: {{ include "uac.databasePort" . | quote }}
+            - name: DB_NAME
+              value: {{ include "uac.databaseName" . | quote }}
+            - name: DB_USER
+              value: {{ include "uac.databaseUser" . | quote }}
+            {{- if .Values.secrets.create }}
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "uac.fullname" . }}-secrets
+                  key: jwt-secret-key
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "uac.fullname" . }}-secrets
+                  key: db-password
+            {{- if .Values.secrets.openaiApiKey }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "uac.fullname" . }}-secrets
+                  key: openai-api-key
+            {{- end }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: logs
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
