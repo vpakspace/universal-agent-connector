@@ -25,6 +25,7 @@ Universal Agent Connector - MCP инфраструктура для AI-аген�
 - **Validation Caching** - LRU кэш с TTL для OntoGuard валидаций (опционально Redis)
 - **Rate Limiting** - Ограничение запросов per agent (sliding window)
 - **OpenAPI/Swagger Docs** - Автогенерация API документации (flasgger)
+- **JWT Authentication** - JWT токены с access/refresh и revocation
 - **E2E Testing** - PostgreSQL + OntoGuard тесты
 
 ---
@@ -511,6 +512,7 @@ socket.on('validation_event', (event) => {
 | Файл | Описание |
 |------|----------|
 | `app/security/ontoguard_adapter.py` | Адаптер для OntoGuard валидации |
+| `app/security/jwt_auth.py` | JWT Authentication (tokens, refresh, revoke) |
 | `app/security/exceptions.py` | Custom exceptions |
 | `app/mcp/tools/ontoguard_tools.py` | 5 MCP tools для AI агентов |
 | `config/ontoguard.yaml` | Конфигурация OntoGuard |
@@ -796,7 +798,7 @@ universal-agent-connector/
 ├── ai_agent_connector/
 │   └── app/
 │       ├── api/routes.py       # REST API endpoints
-│       ├── security/           # OntoGuard adapter, schema drift, exceptions
+│       ├── security/           # OntoGuard adapter, JWT auth, schema drift, exceptions
 │       ├── mcp/tools/          # MCP tools for AI agents
 │       ├── utils/nl_to_sql.py  # NL→SQL converter (OpenAI)
 │       └── db/connectors.py    # PostgreSQL/MySQL/SQLite connectors
@@ -805,7 +807,8 @@ universal-agent-connector/
 ├── config/
 │   ├── ontoguard.yaml          # OntoGuard configuration
 │   ├── hospital_ontoguard.yaml # Hospital-specific config
-│   └── schema_bindings.yaml    # Schema drift bindings (hospital+finance)
+│   ├── schema_bindings.yaml    # Schema drift bindings (hospital+finance)
+│   └── openapi.yaml            # OpenAPI 3.0.3 specification (Swagger)
 └── tests/
     ├── test_smoke.py               # Import smoke tests (3)
     ├── test_sql_parser_unit.py     # SQL parser tests (16)
@@ -847,6 +850,10 @@ universal-agent-connector/
 - [x] ~~Prometheus metrics~~ (done: prometheus-client, 9 metrics, /metrics endpoint, 23 tests)
 - [x] ~~WebSocket domain support~~ (done: table-to-entity mapping, role validation, ontology switching, 30 tests)
 - [x] ~~WebSocket client в Streamlit UI~~ (done: 5th tab, single/batch/get_actions modes, python-socketio)
+- [x] ~~Validation Caching~~ (done: LRU cache, TTL, Redis optional, 17 tests)
+- [x] ~~Rate Limiting~~ (done: sliding window, per-agent config, 15 tests)
+- [x] ~~OpenAPI/Swagger documentation~~ (done: flasgger, /apidocs/, openapi.yaml)
+- [x] ~~JWT Authentication~~ (done: access/refresh tokens, revocation, dual auth, 27 tests)
 
 ---
 
@@ -882,6 +889,8 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `4dc86b3` | 2026-02-03 | feat: Add JWT Authentication with access and refresh tokens |
+| `d883896` | 2026-02-03 | feat: Add OpenAPI/Swagger documentation with flasgger |
 | `fb58c2b` | 2026-02-03 | feat: Add Prometheus metrics for monitoring |
 | `ac64002` | 2026-02-03 | feat: Add WebSocket support for real-time OntoGuard validation |
 | `cea11d3` | 2026-02-03 | feat: Add GraphQL mutations for OntoGuard semantic validation |
@@ -902,4 +911,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-03 (WebSocket client в Streamlit UI)
+**Последнее обновление**: 2026-02-03 (JWT Authentication + OpenAPI/Swagger)
