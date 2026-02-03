@@ -409,3 +409,360 @@ class TestEmitValidationEvent:
         # Just verify it doesn't raise
         with app.app_context():
             emit_validation_event('agent-123', {'type': 'validation', 'allowed': True})
+
+
+@pytest.mark.skipif(not SOCKETIO_AVAILABLE, reason="flask-socketio not installed")
+class TestWebSocketDomainSupport:
+    """Test WebSocket domain-aware functionality."""
+
+    @pytest.fixture
+    def mock_ontoguard_adapter_domain(self):
+        """Create a mock OntoGuard adapter with domain support."""
+        with patch('ai_agent_connector.app.security.get_ontoguard_adapter') as mock_get:
+            adapter = MagicMock()
+            adapter._initialized = True
+            adapter._pass_through_mode = False
+            adapter.is_active = True
+            adapter.ontology_paths = ['/path/to/hospital.owl']
+            adapter.initialize.return_value = True
+
+            # Mock validate_action result
+            validation_result = MagicMock()
+            validation_result.allowed = True
+            validation_result.reason = "Action allowed by ontology rules"
+            validation_result.constraints = []
+            validation_result.suggestions = []
+            validation_result.metadata = {}
+            validation_result.to_dict.return_value = {
+                'allowed': True,
+                'reason': 'Action allowed by ontology rules',
+                'constraints': [],
+                'suggestions': [],
+                'metadata': {}
+            }
+            adapter.validate_action.return_value = validation_result
+            adapter.check_permissions.return_value = True
+            adapter.get_allowed_actions.return_value = ['read', 'create', 'update']
+            adapter.explain_rule.return_value = "Doctor can perform read action on PatientRecord"
+
+            mock_get.return_value = adapter
+            yield adapter
+
+    @pytest.fixture
+    def app_with_socketio_domain(self, mock_ontoguard_adapter_domain):
+        """Create Flask app with SocketIO for domain testing."""
+        from flask import Flask
+        from flask_socketio import SocketIO
+
+        app = Flask(__name__)
+        app.config['SECRET_KEY'] = 'test-secret-key'
+        app.config['TESTING'] = True
+
+        socketio = SocketIO(app, async_mode='threading')
+
+        from ai_agent_connector.app.websocket import register_websocket_handlers
+        register_websocket_handlers(socketio)
+
+        return app, socketio
+
+    def test_validate_action_with_table_mapping(self, app_with_socketio_domain, mock_ontoguard_adapter_domain):
+        """Test validate_action with table-to-entity mapping."""
+        app, socketio = app_with_socketio_domain
+
+        with app.test_client() as _:
+            client = socketio.test_client(app)
+            client.get_received()
+
+            # Use 'table' instead of 'entity_type' - should auto-map to PatientRecord
+            client.emit('validate_action', {
+                'action': 'read',
+                'table': 'patients',
+                'domain': 'hospital',
+                'context': {'role': 'Doctor'}
+            })
+
+            received = client.get_received()
+            result_events = [r for r in received if r['name'] == 'validation_result']
+            assert len(result_events) == 1
+
+            result = result_events[0]['args'][0]
+            assert result['allowed'] is True
+            assert result['entity_type'] == 'PatientRecord'
+            assert result['domain'] == 'hospital'
+            assert result['role'] == 'Doctor'
+
+            client.disconnect()
+
+    def test_validate_action_with_domain_in_context(self, app_with_socketio_domain, mock_ontoguard_adapter_domain):
+        """Test validate_action with domain specified in context."""
+        app, socketio = app_with_socketio_domain
+
+        with app.test_client() as _:
+            client = socketio.test_client(app)
+            client.get_received()
+
+            client.emit('validate_action', {
+                'action': 'read',
+                'entity_type': 'Account',
+                'context': {
+                    'role': 'Analyst',
+                    'domain': 'finance'
+                }
+            })
+
+            received = client.get_received()
+            result_events = [r for r in received if r['name'] == 'validation_result']
+            assert len(result_events) == 1
+
+            result = result_events[0]['args'][0]
+            assert result['domain'] == 'finance'
+
+            client.disconnect()
+
+    def test_check_permissions_with_table_mapping(self, app_with_socketio_domain, mock_ontoguard_adapter_domain):
+        """Test check_permissions with table-to-entity mapping."""
+        app, socketio = app_with_socketio_domain
+
+        with app.test_client() as _:
+            client = socketio.test_client(app)
+            client.get_received()
+
+            client.emit('check_permissions', {
+                'role': 'LabTech',
+                'action': 'read',
+                'table': 'lab_results',
+                'domain': 'hospital'
+            })
+
+            received = client.get_received()
+            result_events = [r for r in received if r['name'] == 'permission_result']
+            assert len(result_events) == 1
+
+            result = result_events[0]['args'][0]
+            assert result['entity_type'] == 'LabResult'
+            assert result['domain'] == 'hospital'
+
+            client.disconnect()
+
+    def test_validate_action_invalid_role_for_domain(self, app_with_socketio_domain, mock_ontoguard_adapter_domain):
+        """Test validate_action with invalid role for domain."""
+        app, socketio = app_with_socketio_domain
+
+        with app.test_client() as _:
+            client = socketio.test_client(app)
+            client.get_received()
+
+            # 'Teller' is a finance role, not hospital
+            client.emit('validate_action', {
+                'action': 'read',
+                'entity_type': 'PatientRecord',
+                'domain': 'hospital',
+                'context': {'role': 'Teller'}
+            })
+
+            received = client.get_received()
+            error_events = [r for r in received if r['name'] == 'error']
+            assert len(error_events) == 1
+            assert error_events[0]['args'][0]['code'] == 'INVALID_ROLE'
+            assert 'Teller' in error_events[0]['args'][0]['message']
+
+            client.disconnect()
+
+    def test_get_allowed_actions_with_domain(self, app_with_socketio_domain, mock_ontoguard_adapter_domain):
+        """Test get_allowed_actions with domain support."""
+        app, socketio = app_with_socketio_domain
+
+        with app.test_client() as _:
+            client = socketio.test_client(app)
+            client.get_received()
+
+            client.emit('get_allowed_actions', {
+                'role': 'Doctor',
+                'table': 'medical_records',
+                'domain': 'hospital'
+            })
+
+            received = client.get_received()
+            result_events = [r for r in received if r['name'] == 'allowed_actions_result']
+            assert len(result_events) == 1
+
+            result = result_events[0]['args'][0]
+            assert result['entity_type'] == 'MedicalRecord'
+            assert result['domain'] == 'hospital'
+            assert 'allowed_actions' in result
+
+            client.disconnect()
+
+    def test_explain_rule_with_domain(self, app_with_socketio_domain, mock_ontoguard_adapter_domain):
+        """Test explain_rule with domain support."""
+        app, socketio = app_with_socketio_domain
+
+        with app.test_client() as _:
+            client = socketio.test_client(app)
+            client.get_received()
+
+            client.emit('explain_rule', {
+                'action': 'read',
+                'table': 'patients',
+                'domain': 'hospital',
+                'context': {'role': 'Nurse'}
+            })
+
+            received = client.get_received()
+            result_events = [r for r in received if r['name'] == 'rule_explanation']
+            assert len(result_events) == 1
+
+            result = result_events[0]['args'][0]
+            assert result['entity_type'] == 'PatientRecord'
+            assert result['domain'] == 'hospital'
+            assert 'explanation' in result
+
+            client.disconnect()
+
+    def test_validate_batch_with_mixed_domains(self, app_with_socketio_domain, mock_ontoguard_adapter_domain):
+        """Test validate_batch with validations from different domains."""
+        app, socketio = app_with_socketio_domain
+
+        with app.test_client() as _:
+            client = socketio.test_client(app)
+            client.get_received()
+
+            client.emit('validate_batch', {
+                'domain': 'hospital',  # default domain
+                'validations': [
+                    {'action': 'read', 'table': 'patients', 'context': {'role': 'Doctor'}},
+                    {'action': 'read', 'entity_type': 'Account', 'context': {'role': 'Analyst', 'domain': 'finance'}},
+                    {'action': 'create', 'table': 'appointments', 'context': {'role': 'Receptionist'}}
+                ]
+            })
+
+            received = client.get_received()
+            result_events = [r for r in received if r['name'] == 'batch_result']
+            assert len(result_events) == 1
+
+            result = result_events[0]['args'][0]
+            assert result['total'] == 3
+            assert result['default_domain'] == 'hospital'
+            assert len(result['results']) == 3
+
+            # Check first result uses hospital domain and table mapping
+            assert result['results'][0]['entity_type'] == 'PatientRecord'
+            assert result['results'][0]['domain'] == 'hospital'
+
+            # Second should override to finance
+            assert result['results'][1]['domain'] == 'finance'
+
+            # Third uses default domain
+            assert result['results'][2]['entity_type'] == 'Appointment'
+            assert result['results'][2]['domain'] == 'hospital'
+
+            client.disconnect()
+
+    def test_validate_batch_with_invalid_role(self, app_with_socketio_domain, mock_ontoguard_adapter_domain):
+        """Test validate_batch with one invalid role."""
+        app, socketio = app_with_socketio_domain
+
+        with app.test_client() as _:
+            client = socketio.test_client(app)
+            client.get_received()
+
+            client.emit('validate_batch', {
+                'domain': 'hospital',
+                'validations': [
+                    {'action': 'read', 'table': 'patients', 'context': {'role': 'Doctor'}},
+                    {'action': 'read', 'table': 'patients', 'context': {'role': 'InvalidRole'}}
+                ]
+            })
+
+            received = client.get_received()
+            result_events = [r for r in received if r['name'] == 'batch_result']
+            assert len(result_events) == 1
+
+            result = result_events[0]['args'][0]
+            assert result['total'] == 2
+            # First should succeed
+            assert result['results'][0].get('allowed') is True
+            # Second should have error
+            assert 'error' in result['results'][1]
+            assert result['error_count'] == 1
+
+            client.disconnect()
+
+
+@pytest.mark.skipif(not SOCKETIO_AVAILABLE, reason="flask-socketio not installed")
+class TestDomainHelperFunctions:
+    """Test domain helper functions."""
+
+    def test_resolve_entity_type_from_table(self):
+        """Test _resolve_entity_type with table name."""
+        from ai_agent_connector.app.websocket.ontoguard_ws import _resolve_entity_type
+
+        # Hospital domain mappings
+        data = {'table': 'patients', 'domain': 'hospital'}
+        assert _resolve_entity_type(data) == 'PatientRecord'
+
+        data = {'table': 'medical_records', 'domain': 'hospital'}
+        assert _resolve_entity_type(data) == 'MedicalRecord'
+
+        data = {'table': 'lab_results', 'domain': 'hospital'}
+        assert _resolve_entity_type(data) == 'LabResult'
+
+    def test_resolve_entity_type_prefers_explicit(self):
+        """Test _resolve_entity_type prefers explicit entity_type over table."""
+        from ai_agent_connector.app.websocket.ontoguard_ws import _resolve_entity_type
+
+        # If both provided, entity_type wins
+        data = {'entity_type': 'CustomEntity', 'table': 'patients', 'domain': 'hospital'}
+        assert _resolve_entity_type(data) == 'CustomEntity'
+
+    def test_resolve_entity_type_unknown_table(self):
+        """Test _resolve_entity_type with unknown table."""
+        from ai_agent_connector.app.websocket.ontoguard_ws import _resolve_entity_type
+
+        # Unknown table returns table name as fallback
+        data = {'table': 'unknown_table', 'domain': 'hospital'}
+        assert _resolve_entity_type(data) == 'unknown_table'
+
+    def test_validate_role_for_domain_valid(self):
+        """Test _validate_role_for_domain with valid role."""
+        from ai_agent_connector.app.websocket.ontoguard_ws import _validate_role_for_domain
+
+        # Valid hospital roles
+        assert _validate_role_for_domain('Doctor', 'hospital') is None
+        assert _validate_role_for_domain('Nurse', 'hospital') is None
+        assert _validate_role_for_domain('Admin', 'hospital') is None
+
+        # Valid finance roles
+        assert _validate_role_for_domain('Analyst', 'finance') is None
+        assert _validate_role_for_domain('Teller', 'finance') is None
+
+    def test_validate_role_for_domain_invalid(self):
+        """Test _validate_role_for_domain with invalid role."""
+        from ai_agent_connector.app.websocket.ontoguard_ws import _validate_role_for_domain
+
+        # Hospital role in finance domain
+        error = _validate_role_for_domain('Doctor', 'finance')
+        assert error is not None
+        assert 'Doctor' in error
+        assert 'finance' in error
+
+        # Finance role in hospital domain
+        error = _validate_role_for_domain('Teller', 'hospital')
+        assert error is not None
+        assert 'Teller' in error
+
+    def test_validate_role_for_domain_empty_role(self):
+        """Test _validate_role_for_domain with empty role."""
+        from ai_agent_connector.app.websocket.ontoguard_ws import _validate_role_for_domain
+
+        # Empty/None role should pass (no validation)
+        assert _validate_role_for_domain(None, 'hospital') is None
+        assert _validate_role_for_domain('', 'hospital') is None
+
+    def test_get_current_domain(self):
+        """Test get_current_domain function."""
+        from ai_agent_connector.app.websocket.ontoguard_ws import get_current_domain
+
+        # Should return default domain initially
+        domain = get_current_domain()
+        assert domain == 'hospital'  # DEFAULT_DOMAIN

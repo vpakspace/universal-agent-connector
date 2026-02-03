@@ -165,7 +165,14 @@ histogram_quantile(0.95, rate(uac_http_request_duration_seconds_bucket[5m]))
 
 ## WebSocket Real-Time Validation
 
-WebSocket endpoints для real-time OntoGuard валидации.
+WebSocket endpoints для real-time OntoGuard валидации с поддержкой доменов.
+
+### Поддержка доменов
+
+WebSocket поддерживает **multi-domain** валидацию:
+- **Table-to-Entity auto-mapping**: `patients` → `PatientRecord`, `accounts` → `Account`
+- **Domain-specific role validation**: проверка ролей по домену (hospital/finance)
+- **Auto ontology switching**: автоматическое переключение OWL онтологии при смене домена
 
 ### Подключение
 
@@ -181,11 +188,11 @@ socket.on('connected', (data) => {
 
 | Event | Описание | Payload |
 |-------|----------|---------|
-| `validate_action` | Валидация действия | `{action, entity_type, context, request_id?}` |
-| `check_permissions` | Проверка разрешений | `{role, action, entity_type, request_id?}` |
-| `get_allowed_actions` | Список разрешённых действий | `{role, entity_type, request_id?}` |
-| `explain_rule` | Объяснение правила | `{action, entity_type, context, request_id?}` |
-| `validate_batch` | Batch валидация | `{validations: [{action, entity_type, context}], request_id?}` |
+| `validate_action` | Валидация действия | `{action, entity_type OR table, domain?, context: {role, domain?}, request_id?}` |
+| `check_permissions` | Проверка разрешений | `{role, action, entity_type OR table, domain?, request_id?}` |
+| `get_allowed_actions` | Список разрешённых действий | `{role, entity_type OR table, domain?, request_id?}` |
+| `explain_rule` | Объяснение правила | `{action, entity_type OR table, domain?, context, request_id?}` |
+| `validate_batch` | Batch валидация | `{domain?, validations: [{action, entity_type OR table, context}], request_id?}` |
 | `subscribe_validation` | Подписка на события агента | `{agent_id}` |
 | `unsubscribe_validation` | Отписка от событий | `{agent_id}` |
 | `get_status` | Статус OntoGuard | `{request_id?}` |
@@ -194,28 +201,39 @@ socket.on('connected', (data) => {
 
 | Event | Описание |
 |-------|----------|
-| `validation_result` | Результат валидации |
-| `permission_result` | Результат проверки разрешений |
-| `allowed_actions_result` | Список разрешённых действий |
-| `rule_explanation` | Объяснение правила |
-| `batch_result` | Результаты batch валидации |
+| `validation_result` | Результат валидации (+ domain, role, entity_type) |
+| `permission_result` | Результат проверки разрешений (+ domain) |
+| `allowed_actions_result` | Список разрешённых действий (+ domain) |
+| `rule_explanation` | Объяснение правила (+ domain, role) |
+| `batch_result` | Результаты batch валидации (+ default_domain) |
 | `validation_event` | Real-time событие (для подписчиков) |
-| `error` | Сообщение об ошибке |
+| `error` | Сообщение об ошибке (INVALID_ROLE, DOMAIN_SWITCH_FAILED) |
 
 ### Пример использования
 
 ```javascript
-// Валидация действия
+// Валидация с table-to-entity mapping
 socket.emit('validate_action', {
-    action: 'delete',
-    entity_type: 'PatientRecord',
-    context: { role: 'Admin', user_id: '123' },
+    action: 'read',
+    table: 'patients',  // auto-mapped to PatientRecord
+    domain: 'hospital',
+    context: { role: 'Doctor' },
     request_id: 'req-001'
 });
 
 socket.on('validation_result', (result) => {
     console.log('Allowed:', result.allowed);
-    console.log('Reason:', result.reason);
+    console.log('Entity:', result.entity_type);  // PatientRecord
+    console.log('Domain:', result.domain);       // hospital
+});
+
+// Batch валидация с разными доменами
+socket.emit('validate_batch', {
+    domain: 'hospital',  // default domain
+    validations: [
+        { action: 'read', table: 'patients', context: { role: 'Doctor' } },
+        { action: 'read', entity_type: 'Account', context: { role: 'Analyst', domain: 'finance' } }
+    ]
 });
 
 // Подписка на события агента
@@ -225,6 +243,14 @@ socket.on('validation_event', (event) => {
     console.log('Agent event:', event);
 });
 ```
+
+### Ошибки доменной валидации
+
+| Код ошибки | Описание |
+|------------|----------|
+| `INVALID_ROLE` | Роль не существует в указанном домене |
+| `DOMAIN_SWITCH_FAILED` | Не удалось переключить онтологию |
+| `INVALID_REQUEST` | Отсутствуют обязательные поля |
 
 ---
 
@@ -446,9 +472,9 @@ pytest tests/ -v
 | `test_schema_drift.py` | 31 | schema drift (detect, fixes, bindings, type normalization, renames) |
 | `test_schema_drift_live.py` | 9 | live drift (fetch_live_schema, check_live, mock connector) |
 | `test_graphql_ontoguard.py` | 9 | GraphQL OntoGuard (types, inputs, mutations, queries) — skipped без graphene |
-| `test_websocket_ontoguard.py` | 15 | WebSocket (connect, validate, permissions, batch, subscribe) |
+| `test_websocket_ontoguard.py` | 30 | WebSocket (connect, validate, permissions, batch, subscribe, domain support) |
 | `test_prometheus_metrics.py` | 23 | Prometheus metrics (tracking, endpoint, normalization) |
-| **Итого** | **172** | +9 skipped (optional deps) |
+| **Итого** | **187** | +9 skipped (optional deps) |
 
 ---
 
@@ -558,15 +584,15 @@ universal-agent-connector/
 - [x] ~~Agent re-registration fix~~ (done: re-register instead of 400 error)
 - [x] ~~Schema Drift Detection~~ (done: detector, YAML bindings, REST endpoints, 31 tests, policy engine integration)
 - [x] ~~GraphQL mutations для OntoGuard~~ (done: 3 mutations, 4 queries, 4 types, 3 inputs)
-- [ ] WebSocket для real-time validation
 - [x] ~~CI/CD pipeline~~ (done: GitHub Actions — pytest, black, isort, bandit, dependabot)
 - [x] ~~Code audit (Kimi K2)~~ (done: SECRET_KEY, .dockerignore, requirements split, src/ cleanup)
 - [x] ~~Unit tests для core modules~~ (done: 125 passed, CI green — lint + test 3.10/3.11/3.12)
 - [x] ~~Schema drift: auto-detect from live DB connection~~ (done: fetch_live_schema, check_live, POST /api/schema/drift-check/live, 9 tests)
 - [x] ~~Schema drift: Streamlit UI tab for drift monitoring~~ (done: 4th tab with live drift check, severity colors, fix suggestions)
-- [x] ~~GraphQL mutations для OntoGuard~~ (done: 3 mutations, 4 queries, 4 types, 3 inputs)
 - [x] ~~WebSocket для real-time validation~~ (done: flask-socketio, 8 events, 15 tests)
 - [x] ~~Prometheus metrics~~ (done: prometheus-client, 9 metrics, /metrics endpoint, 23 tests)
+- [x] ~~WebSocket domain support~~ (done: table-to-entity mapping, role validation, ontology switching, 30 tests)
+- [ ] WebSocket client в Streamlit UI (optional)
 
 ---
 
@@ -594,4 +620,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-03 (Prometheus metrics)
+**Последнее обновление**: 2026-02-03 (Domain-aware WebSocket)

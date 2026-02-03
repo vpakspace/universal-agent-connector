@@ -35,7 +35,20 @@ from functools import wraps
 
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
+# Domain configuration
+from ..config.domains import (
+    get_domain_config,
+    get_entity_from_table,
+    get_ontology_path,
+    is_valid_role,
+    detect_domain_from_ontology,
+    DEFAULT_DOMAIN,
+)
+
 logger = logging.getLogger(__name__)
+
+# Current domain for WebSocket session
+_current_domain: str = DEFAULT_DOMAIN
 
 # Global SocketIO instance
 _socketio: Optional[SocketIO] = None
@@ -45,6 +58,93 @@ _connected_clients: Dict[str, Dict[str, Any]] = {}
 
 # Agent validation subscriptions (agent_id -> set of session_ids)
 _agent_subscriptions: Dict[str, Set[str]] = {}
+
+
+def _resolve_entity_type(data: Dict[str, Any]) -> str:
+    """
+    Resolve entity type from data, supporting table-to-entity mapping.
+
+    Args:
+        data: Request data containing entity_type and/or table, domain
+
+    Returns:
+        Resolved OWL entity type
+    """
+    entity_type = data.get('entity_type')
+    table = data.get('table')
+    domain = data.get('context', {}).get('domain') or data.get('domain') or _current_domain
+
+    # If table provided, try to map to entity
+    if table and not entity_type:
+        entity_type = get_entity_from_table(table, domain)
+        if entity_type:
+            logger.debug(f"Mapped table '{table}' to entity '{entity_type}' for domain '{domain}'")
+
+    return entity_type or table or 'Unknown'
+
+
+def _validate_role_for_domain(role: str, domain: str) -> Optional[str]:
+    """
+    Validate that role exists in domain, return error message if not.
+
+    Args:
+        role: Role to validate
+        domain: Domain name
+
+    Returns:
+        Error message if invalid, None if valid
+    """
+    if not role:
+        return None  # No role specified, skip validation
+
+    if not is_valid_role(role, domain):
+        config = get_domain_config(domain)
+        valid_roles = config.roles if config else []
+        return f"Role '{role}' is not valid for domain '{domain}'. Valid roles: {valid_roles}"
+
+    return None
+
+
+def _switch_ontology_if_needed(domain: str) -> bool:
+    """
+    Switch OntoGuard ontology if domain changed.
+
+    Args:
+        domain: Target domain
+
+    Returns:
+        True if switch was successful or not needed
+    """
+    global _current_domain
+
+    if domain == _current_domain:
+        return True
+
+    ontology_path = get_ontology_path(domain)
+    if not ontology_path:
+        logger.warning(f"No ontology path found for domain '{domain}'")
+        return False
+
+    try:
+        from ..security import get_ontoguard_adapter
+
+        adapter = get_ontoguard_adapter()
+        if adapter.initialize([ontology_path]):
+            _current_domain = domain
+            logger.info(f"Switched OntoGuard to domain '{domain}' with ontology: {ontology_path}")
+            return True
+        else:
+            logger.error(f"Failed to switch to domain '{domain}'")
+            return False
+
+    except Exception as e:
+        logger.error(f"Error switching ontology: {e}")
+        return False
+
+
+def get_current_domain() -> str:
+    """Get current active domain."""
+    return _current_domain
 
 
 def get_socketio() -> Optional[SocketIO]:
@@ -145,22 +245,52 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
 
         Expected data:
             action: str - The action to validate (e.g., "create", "read", "update", "delete")
-            entity_type: str - The entity type (e.g., "User", "Order")
-            context: dict - Additional context (role, user_id, etc.)
+            entity_type: str - The entity type (e.g., "User", "Order") OR
+            table: str - SQL table name (auto-mapped to entity_type)
+            context: dict - Additional context:
+                - role: User role
+                - domain: Domain name (hospital/finance) for ontology selection
+                - user_id, agent_id, etc.
             request_id: str (optional) - Client request ID for correlation
         """
         from ..security import get_ontoguard_adapter
 
         try:
             action = data.get('action')
-            entity_type = data.get('entity_type')
             context = data.get('context', {})
             request_id = data.get('request_id')
 
-            if not action or not entity_type:
+            # Get domain from context or use current
+            domain = context.get('domain') or data.get('domain') or _current_domain
+
+            # Switch ontology if domain changed
+            if not _switch_ontology_if_needed(domain):
+                emit('error', {
+                    'code': 'DOMAIN_SWITCH_FAILED',
+                    'message': f"Failed to switch to domain '{domain}'",
+                    'request_id': request_id
+                })
+                return
+
+            # Resolve entity type (supports table-to-entity mapping)
+            entity_type = _resolve_entity_type(data)
+
+            if not action or entity_type == 'Unknown':
                 emit('error', {
                     'code': 'INVALID_REQUEST',
-                    'message': 'action and entity_type are required',
+                    'message': 'action and (entity_type or table) are required',
+                    'request_id': request_id
+                })
+                return
+
+            # Validate role for domain
+            role = context.get('role')
+            role_error = _validate_role_for_domain(role, domain)
+            if role_error:
+                emit('error', {
+                    'code': 'INVALID_ROLE',
+                    'message': role_error,
+                    'domain': domain,
                     'request_id': request_id
                 })
                 return
@@ -172,6 +302,8 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
                 'allowed': result.allowed,
                 'action': action,
                 'entity_type': entity_type,
+                'domain': domain,
+                'role': role,
                 'reason': result.reason,
                 'constraints': result.constraints,
                 'suggestions': result.suggestions,
@@ -213,7 +345,9 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
         Expected data:
             role: str - The user role
             action: str - The action to check
-            entity_type: str - The entity type
+            entity_type: str - The entity type OR
+            table: str - SQL table name (auto-mapped)
+            domain: str (optional) - Domain for ontology selection
             request_id: str (optional) - Client request ID
         """
         from ..security import get_ontoguard_adapter
@@ -221,13 +355,30 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
         try:
             role = data.get('role')
             action = data.get('action')
-            entity_type = data.get('entity_type')
             request_id = data.get('request_id')
+            domain = data.get('domain') or _current_domain
 
-            if not all([role, action, entity_type]):
+            # Switch ontology if needed
+            _switch_ontology_if_needed(domain)
+
+            # Resolve entity type
+            entity_type = _resolve_entity_type(data)
+
+            if not all([role, action]) or entity_type == 'Unknown':
                 emit('error', {
                     'code': 'INVALID_REQUEST',
-                    'message': 'role, action, and entity_type are required',
+                    'message': 'role, action, and (entity_type or table) are required',
+                    'request_id': request_id
+                })
+                return
+
+            # Validate role for domain
+            role_error = _validate_role_for_domain(role, domain)
+            if role_error:
+                emit('error', {
+                    'code': 'INVALID_ROLE',
+                    'message': role_error,
+                    'domain': domain,
                     'request_id': request_id
                 })
                 return
@@ -240,6 +391,7 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
                 'role': role,
                 'action': action,
                 'entity_type': entity_type,
+                'domain': domain,
                 'timestamp': datetime.now(timezone.utc).isoformat()
             }
 
@@ -264,20 +416,28 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
 
         Expected data:
             role: str - The user role
-            entity_type: str - The entity type
+            entity_type: str - The entity type OR
+            table: str - SQL table name (auto-mapped)
+            domain: str (optional) - Domain for ontology selection
             request_id: str (optional) - Client request ID
         """
         from ..security import get_ontoguard_adapter
 
         try:
             role = data.get('role')
-            entity_type = data.get('entity_type')
             request_id = data.get('request_id')
+            domain = data.get('domain') or _current_domain
 
-            if not role or not entity_type:
+            # Switch ontology if needed
+            _switch_ontology_if_needed(domain)
+
+            # Resolve entity type
+            entity_type = _resolve_entity_type(data)
+
+            if not role or entity_type == 'Unknown':
                 emit('error', {
                     'code': 'INVALID_REQUEST',
-                    'message': 'role and entity_type are required',
+                    'message': 'role and (entity_type or table) are required',
                     'request_id': request_id
                 })
                 return
@@ -288,6 +448,7 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
             response = {
                 'role': role,
                 'entity_type': entity_type,
+                'domain': domain,
                 'allowed_actions': actions,
                 'timestamp': datetime.now(timezone.utc).isoformat()
             }
@@ -313,22 +474,50 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
 
         Expected data:
             action: str - The action to explain
-            entity_type: str - The entity type
-            context: dict - Additional context
+            entity_type: str - The entity type OR
+            table: str - SQL table name (auto-mapped)
+            context: dict - Additional context:
+                - role: User role (for domain validation)
+                - domain: Domain name (hospital/finance)
+            domain: str (optional) - Domain for ontology selection (alternative to context.domain)
             request_id: str (optional) - Client request ID
         """
         from ..security import get_ontoguard_adapter
 
         try:
             action = data.get('action')
-            entity_type = data.get('entity_type')
             context = data.get('context', {})
             request_id = data.get('request_id')
+            domain = context.get('domain') or data.get('domain') or _current_domain
 
-            if not action or not entity_type:
+            # Switch ontology if needed
+            if not _switch_ontology_if_needed(domain):
+                emit('error', {
+                    'code': 'DOMAIN_SWITCH_FAILED',
+                    'message': f"Failed to switch to domain '{domain}'",
+                    'request_id': request_id
+                })
+                return
+
+            # Resolve entity type (supports table-to-entity mapping)
+            entity_type = _resolve_entity_type(data)
+
+            if not action or entity_type == 'Unknown':
                 emit('error', {
                     'code': 'INVALID_REQUEST',
-                    'message': 'action and entity_type are required',
+                    'message': 'action and (entity_type or table) are required',
+                    'request_id': request_id
+                })
+                return
+
+            # Validate role if provided
+            role = context.get('role')
+            role_error = _validate_role_for_domain(role, domain)
+            if role_error:
+                emit('error', {
+                    'code': 'INVALID_ROLE',
+                    'message': role_error,
+                    'domain': domain,
                     'request_id': request_id
                 })
                 return
@@ -339,6 +528,8 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
             response = {
                 'action': action,
                 'entity_type': entity_type,
+                'domain': domain,
+                'role': role,
                 'explanation': explanation,
                 'timestamp': datetime.now(timezone.utc).isoformat()
             }
@@ -360,13 +551,14 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
     @require_initialized
     def handle_validate_batch(data: Dict[str, Any]):
         """
-        Handle batch validation request.
+        Handle batch validation request with domain support.
 
         Expected data:
+            domain: str (optional) - Default domain for all validations
             validations: list - List of validation requests, each containing:
                 - action: str
-                - entity_type: str
-                - context: dict (optional)
+                - entity_type: str OR table: str (auto-mapped)
+                - context: dict (optional) - may include domain override, role
             request_id: str (optional) - Client request ID
         """
         from ..security import get_ontoguard_adapter
@@ -374,6 +566,7 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
         try:
             validations = data.get('validations', [])
             request_id = data.get('request_id')
+            default_domain = data.get('domain') or _current_domain
 
             if not validations:
                 emit('error', {
@@ -385,16 +578,43 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
 
             adapter = get_ontoguard_adapter()
             results = []
+            current_batch_domain = default_domain
 
             for i, validation in enumerate(validations):
                 action = validation.get('action')
-                entity_type = validation.get('entity_type')
                 context = validation.get('context', {})
 
-                if not action or not entity_type:
+                # Get domain for this validation (context overrides default)
+                item_domain = context.get('domain') or validation.get('domain') or default_domain
+
+                # Switch ontology if domain changed
+                if item_domain != current_batch_domain:
+                    if not _switch_ontology_if_needed(item_domain):
+                        results.append({
+                            'index': i,
+                            'error': f"Failed to switch to domain '{item_domain}'"
+                        })
+                        continue
+                    current_batch_domain = item_domain
+
+                # Resolve entity type (supports table-to-entity mapping)
+                entity_type = _resolve_entity_type(validation)
+
+                if not action or entity_type == 'Unknown':
                     results.append({
                         'index': i,
-                        'error': 'action and entity_type are required'
+                        'error': 'action and (entity_type or table) are required'
+                    })
+                    continue
+
+                # Validate role for domain
+                role = context.get('role')
+                role_error = _validate_role_for_domain(role, item_domain)
+                if role_error:
+                    results.append({
+                        'index': i,
+                        'error': role_error,
+                        'domain': item_domain
                     })
                     continue
 
@@ -403,6 +623,8 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
                     'index': i,
                     'action': action,
                     'entity_type': entity_type,
+                    'domain': item_domain,
+                    'role': role,
                     'allowed': result.allowed,
                     'reason': result.reason,
                     'constraints': result.constraints,
@@ -411,6 +633,7 @@ def register_websocket_handlers(socketio: SocketIO) -> None:
 
             response = {
                 'results': results,
+                'default_domain': default_domain,
                 'total': len(validations),
                 'allowed_count': sum(1 for r in results if r.get('allowed', False)),
                 'denied_count': sum(1 for r in results if not r.get('allowed', True) and 'error' not in r),
