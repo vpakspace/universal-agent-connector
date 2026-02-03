@@ -1236,10 +1236,10 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
-| `2ddd447` | 2026-02-03 | feat: Add Kubernetes Deployment (Kustomize + Helm) |
+| `1687a09` | 2026-02-03 | feat: Add Kubernetes Deployment (Kustomize + Helm) |
 | `d0e9f79` | 2026-02-03 | feat: Add Load Testing with Locust (9 user classes) |
 | `d48d257` | 2026-02-03 | feat: Add Alerting Integration with Slack/PagerDuty support |
-| `c70d22c` | 2026-02-03 | feat: Add persistent Audit Trail with file/SQLite backends |
+| `6f203c7` | 2026-02-03 | feat: Add persistent Audit Trail with file/SQLite backends |
 | `4dc86b3` | 2026-02-03 | feat: Add JWT Authentication with access and refresh tokens |
 | `d883896` | 2026-02-03 | feat: Add OpenAPI/Swagger documentation with flasgger |
 | `fb58c2b` | 2026-02-03 | feat: Add Prometheus metrics for monitoring |
