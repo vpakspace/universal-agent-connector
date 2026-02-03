@@ -19,6 +19,13 @@ from ai_agent_connector.app.prompts import prompt_bp
 import secrets
 import logging
 
+# Prometheus metrics (optional)
+try:
+    from ai_agent_connector.app.metrics import init_metrics, get_metrics_blueprint
+    METRICS_AVAILABLE = True
+except ImportError:
+    METRICS_AVAILABLE = False
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -50,6 +57,12 @@ def create_app(config_name: str = None) -> Flask:
     app.register_blueprint(api_bp)
     app.register_blueprint(widget_bp)
     app.register_blueprint(prompt_bp)
+
+    # Initialize Prometheus metrics
+    if METRICS_AVAILABLE:
+        init_metrics(app)
+        app.register_blueprint(get_metrics_blueprint())
+        logger.info("Prometheus metrics enabled at /metrics")
 
     # Generate console PIN
     console_pin = secrets.randbelow(10000)
@@ -291,6 +304,7 @@ if __name__ == '__main__':
     print(f"Wizard: http://{host}:{port}/wizard")
     print(f"API: http://{host}:{port}/api")
     print(f"WebSocket: ws://{host}:{port}/socket.io")
+    print(f"Metrics: http://{host}:{port}/metrics")
     print(f"Console PIN: {app.config['CONSOLE_PIN']}")
     print("=" * 60)
 

@@ -32,6 +32,9 @@ flask-socketio==5.3.6
 python-socketio==5.10.0
 python-engineio==4.8.1
 
+# Metrics
+prometheus-client==0.20.0
+
 # Utilities
 requests==2.32.3
 colorama==0.4.6
