@@ -147,6 +147,44 @@ class PermissionType(ObjectType):
     granted_at = DateTime()
 
 
+class OntoGuardValidationResultType(ObjectType):
+    """OntoGuard validation result GraphQL type"""
+    allowed = Boolean(required=True)
+    action = String(required=True)
+    entity_type = String(required=True)
+    role = String()
+    reason = String()
+    constraints = List(String)
+    suggestions = List(String)
+
+
+class OntoGuardStatusType(ObjectType):
+    """OntoGuard status GraphQL type"""
+    enabled = Boolean(required=True)
+    active = Boolean(required=True)
+    ontology_loaded = Boolean()
+    ontology_path = String()
+    triples_count = Int()
+    action_rules_count = Int()
+
+
+class AllowedActionType(ObjectType):
+    """Allowed action GraphQL type"""
+    action = String(required=True)
+    entity_type = String(required=True)
+    constraints = List(String)
+
+
+class RuleExplanationType(ObjectType):
+    """Rule explanation GraphQL type"""
+    action = String(required=True)
+    entity_type = String(required=True)
+    allowed_roles = List(String)
+    constraints = List(String)
+    owl_class = String()
+    description = String()
+
+
 # ============================================================================
 # Input Types
 # ============================================================================
@@ -195,6 +233,28 @@ class CreateBudgetAlertInput(graphene.InputObjectType):
     period = String(required=True)
     notification_emails = List(String)
     webhook_url = String()
+
+
+class ValidateActionInput(graphene.InputObjectType):
+    """Input for OntoGuard action validation"""
+    action = String(required=True)
+    entity_type = String(required=True)
+    role = String(required=True)
+    user_id = String()
+    resource_id = String()
+
+
+class CheckPermissionsInput(graphene.InputObjectType):
+    """Input for OntoGuard permissions check"""
+    role = String(required=True)
+    action = String(required=True)
+    entity_type = String(required=True)
+
+
+class ExplainRuleInput(graphene.InputObjectType):
+    """Input for OntoGuard rule explanation"""
+    action = String(required=True)
+    entity_type = String(required=True)
 
 
 # ============================================================================
@@ -289,7 +349,26 @@ class Query(ObjectType):
     
     # Health
     health = Field(JSONString)
-    
+
+    # OntoGuard
+    ontoguard_status = Field(OntoGuardStatusType)
+
+    ontoguard_validate = Field(
+        OntoGuardValidationResultType,
+        input=ValidateActionInput(required=True)
+    )
+
+    ontoguard_allowed_actions = List(
+        AllowedActionType,
+        role=String(required=True),
+        entity_type=String()
+    )
+
+    ontoguard_explain_rule = Field(
+        RuleExplanationType,
+        input=ExplainRuleInput(required=True)
+    )
+
     # Resolvers
     def resolve_agent(self, info, agent_id):
         """Resolve single agent"""
@@ -641,7 +720,110 @@ class Query(ObjectType):
         """Resolve permissions"""
         # Placeholder - would integrate with access control
         return []
-    
+
+    def resolve_ontoguard_status(self, info):
+        """Resolve OntoGuard status"""
+        try:
+            from ..security.ontoguard_adapter import OntoGuardAdapter
+            adapter = OntoGuardAdapter()
+            return {
+                'enabled': adapter.enabled,
+                'active': adapter.enabled and adapter.validator is not None,
+                'ontology_loaded': adapter.validator is not None,
+                'ontology_path': getattr(adapter.validator, 'ontology_path', None) if adapter.validator else None,
+                'triples_count': len(adapter.validator.graph) if adapter.validator and hasattr(adapter.validator, 'graph') else 0,
+                'action_rules_count': len(adapter.validator.action_rules) if adapter.validator and hasattr(adapter.validator, 'action_rules') else 0,
+            }
+        except Exception:
+            return {
+                'enabled': False,
+                'active': False,
+                'ontology_loaded': False,
+                'ontology_path': None,
+                'triples_count': 0,
+                'action_rules_count': 0,
+            }
+
+    def resolve_ontoguard_validate(self, info, input):
+        """Resolve OntoGuard validation"""
+        try:
+            from ..security.ontoguard_adapter import OntoGuardAdapter
+            adapter = OntoGuardAdapter()
+            context = {'role': input.get('role')}
+            if input.get('user_id'):
+                context['user_id'] = input['user_id']
+            if input.get('resource_id'):
+                context['resource_id'] = input['resource_id']
+
+            result = adapter.validate_action(
+                action=input['action'],
+                entity_type=input['entity_type'],
+                context=context
+            )
+            return {
+                'allowed': result.get('allowed', False),
+                'action': input['action'],
+                'entity_type': input['entity_type'],
+                'role': input.get('role'),
+                'reason': result.get('reason'),
+                'constraints': result.get('constraints', []),
+                'suggestions': result.get('suggestions', []),
+            }
+        except Exception as e:
+            return {
+                'allowed': False,
+                'action': input['action'],
+                'entity_type': input['entity_type'],
+                'role': input.get('role'),
+                'reason': str(e),
+                'constraints': [],
+                'suggestions': [],
+            }
+
+    def resolve_ontoguard_allowed_actions(self, info, role, entity_type=None):
+        """Resolve OntoGuard allowed actions"""
+        try:
+            from ..security.ontoguard_adapter import OntoGuardAdapter
+            adapter = OntoGuardAdapter()
+            actions = adapter.get_allowed_actions(role=role, entity_type=entity_type)
+            return [
+                {
+                    'action': a.get('action'),
+                    'entity_type': a.get('entity_type'),
+                    'constraints': a.get('constraints', []),
+                }
+                for a in actions
+            ]
+        except Exception:
+            return []
+
+    def resolve_ontoguard_explain_rule(self, info, input):
+        """Resolve OntoGuard rule explanation"""
+        try:
+            from ..security.ontoguard_adapter import OntoGuardAdapter
+            adapter = OntoGuardAdapter()
+            explanation = adapter.explain_rule(
+                action=input['action'],
+                entity_type=input['entity_type']
+            )
+            return {
+                'action': input['action'],
+                'entity_type': input['entity_type'],
+                'allowed_roles': explanation.get('allowed_roles', []),
+                'constraints': explanation.get('constraints', []),
+                'owl_class': explanation.get('owl_class'),
+                'description': explanation.get('description'),
+            }
+        except Exception:
+            return {
+                'action': input['action'],
+                'entity_type': input['entity_type'],
+                'allowed_roles': [],
+                'constraints': [],
+                'owl_class': None,
+                'description': None,
+            }
+
     def resolve_health(self, info):
         """Resolve health check"""
         return {
@@ -828,6 +1010,164 @@ class CreateBudgetAlert(graphene.Mutation):
             return CreateBudgetAlert(success=False, message=str(e))
 
 
+class ValidateOntoGuardAction(graphene.Mutation):
+    """Validate an action against OntoGuard ontology rules"""
+
+    class Arguments:
+        input = ValidateActionInput(required=True)
+
+    result = Field(OntoGuardValidationResultType)
+    success = Boolean()
+    message = String()
+
+    def mutate(self, info, input):
+        """Execute OntoGuard validation"""
+        try:
+            from ..security.ontoguard_adapter import OntoGuardAdapter
+            adapter = OntoGuardAdapter()
+            context = {'role': input.get('role')}
+            if input.get('user_id'):
+                context['user_id'] = input['user_id']
+            if input.get('resource_id'):
+                context['resource_id'] = input['resource_id']
+
+            validation_result = adapter.validate_action(
+                action=input['action'],
+                entity_type=input['entity_type'],
+                context=context
+            )
+
+            result_dict = validation_result if isinstance(validation_result, dict) else {
+                'allowed': getattr(validation_result, 'allowed', False),
+                'reason': getattr(validation_result, 'reason', None),
+                'constraints': getattr(validation_result, 'constraints', []),
+                'suggestions': getattr(validation_result, 'suggestions', []),
+            }
+
+            return ValidateOntoGuardAction(
+                success=True,
+                message="Validation completed",
+                result={
+                    'allowed': result_dict.get('allowed', False),
+                    'action': input['action'],
+                    'entity_type': input['entity_type'],
+                    'role': input.get('role'),
+                    'reason': result_dict.get('reason'),
+                    'constraints': result_dict.get('constraints', []),
+                    'suggestions': result_dict.get('suggestions', []),
+                }
+            )
+        except Exception as e:
+            return ValidateOntoGuardAction(
+                success=False,
+                message=str(e),
+                result={
+                    'allowed': False,
+                    'action': input['action'],
+                    'entity_type': input['entity_type'],
+                    'role': input.get('role'),
+                    'reason': str(e),
+                    'constraints': [],
+                    'suggestions': [],
+                }
+            )
+
+
+class CheckOntoGuardPermissions(graphene.Mutation):
+    """Check if a role has permission for an action on entity type"""
+
+    class Arguments:
+        input = CheckPermissionsInput(required=True)
+
+    allowed = Boolean()
+    success = Boolean()
+    message = String()
+    reason = String()
+    constraints = List(String)
+
+    def mutate(self, info, input):
+        """Execute OntoGuard permissions check"""
+        try:
+            from ..security.ontoguard_adapter import OntoGuardAdapter
+            adapter = OntoGuardAdapter()
+            result = adapter.check_permissions(
+                role=input['role'],
+                action=input['action'],
+                entity_type=input['entity_type']
+            )
+
+            result_dict = result if isinstance(result, dict) else {
+                'allowed': getattr(result, 'allowed', False),
+                'reason': getattr(result, 'reason', None),
+                'constraints': getattr(result, 'constraints', []),
+            }
+
+            return CheckOntoGuardPermissions(
+                success=True,
+                message="Permissions check completed",
+                allowed=result_dict.get('allowed', False),
+                reason=result_dict.get('reason'),
+                constraints=result_dict.get('constraints', []),
+            )
+        except Exception as e:
+            return CheckOntoGuardPermissions(
+                success=False,
+                message=str(e),
+                allowed=False,
+                reason=str(e),
+                constraints=[],
+            )
+
+
+class ExplainOntoGuardRule(graphene.Mutation):
+    """Get detailed explanation of validation rules for an action"""
+
+    class Arguments:
+        input = ExplainRuleInput(required=True)
+
+    explanation = Field(RuleExplanationType)
+    success = Boolean()
+    message = String()
+
+    def mutate(self, info, input):
+        """Execute OntoGuard rule explanation"""
+        try:
+            from ..security.ontoguard_adapter import OntoGuardAdapter
+            adapter = OntoGuardAdapter()
+            result = adapter.explain_rule(
+                action=input['action'],
+                entity_type=input['entity_type']
+            )
+
+            result_dict = result if isinstance(result, dict) else {}
+
+            return ExplainOntoGuardRule(
+                success=True,
+                message="Rule explanation retrieved",
+                explanation={
+                    'action': input['action'],
+                    'entity_type': input['entity_type'],
+                    'allowed_roles': result_dict.get('allowed_roles', []),
+                    'constraints': result_dict.get('constraints', []),
+                    'owl_class': result_dict.get('owl_class'),
+                    'description': result_dict.get('description'),
+                }
+            )
+        except Exception as e:
+            return ExplainOntoGuardRule(
+                success=False,
+                message=str(e),
+                explanation={
+                    'action': input['action'],
+                    'entity_type': input['entity_type'],
+                    'allowed_roles': [],
+                    'constraints': [],
+                    'owl_class': None,
+                    'description': None,
+                }
+            )
+
+
 class Mutation(ObjectType):
     """GraphQL Mutation root"""
     register_agent = RegisterAgent.Field()
@@ -835,6 +1175,10 @@ class Mutation(ObjectType):
     execute_natural_language_query = ExecuteNaturalLanguageQuery.Field()
     configure_failover = ConfigureFailover.Field()
     create_budget_alert = CreateBudgetAlert.Field()
+    # OntoGuard mutations
+    validate_ontoguard_action = ValidateOntoGuardAction.Field()
+    check_ontoguard_permissions = CheckOntoGuardPermissions.Field()
+    explain_ontoguard_rule = ExplainOntoGuardRule.Field()
 
 
 # ============================================================================
