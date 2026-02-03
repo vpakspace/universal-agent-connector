@@ -360,4 +360,4 @@ if __name__ == '__main__':
     print("=" * 60)
 
     # Use socketio.run() for WebSocket support
-    app.socketio.run(app, host=host, port=port, debug=True, use_reloader=False)
+    app.socketio.run(app, host=host, port=port, debug=True, use_reloader=False, allow_unsafe_werkzeug=True)
