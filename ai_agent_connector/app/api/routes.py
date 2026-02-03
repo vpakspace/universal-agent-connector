@@ -2265,3 +2265,125 @@ def create_schema_binding():
         }
     }), 201
 
+
+# =============================================================================
+# Cache Management Endpoints
+# =============================================================================
+
+@api_bp.route('/cache/stats', methods=['GET'])
+def get_cache_stats():
+    """
+    Get validation cache statistics.
+
+    Returns:
+        JSON with cache statistics (hits, misses, hit_rate, size, etc.)
+    """
+    try:
+        from ..cache import get_cache_stats as _get_cache_stats
+        stats = _get_cache_stats()
+        return jsonify({
+            'status': 'ok',
+            'cache': stats,
+        })
+    except ImportError:
+        return jsonify({
+            'status': 'unavailable',
+            'message': 'Cache module not installed',
+        }), 503
+
+
+@api_bp.route('/cache/invalidate', methods=['POST'])
+def invalidate_cache():
+    """
+    Invalidate cache entries.
+
+    Body JSON (optional):
+        {
+            "action": "read",
+            "entity_type": "PatientRecord",
+            "role": "Doctor",
+            "domain": "hospital"
+        }
+
+    If body is empty or all fields are null, clears entire cache.
+    """
+    try:
+        from ..cache import invalidate_cache as _invalidate_cache
+
+        data = request.get_json() or {}
+        action = data.get('action')
+        entity_type = data.get('entity_type')
+        role = data.get('role')
+        domain = data.get('domain')
+
+        count = _invalidate_cache(action, entity_type, role, domain)
+
+        return jsonify({
+            'status': 'ok',
+            'invalidated': count,
+            'filter': {
+                'action': action,
+                'entity_type': entity_type,
+                'role': role,
+                'domain': domain,
+            }
+        })
+    except ImportError:
+        return jsonify({
+            'status': 'unavailable',
+            'message': 'Cache module not installed',
+        }), 503
+
+
+@api_bp.route('/cache/config', methods=['GET'])
+def get_cache_config():
+    """
+    Get cache configuration.
+
+    Returns:
+        JSON with cache settings (max_size, default_ttl, enabled, redis_url)
+    """
+    try:
+        from ..cache import get_validation_cache
+
+        cache = get_validation_cache()
+        return jsonify({
+            'status': 'ok',
+            'config': {
+                'max_size': cache.max_size,
+                'default_ttl': cache.default_ttl,
+                'enabled': cache.enabled,
+                'redis_connected': cache._redis is not None,
+            }
+        })
+    except ImportError:
+        return jsonify({
+            'status': 'unavailable',
+            'message': 'Cache module not installed',
+        }), 503
+
+
+@api_bp.route('/cache/cleanup', methods=['POST'])
+def cleanup_cache():
+    """
+    Cleanup expired cache entries.
+
+    Returns:
+        JSON with number of cleaned up entries
+    """
+    try:
+        from ..cache import get_validation_cache
+
+        cache = get_validation_cache()
+        count = cache.cleanup_expired()
+
+        return jsonify({
+            'status': 'ok',
+            'cleaned_up': count,
+        })
+    except ImportError:
+        return jsonify({
+            'status': 'unavailable',
+            'message': 'Cache module not installed',
+        }), 503
+

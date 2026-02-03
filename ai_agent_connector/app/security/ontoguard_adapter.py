@@ -3,6 +3,11 @@ OntoGuard Adapter - Integration of semantic validation into Universal Agent Conn
 
 This module provides an adapter layer between the OntoGuard semantic firewall
 and the UAC infrastructure, enabling OWL ontology-based validation for AI agent actions.
+
+Features:
+- OWL ontology-based RBAC validation
+- LRU caching with TTL for performance
+- Pass-through mode when OntoGuard not available
 """
 
 from typing import Dict, Any, Optional, List
@@ -11,6 +16,19 @@ from pathlib import Path
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Optional cache import (graceful degradation)
+try:
+    from ai_agent_connector.app.cache import (
+        cache_validation_result,
+        get_cached_validation,
+    )
+    CACHE_AVAILABLE = True
+except ImportError:
+    CACHE_AVAILABLE = False
+    cache_validation_result = None  # type: ignore
+    get_cached_validation = None  # type: ignore
+    logger.warning("Cache module not available, caching disabled")
 
 
 @dataclass
@@ -172,7 +190,8 @@ class OntoGuardAdapter:
         self,
         action: str,
         entity_type: str,
-        context: Dict[str, Any]
+        context: Dict[str, Any],
+        use_cache: bool = True
     ) -> ValidationResult:
         """
         Validate an action against the ontology.
@@ -186,6 +205,8 @@ class OntoGuardAdapter:
                 - ip: Request IP address
                 - timestamp: Request timestamp
                 - approved_by: Approver role (if applicable)
+                - domain: Domain name for multi-domain support
+            use_cache: Whether to use caching (default True)
 
         Returns:
             ValidationResult indicating whether the action is allowed
@@ -208,6 +229,23 @@ class OntoGuardAdapter:
                 metadata={"mode": "pass_through"}
             )
 
+        # Extract cache key parameters
+        role = context.get('role')
+        domain = context.get('domain')
+
+        # Check cache first
+        if use_cache and CACHE_AVAILABLE:
+            cached = get_cached_validation(action, entity_type, role, domain)
+            if cached is not None:
+                logger.debug(f"Cache HIT: {action}:{entity_type}:{role}:{domain}")
+                return ValidationResult(
+                    allowed=cached['allowed'],
+                    reason=cached.get('reason', 'Cached result'),
+                    constraints=cached.get('constraints', []),
+                    suggestions=cached.get('suggestions', []),
+                    metadata={**cached.get('metadata', {}), 'cached': True}
+                )
+
         try:
             # Extract entity_id from context or generate a placeholder
             entity_id = context.get('entity_id', context.get('user_id', 'unknown'))
@@ -221,13 +259,26 @@ class OntoGuardAdapter:
             )
 
             # Convert OntoGuard result to our ValidationResult
-            return ValidationResult(
+            validation_result = ValidationResult(
                 allowed=result.allowed,
                 reason=result.reason,
                 constraints=self._extract_constraints(result),
                 suggestions=result.suggested_actions,
                 metadata=result.metadata
             )
+
+            # Cache the result
+            if use_cache:
+                cache_validation_result(
+                    action=action,
+                    entity_type=entity_type,
+                    result=validation_result.to_dict(),
+                    role=role,
+                    domain=domain
+                )
+                logger.debug(f"Cache SET: {action}:{entity_type}:{role}:{domain}")
+
+            return validation_result
 
         except Exception as e:
             logger.error(f"Validation error: {e}")

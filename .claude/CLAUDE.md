@@ -22,6 +22,7 @@ Universal Agent Connector - MCP инфраструктура для AI-аген�
 - **GraphQL API** - альтернативный интерфейс
 - **Audit Logging** - логирование всех операций
 - **Schema Drift Detection** - обнаружение изменений схемы БД (missing/new columns, type changes, renames)
+- **Validation Caching** - LRU кэш с TTL для OntoGuard валидаций (опционально Redis)
 - **E2E Testing** - PostgreSQL + OntoGuard тесты
 
 ---
@@ -160,6 +161,97 @@ rate(uac_ontoguard_validations_total{result="denied"}[5m])
 
 # 95th percentile latency
 histogram_quantile(0.95, rate(uac_http_request_duration_seconds_bucket[5m]))
+```
+
+---
+
+## Validation Caching
+
+LRU кэш для OntoGuard валидаций с поддержкой TTL и опциональным Redis backend.
+
+### Компоненты
+
+| Файл | Описание |
+|------|----------|
+| `app/cache/__init__.py` | Экспорт API кэша |
+| `app/cache/validation_cache.py` | ValidationCache, CacheEntry, CacheStats |
+
+### Features
+
+- **LRU eviction**: автоматическое удаление старых записей при переполнении
+- **TTL support**: time-to-live для каждой записи (default: 5 минут)
+- **Thread-safe**: потокобезопасные операции через Lock
+- **Optional Redis**: распределённый кэш для multi-instance deployment
+- **Statistics**: hits, misses, hit_rate, evictions, expired
+- **Domain-aware**: раздельный кэш для разных доменов/ролей
+
+### REST API Endpoints
+
+| Endpoint | Method | Описание |
+|----------|--------|----------|
+| `/api/cache/stats` | GET | Статистика кэша (hits, misses, hit_rate) |
+| `/api/cache/config` | GET | Конфигурация (max_size, ttl, redis) |
+| `/api/cache/invalidate` | POST | Инвалидация (всего или по фильтру) |
+| `/api/cache/cleanup` | POST | Очистка expired записей |
+
+### Использование
+
+```python
+from ai_agent_connector.app.cache import (
+    get_validation_cache,
+    cache_validation_result,
+    get_cached_validation,
+    invalidate_cache,
+    get_cache_stats,
+)
+
+# Кэширование результата валидации
+cache_validation_result(
+    action='read',
+    entity_type='PatientRecord',
+    result={'allowed': True, 'reason': 'Doctor can read'},
+    role='Doctor',
+    domain='hospital',
+)
+
+# Получение из кэша
+cached = get_cached_validation('read', 'PatientRecord', role='Doctor', domain='hospital')
+
+# Инвалидация
+invalidate_cache()  # Очистить всё
+invalidate_cache(domain='hospital')  # Только hospital
+
+# Статистика
+stats = get_cache_stats()
+print(f"Hit rate: {stats['hit_rate']}%")
+```
+
+### Интеграция с OntoGuard Adapter
+
+Кэширование автоматически интегрировано в `OntoGuardAdapter.validate_action()`:
+- Первый вызов → валидация через OWL → результат кэшируется
+- Повторные вызовы → результат из кэша (hit)
+- `use_cache=False` → отключить кэширование для конкретного вызова
+
+### REST API
+
+```bash
+# Статистика кэша
+curl http://localhost:5000/api/cache/stats
+
+# Конфигурация
+curl http://localhost:5000/api/cache/config
+
+# Инвалидация всего кэша
+curl -X POST http://localhost:5000/api/cache/invalidate
+
+# Инвалидация по фильтру
+curl -X POST http://localhost:5000/api/cache/invalidate \
+  -H "Content-Type: application/json" \
+  -d '{"domain": "hospital", "role": "Doctor"}'
+
+# Очистка expired
+curl -X POST http://localhost:5000/api/cache/cleanup
 ```
 
 ---
@@ -455,7 +547,7 @@ python e2e_postgres_tests.py
 - ✅ Admin DELETE appointments (OWL: Admin can delete only Staff/PatientRecord)
 - ✅ Doctor DELETE lab_results (OWL: no delete permission)
 
-### Unit Tests (172 passed) ✅
+### Unit Tests (212 passed) ✅
 
 ```bash
 pytest tests/ -v
@@ -475,7 +567,9 @@ pytest tests/ -v
 | `test_graphql_ontoguard.py` | 9 | GraphQL OntoGuard (types, inputs, mutations, queries) — skipped без graphene |
 | `test_websocket_ontoguard.py` | 30 | WebSocket (connect, validate, permissions, batch, subscribe, domain support) |
 | `test_prometheus_metrics.py` | 23 | Prometheus metrics (tracking, endpoint, normalization) |
-| **Итого** | **187** | +9 skipped (optional deps) |
+| `test_validation_cache.py` | 17 | Validation cache (LRU, TTL, stats, domain isolation) |
+| `test_cache_api.py` | 8 | Cache API endpoints (stats, config, invalidate, cleanup) |
+| **Итого** | **212** | +9 skipped (optional deps) |
 
 ---
 
@@ -594,6 +688,34 @@ universal-agent-connector/
 - [x] ~~Prometheus metrics~~ (done: prometheus-client, 9 metrics, /metrics endpoint, 23 tests)
 - [x] ~~WebSocket domain support~~ (done: table-to-entity mapping, role validation, ontology switching, 30 tests)
 - [x] ~~WebSocket client в Streamlit UI~~ (done: 5th tab, single/batch/get_actions modes, python-socketio)
+
+---
+
+## Roadmap (Planned Improvements)
+
+### 🔥 Высокий приоритет
+| # | Улучшение | Описание | Статус |
+|---|-----------|----------|--------|
+| 1 | **Caching Layer** | LRU кэш с TTL для OntoGuard валидаций | ✅ done |
+| 2 | **Rate Limiting** | Ограничение запросов per agent (защита от abuse) | pending |
+| 3 | **OpenAPI/Swagger Docs** | Автогенерация API документации (flask-apispec) | pending |
+| 4 | **JWT Authentication** | JWT tokens с expiration вместо API Key | pending |
+
+### ⚡ Средний приоритет
+| # | Улучшение | Описание | Статус |
+|---|-----------|----------|--------|
+| 5 | **Audit Trail** | Логирование операций в отдельную таблицу/файл | planned |
+| 6 | **Alerting Integration** | Slack/PagerDuty alerts при CRITICAL events | planned |
+| 7 | **Load Testing** | Locust/k6 нагрузочное тестирование | planned |
+| 8 | **Kubernetes Deployment** | Helm charts, manifests, HPA | planned |
+
+### 📦 Низкий приоритет
+| # | Улучшение | Описание | Статус |
+|---|-----------|----------|--------|
+| 9 | **Admin Dashboard** | UI для управления agents, ontologies, permissions | backlog |
+| 10 | **Multi-tenancy** | Поддержка нескольких организаций | backlog |
+| 11 | **Async Query Execution** | Celery для долгих запросов | backlog |
+| 12 | **Test Coverage Report** | pytest-cov с 80%+ coverage | backlog |
 
 ---
 
