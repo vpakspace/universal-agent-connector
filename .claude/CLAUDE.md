@@ -1058,6 +1058,9 @@ universal-agent-connector/
     ├── test_helpers_unit.py        # Helper utilities tests (10)
     ├── test_schema_drift.py        # Schema drift detection tests (31)
     ├── test_schema_drift_live.py   # Live drift detection tests (9)
+    ├── test_jwt_auth.py            # JWT authentication tests (27)
+    ├── test_audit_logger.py        # Audit trail tests (28)
+    ├── test_alerting.py            # Alerting integration tests (42)
     └── test_ontoguard_*.py         # Legacy unit tests
 ```
 
@@ -1094,6 +1097,9 @@ universal-agent-connector/
 - [x] ~~Rate Limiting~~ (done: sliding window, per-agent config, 15 tests)
 - [x] ~~OpenAPI/Swagger documentation~~ (done: flasgger, /apidocs/, openapi.yaml)
 - [x] ~~JWT Authentication~~ (done: access/refresh tokens, revocation, dual auth, 27 tests)
+- [x] ~~Audit Trail~~ (done: file/SQLite backends, rotation, export, statistics, 28 tests)
+- [x] ~~Alerting Integration~~ (done: Slack/PagerDuty/webhook, deduplication, history, 42 tests)
+- [x] ~~Load Testing~~ (done: Locust, 9 user classes, quick/standard/stress/endurance modes)
 
 ---
 
@@ -1129,6 +1135,8 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `d0e9f79` | 2026-02-03 | feat: Add Load Testing with Locust (9 user classes) |
+| `d48d257` | 2026-02-03 | feat: Add Alerting Integration with Slack/PagerDuty support |
 | `c70d22c` | 2026-02-03 | feat: Add persistent Audit Trail with file/SQLite backends |
 | `4dc86b3` | 2026-02-03 | feat: Add JWT Authentication with access and refresh tokens |
 | `d883896` | 2026-02-03 | feat: Add OpenAPI/Swagger documentation with flasgger |
