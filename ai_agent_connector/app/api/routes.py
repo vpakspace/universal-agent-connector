@@ -40,6 +40,17 @@ from ..utils.training_data_export import training_data_exporter, QuerySQLPair, E
 from ..utils.security_monitor import SecurityMonitor
 from ..utils.rate_limiter import RateLimiter, RateLimitConfig
 
+# JWT Authentication
+from ..security.jwt_auth import (
+    get_jwt_manager,
+    init_jwt_manager,
+    jwt_required,
+    jwt_or_api_key_required,
+    get_current_agent_id,
+    get_current_role,
+    JWTConfig,
+)
+
 # Table name → OWL entity type mappings per domain
 TABLE_ENTITY_MAPS = {
     'hospital': {
@@ -2596,5 +2607,208 @@ def get_default_rate_limits():
     return jsonify({
         'status': 'ok',
         'default_limits': DEFAULT_RATE_LIMIT.to_dict()
+    })
+
+
+# ============================================================================
+# JWT Authentication Endpoints
+# ============================================================================
+
+@api_bp.route('/auth/token', methods=['POST'])
+def get_jwt_token():
+    """
+    Generate JWT tokens for an agent.
+
+    Requires valid API key for initial token generation.
+    Returns access_token (short-lived) and refresh_token (long-lived).
+
+    Request body:
+        - role (optional): User role for RBAC
+
+    Headers:
+        - X-API-Key: Agent's API key
+
+    Returns:
+        - access_token: Short-lived access token (30 min default)
+        - refresh_token: Long-lived refresh token (7 days default)
+        - token_type: "Bearer"
+        - expires_in: Access token lifetime in seconds
+    """
+    # Authenticate with API key first
+    agent_id = authenticate_agent()
+    if not agent_id:
+        return jsonify({
+            'error': 'Unauthorized',
+            'message': 'Valid X-API-Key required to obtain JWT tokens'
+        }), 401
+
+    data = request.get_json() or {}
+    role = data.get('role') or request.headers.get('X-User-Role')
+
+    jwt_mgr = get_jwt_manager()
+    tokens = jwt_mgr.generate_token_pair(agent_id, role)
+
+    audit_logger.log_action(
+        agent_id=agent_id,
+        action=ActionType.CUSTOM,
+        resource='auth/token',
+        details={'event': 'jwt_token_generated', 'role': role}
+    )
+
+    return jsonify({
+        'status': 'ok',
+        'agent_id': agent_id,
+        **tokens
+    })
+
+
+@api_bp.route('/auth/refresh', methods=['POST'])
+def refresh_jwt_token():
+    """
+    Refresh an access token using a refresh token.
+
+    Request body:
+        - refresh_token: Valid refresh token
+
+    Returns:
+        - access_token: New short-lived access token
+        - token_type: "Bearer"
+        - expires_in: Access token lifetime in seconds
+    """
+    data = request.get_json()
+    if not data or 'refresh_token' not in data:
+        return jsonify({
+            'error': 'Bad Request',
+            'message': 'refresh_token is required'
+        }), 400
+
+    jwt_mgr = get_jwt_manager()
+    success, new_tokens, error = jwt_mgr.refresh_access_token(data['refresh_token'])
+
+    if not success:
+        return jsonify({
+            'error': 'Unauthorized',
+            'message': error or 'Invalid refresh token'
+        }), 401
+
+    return jsonify({
+        'status': 'ok',
+        **new_tokens
+    })
+
+
+@api_bp.route('/auth/verify', methods=['POST'])
+def verify_jwt_token():
+    """
+    Verify a JWT token and return its payload.
+
+    Request body:
+        - token: JWT token to verify
+        - type (optional): Token type to verify ("access" or "refresh", default: "access")
+
+    Returns:
+        - valid: True/False
+        - payload: Token payload if valid
+        - error: Error message if invalid
+    """
+    data = request.get_json()
+    if not data or 'token' not in data:
+        return jsonify({
+            'error': 'Bad Request',
+            'message': 'token is required'
+        }), 400
+
+    token_type = data.get('type', 'access')
+    jwt_mgr = get_jwt_manager()
+    is_valid, payload, error = jwt_mgr.verify_token(data['token'], expected_type=token_type)
+
+    if not is_valid:
+        return jsonify({
+            'valid': False,
+            'error': error
+        })
+
+    return jsonify({
+        'valid': True,
+        'payload': {
+            'agent_id': payload.agent_id,
+            'role': payload.role,
+            'token_type': payload.token_type,
+            'expires_at': payload.exp.isoformat() if payload.exp else None,
+            'issued_at': payload.iat.isoformat() if payload.iat else None,
+        }
+    })
+
+
+@api_bp.route('/auth/revoke', methods=['POST'])
+def revoke_jwt_token():
+    """
+    Revoke a JWT token.
+
+    Request body:
+        - token: JWT token to revoke
+
+    Headers:
+        - X-API-Key or Authorization: Bearer <token> for authentication
+
+    Returns:
+        - status: "ok" if revoked
+    """
+    # Require authentication
+    agent_id = authenticate_agent()
+    if not agent_id:
+        # Try JWT auth
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            jwt_mgr = get_jwt_manager()
+            is_valid, payload, _ = jwt_mgr.verify_token(auth_header[7:])
+            if is_valid and payload:
+                agent_id = payload.agent_id
+
+    if not agent_id:
+        return jsonify({
+            'error': 'Unauthorized',
+            'message': 'Authentication required to revoke tokens'
+        }), 401
+
+    data = request.get_json()
+    if not data or 'token' not in data:
+        return jsonify({
+            'error': 'Bad Request',
+            'message': 'token is required'
+        }), 400
+
+    jwt_mgr = get_jwt_manager()
+    revoked = jwt_mgr.revoke_token(data['token'])
+
+    if revoked:
+        audit_logger.log_action(
+            agent_id=agent_id,
+            action=ActionType.CUSTOM,
+            resource='auth/revoke',
+            details={'event': 'jwt_token_revoked'}
+        )
+
+    return jsonify({
+        'status': 'ok',
+        'revoked': revoked
+    })
+
+
+@api_bp.route('/auth/config', methods=['GET'])
+def get_jwt_config():
+    """
+    Get JWT configuration (excluding secrets).
+
+    Returns:
+        - algorithm: JWT algorithm
+        - access_token_expire_minutes: Access token lifetime
+        - refresh_token_expire_days: Refresh token lifetime
+        - issuer: Token issuer
+    """
+    jwt_mgr = get_jwt_manager()
+    return jsonify({
+        'status': 'ok',
+        'config': jwt_mgr.get_config()
     })
 

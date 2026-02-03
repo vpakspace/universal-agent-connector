@@ -30,6 +30,8 @@ servers:
     description: Development server
 
 tags:
+  - name: Authentication
+    description: JWT token management and authentication
   - name: Agents
     description: Agent registration and management
   - name: Queries
@@ -52,6 +54,11 @@ components:
       in: header
       name: X-API-Key
       description: Agent API Key for authentication
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token
     UserRoleHeader:
       type: apiKey
       in: header
@@ -690,3 +697,203 @@ paths:
       responses:
         '200':
           description: Resource permission added
+
+  /api/auth/token:
+    post:
+      tags:
+        - Authentication
+      summary: Get JWT tokens
+      description: Generate JWT access and refresh tokens using API key authentication
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  description: Optional user role for RBAC
+                  example: "Doctor"
+      responses:
+        '200':
+          description: JWT tokens generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  agent_id:
+                    type: string
+                  access_token:
+                    type: string
+                    description: Short-lived access token (30 min default)
+                  refresh_token:
+                    type: string
+                    description: Long-lived refresh token (7 days default)
+                  token_type:
+                    type: string
+                    example: "Bearer"
+                  expires_in:
+                    type: integer
+                    description: Access token lifetime in seconds
+                    example: 1800
+        '401':
+          description: Invalid API key
+
+  /api/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Generate new access token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+                  description: Valid refresh token
+      responses:
+        '200':
+          description: New access token generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                  expires_in:
+                    type: integer
+        '401':
+          description: Invalid or expired refresh token
+
+  /api/auth/verify:
+    post:
+      tags:
+        - Authentication
+      summary: Verify JWT token
+      description: Verify token validity and return payload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  description: JWT token to verify
+                type:
+                  type: string
+                  enum: [access, refresh]
+                  default: access
+                  description: Token type to verify
+      responses:
+        '200':
+          description: Token verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  payload:
+                    type: object
+                    properties:
+                      agent_id:
+                        type: string
+                      role:
+                        type: string
+                      token_type:
+                        type: string
+                      expires_at:
+                        type: string
+                      issued_at:
+                        type: string
+                  error:
+                    type: string
+
+  /api/auth/revoke:
+    post:
+      tags:
+        - Authentication
+      summary: Revoke JWT token
+      description: Revoke a token to prevent further use
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  description: JWT token to revoke
+      responses:
+        '200':
+          description: Token revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  revoked:
+                    type: boolean
+        '401':
+          description: Authentication required
+
+  /api/auth/config:
+    get:
+      tags:
+        - Authentication
+      summary: Get JWT configuration
+      description: Get JWT configuration (excluding secrets)
+      responses:
+        '200':
+          description: JWT configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  config:
+                    type: object
+                    properties:
+                      algorithm:
+                        type: string
+                        example: "HS256"
+                      access_token_expire_minutes:
+                        type: integer
+                        example: 30
+                      refresh_token_expire_days:
+                        type: integer
+                        example: 7
+                      issuer:
+                        type: string

@@ -326,6 +326,93 @@ curl -X POST http://localhost:5000/api/agents/register \
 
 ---
 
+## JWT Authentication
+
+JWT токены с expiration для безопасной аутентификации API.
+
+### Features
+
+- **Access tokens** — короткоживущие (30 мин по умолчанию)
+- **Refresh tokens** — долгоживущие (7 дней по умолчанию)
+- **Token revocation** — отзыв токенов через in-memory blacklist
+- **Role embedding** — роль пользователя включена в токен
+- **Dual auth support** — JWT или API Key (совместимость)
+
+### REST API Endpoints
+
+| Endpoint | Method | Описание |
+|----------|--------|----------|
+| `/api/auth/token` | POST | Получить JWT токены (требует X-API-Key) |
+| `/api/auth/refresh` | POST | Обновить access token через refresh token |
+| `/api/auth/verify` | POST | Проверить валидность токена |
+| `/api/auth/revoke` | POST | Отозвать токен |
+| `/api/auth/config` | GET | Получить конфигурацию JWT |
+
+### Использование
+
+```bash
+# 1. Получить токены (требует API Key)
+curl -X POST http://localhost:5000/api/auth/token \
+  -H "X-API-Key: <agent-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"role": "Doctor"}'
+
+# Response:
+# {
+#   "access_token": "eyJ...",
+#   "refresh_token": "eyJ...",
+#   "token_type": "Bearer",
+#   "expires_in": 1800
+# }
+
+# 2. Использовать access token для запросов
+curl http://localhost:5000/api/agents/doctor-1/query \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "SELECT * FROM patients"}'
+
+# 3. Обновить access token
+curl -X POST http://localhost:5000/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "<refresh_token>"}'
+
+# 4. Проверить токен
+curl -X POST http://localhost:5000/api/auth/verify \
+  -H "Content-Type: application/json" \
+  -d '{"token": "<token>", "type": "access"}'
+
+# 5. Отозвать токен
+curl -X POST http://localhost:5000/api/auth/revoke \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"token": "<token_to_revoke>"}'
+```
+
+### Конфигурация
+
+Переменные окружения:
+- `JWT_SECRET_KEY` — секретный ключ для подписи (auto-generated если не задан)
+
+Программная конфигурация:
+```python
+from ai_agent_connector.app.security.jwt_auth import init_jwt_manager, JWTConfig
+
+config = JWTConfig(
+    secret_key="your-secret-key",
+    access_token_expire_minutes=15,  # default: 30
+    refresh_token_expire_days=30,     # default: 7
+)
+init_jwt_manager(config)
+```
+
+### Dual Authentication
+
+Endpoints поддерживают оба метода аутентификации:
+- `Authorization: Bearer <jwt_token>` — JWT
+- `X-API-Key: <api_key>` — API Key
+
+---
+
 ## WebSocket Real-Time Validation
 
 WebSocket endpoints для real-time OntoGuard валидации с поддержкой доменов.
@@ -617,7 +704,7 @@ python e2e_postgres_tests.py
 - ✅ Admin DELETE appointments (OWL: Admin can delete only Staff/PatientRecord)
 - ✅ Doctor DELETE lab_results (OWL: no delete permission)
 
-### Unit Tests (227 passed) ✅
+### Unit Tests (254 passed) ✅
 
 ```bash
 pytest tests/ -v
@@ -640,7 +727,8 @@ pytest tests/ -v
 | `test_validation_cache.py` | 17 | Validation cache (LRU, TTL, stats, domain isolation) |
 | `test_cache_api.py` | 8 | Cache API endpoints (stats, config, invalidate, cleanup) |
 | `test_rate_limit_api.py` | 15 | Rate limit API (list, get, set, remove, reset, integration) |
-| **Итого** | **227** | +9 skipped (optional deps) |
+| `test_jwt_auth.py` | 27 | JWT authentication (config, tokens, refresh, revoke, API endpoints) |
+| **Итого** | **254** | +9 skipped (optional deps) |
 
 ---
 
@@ -770,7 +858,7 @@ universal-agent-connector/
 | 1 | **Caching Layer** | LRU кэш с TTL для OntoGuard валидаций | ✅ done |
 | 2 | **Rate Limiting** | Ограничение запросов per agent (sliding window) | ✅ done |
 | 3 | **OpenAPI/Swagger Docs** | Автогенерация API документации (flasgger) | ✅ done |
-| 4 | **JWT Authentication** | JWT tokens с expiration вместо API Key | pending |
+| 4 | **JWT Authentication** | JWT tokens с expiration вместо API Key | ✅ done |
 
 ### ⚡ Средний приоритет
 | # | Улучшение | Описание | Статус |
