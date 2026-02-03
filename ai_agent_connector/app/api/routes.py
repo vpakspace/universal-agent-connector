@@ -26,7 +26,7 @@ from ..agents.ai_agent_manager import AIAgentManager, set_cost_tracker as set_ai
 from ..permissions.access_control import AccessControl, Permission
 from ..db import DatabaseConnector
 from ..utils.sql_parser import extract_tables_from_query, get_query_type, QueryType
-from ..utils.audit_logger import AuditLogger, ActionType
+from ..utils.audit_logger import AuditLogger, ActionType, get_audit_logger, init_audit_logger
 from ..utils.cost_tracker import CostTracker
 from ..utils.nl_to_sql import NLToSQLConverter, set_cost_tracker as set_nl_cost_tracker
 from ..utils.agent_orchestrator import AgentOrchestrator
@@ -99,7 +99,7 @@ def get_table_entity_map() -> dict:
 agent_registry = AgentRegistry()
 access_control = AccessControl()
 ai_agent_manager = AIAgentManager()
-audit_logger = AuditLogger()
+audit_logger = get_audit_logger()
 cost_tracker = CostTracker()
 nl_converter = NLToSQLConverter()
 agent_orchestrator = AgentOrchestrator(agent_registry)
@@ -1209,52 +1209,188 @@ def natural_language_query(agent_id: str):
 
 
 # ============================================================================
-# Audit Log Endpoints
+# Audit Log Endpoints (Persistent Audit Trail)
 # ============================================================================
 
 @api_bp.route('/audit/logs', methods=['GET'])
 def get_audit_logs():
-    """Get audit logs with filtering"""
+    """
+    Get audit logs with filtering.
+
+    Query params:
+    - agent_id: Filter by agent ID
+    - action_type: Filter by action type
+    - status: Filter by status (success, error, denied)
+    - start_date: Filter by start date (ISO format)
+    - end_date: Filter by end date (ISO format)
+    - limit: Max logs to return (default: 100)
+    - offset: Pagination offset (default: 0)
+    """
     agent_id = request.args.get('agent_id')
     action_type = request.args.get('action_type')
     status = request.args.get('status')
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
     limit = int(request.args.get('limit', 100))
     offset = int(request.args.get('offset', 0))
-    
-    logs = audit_logger.get_logs(
+
+    # Parse dates
+    start_date = None
+    end_date = None
+    if start_date_str:
+        try:
+            start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({'error': 'Invalid start_date format (use ISO format)'}), 400
+    if end_date_str:
+        try:
+            end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({'error': 'Invalid end_date format (use ISO format)'}), 400
+
+    result = audit_logger.get_logs(
         agent_id=agent_id,
         action_type=action_type,
         status=status,
+        start_date=start_date,
+        end_date=end_date,
         limit=limit,
         offset=offset
     )
-    
-    total = len(audit_logger.logs)
-    
+
     return jsonify({
-        'logs': logs,
-        'total': total,
-        'limit': limit,
-        'offset': offset,
-        'has_more': offset + limit < total
+        'status': 'ok',
+        'logs': result['logs'],
+        'total': result['total'],
+        'limit': result['limit'],
+        'offset': result['offset'],
+        'has_more': result['has_more'],
+        'backend': audit_logger.backend_type
     }), 200
 
 
 @api_bp.route('/audit/logs/<int:log_id>', methods=['GET'])
 def get_audit_log(log_id: int):
     """Get specific audit log by ID"""
-    log = audit_logger.get_log(log_id)
+    log = audit_logger.get_log_by_id(log_id)
     if not log:
         return jsonify({'error': 'Log not found'}), 404
-    return jsonify(log), 200
+    return jsonify({'status': 'ok', 'log': log}), 200
 
 
 @api_bp.route('/audit/statistics', methods=['GET'])
 def get_audit_statistics():
-    """Get audit log statistics"""
+    """
+    Get audit log statistics.
+
+    Query params:
+    - agent_id: Filter by agent ID
+    - days: Number of days to include (default: 7)
+    """
     agent_id = request.args.get('agent_id')
-    stats = audit_logger.get_statistics(agent_id=agent_id)
-    return jsonify(stats), 200
+    days = int(request.args.get('days', 7))
+
+    stats = audit_logger.get_statistics(agent_id=agent_id, days=days)
+    stats['backend'] = audit_logger.backend_type
+
+    return jsonify({'status': 'ok', **stats}), 200
+
+
+@api_bp.route('/audit/export', methods=['POST'])
+def export_audit_logs():
+    """
+    Export audit logs to file.
+
+    Request body:
+    - output_path: Path to save file (default: logs/audit_export.jsonl)
+    - agent_id: Filter by agent ID
+    - start_date: Start date (ISO format)
+    - end_date: End date (ISO format)
+    - format: Output format ('jsonl' or 'json', default: 'jsonl')
+    """
+    data = request.get_json() or {}
+
+    output_path = data.get('output_path', 'logs/audit_export.jsonl')
+    agent_id = data.get('agent_id')
+    format_type = data.get('format', 'jsonl')
+
+    start_date = None
+    end_date = None
+    if data.get('start_date'):
+        try:
+            start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({'error': 'Invalid start_date format'}), 400
+    if data.get('end_date'):
+        try:
+            end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({'error': 'Invalid end_date format'}), 400
+
+    try:
+        count = audit_logger.export_logs(
+            output_path=output_path,
+            agent_id=agent_id,
+            start_date=start_date,
+            end_date=end_date,
+            format=format_type
+        )
+
+        return jsonify({
+            'status': 'ok',
+            'message': f'Exported {count} logs to {output_path}',
+            'count': count,
+            'output_path': output_path,
+            'format': format_type
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Export failed: {str(e)}'}), 500
+
+
+@api_bp.route('/audit/config', methods=['GET'])
+def get_audit_config():
+    """Get audit logger configuration"""
+    return jsonify({
+        'status': 'ok',
+        'backend': audit_logger.backend_type,
+        'max_logs': audit_logger.max_logs,
+        'action_types': [at.value for at in ActionType]
+    }), 200
+
+
+@api_bp.route('/audit/config', methods=['POST'])
+def update_audit_config():
+    """
+    Reinitialize audit logger with new configuration.
+
+    Request body:
+    - backend: Backend type ('memory', 'file', 'sqlite')
+    - log_dir: Directory for file backend
+    - db_path: Database path for sqlite backend
+    - max_logs: Max logs for memory backend
+    - max_file_size_mb: Max file size for rotation
+    - max_files: Max number of log files
+    """
+    global audit_logger
+
+    data = request.get_json() or {}
+
+    backend = data.get('backend', 'file')
+
+    audit_logger = init_audit_logger(
+        backend=backend,
+        log_dir=data.get('log_dir', 'logs/audit'),
+        db_path=data.get('db_path', 'logs/audit.db'),
+        max_logs=data.get('max_logs', 10000),
+        max_file_size_mb=data.get('max_file_size_mb', 100),
+        max_files=data.get('max_files', 10)
+    )
+
+    return jsonify({
+        'status': 'ok',
+        'message': f'Audit logger reinitialized with {backend} backend',
+        'backend': audit_logger.backend_type
+    }), 200
 
 
 # ============================================================================

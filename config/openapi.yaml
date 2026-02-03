@@ -46,6 +46,8 @@ tags:
     description: Rate limiting configuration
   - name: Permissions
     description: Resource permissions management
+  - name: Audit
+    description: Audit trail and activity logging
 
 components:
   securitySchemes:
@@ -897,3 +899,251 @@ paths:
                         example: 7
                       issuer:
                         type: string
+
+  # Audit Trail Endpoints
+  /api/audit/logs:
+    get:
+      tags:
+        - Audit
+      summary: Get audit logs
+      description: Retrieve audit logs with filtering and pagination
+      parameters:
+        - name: agent_id
+          in: query
+          schema:
+            type: string
+          description: Filter by agent ID
+        - name: action_type
+          in: query
+          schema:
+            type: string
+          description: Filter by action type (e.g., query_execution, agent_registered)
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [success, error, denied]
+          description: Filter by status
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Start date (ISO format)
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: End date (ISO format)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLogEntry'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+                  has_more:
+                    type: boolean
+                  backend:
+                    type: string
+                    enum: [memory, file, sqlite]
+
+  /api/audit/logs/{log_id}:
+    get:
+      tags:
+        - Audit
+      summary: Get audit log by ID
+      parameters:
+        - name: log_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Audit log entry
+        '404':
+          description: Log not found
+
+  /api/audit/statistics:
+    get:
+      tags:
+        - Audit
+      summary: Get audit statistics
+      parameters:
+        - name: agent_id
+          in: query
+          schema:
+            type: string
+          description: Filter by agent ID
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 7
+          description: Number of days to include
+      responses:
+        '200':
+          description: Audit statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  total_actions:
+                    type: integer
+                  period_days:
+                    type: integer
+                  by_action_type:
+                    type: object
+                  by_status:
+                    type: object
+                  by_day:
+                    type: object
+                  recent_actions:
+                    type: array
+
+  /api/audit/export:
+    post:
+      tags:
+        - Audit
+      summary: Export audit logs
+      description: Export logs to file (JSONL or JSON format)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                output_path:
+                  type: string
+                  default: logs/audit_export.jsonl
+                agent_id:
+                  type: string
+                start_date:
+                  type: string
+                  format: date-time
+                end_date:
+                  type: string
+                  format: date-time
+                format:
+                  type: string
+                  enum: [jsonl, json]
+                  default: jsonl
+      responses:
+        '200':
+          description: Export successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  count:
+                    type: integer
+                  output_path:
+                    type: string
+
+  /api/audit/config:
+    get:
+      tags:
+        - Audit
+      summary: Get audit logger configuration
+      responses:
+        '200':
+          description: Audit configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  backend:
+                    type: string
+                    enum: [memory, file, sqlite]
+                  max_logs:
+                    type: integer
+                  action_types:
+                    type: array
+                    items:
+                      type: string
+    post:
+      tags:
+        - Audit
+      summary: Update audit logger configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                backend:
+                  type: string
+                  enum: [memory, file, sqlite]
+                log_dir:
+                  type: string
+                db_path:
+                  type: string
+                max_logs:
+                  type: integer
+                max_file_size_mb:
+                  type: integer
+                max_files:
+                  type: integer
+      responses:
+        '200':
+          description: Configuration updated
+
+components:
+  schemas:
+    AuditLogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        action_type:
+          type: string
+        agent_id:
+          type: string
+        user_id:
+          type: string
+        status:
+          type: string
+          enum: [success, error, denied]
+        details:
+          type: object
+        error_message:
+          type: string

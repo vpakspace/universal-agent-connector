@@ -20,7 +20,7 @@ Universal Agent Connector - MCP инфраструктура для AI-аген�
 - **OntoGuard Integration** - семантическая валидация действий
 - **Resource Permissions** - двухуровневая система прав
 - **GraphQL API** - альтернативный интерфейс
-- **Audit Logging** - логирование всех операций
+- **Audit Trail** - persistent logging (file/SQLite backends, rotation, export)
 - **Schema Drift Detection** - обнаружение изменений схемы БД (missing/new columns, type changes, renames)
 - **Validation Caching** - LRU кэш с TTL для OntoGuard валидаций (опционально Redis)
 - **Rate Limiting** - Ограничение запросов per agent (sliding window)
@@ -414,6 +414,78 @@ Endpoints поддерживают оба метода аутентификац�
 
 ---
 
+## Audit Trail
+
+Persistent logging для отслеживания операций системы.
+
+### Backends
+
+| Backend | Описание | Use case |
+|---------|----------|----------|
+| `memory` | In-memory buffer (FIFO) | Тестирование, отладка |
+| `file` | JSON Lines файлы с ротацией | Production (default) |
+| `sqlite` | SQLite БД с индексами | Structured queries |
+
+### Features
+
+- **File rotation**: по размеру (100MB default) и количеству файлов (10 default)
+- **Date filtering**: start_date, end_date (ISO format)
+- **Export**: JSONL или JSON формат
+- **Statistics**: by action_type, by status, by day
+
+### REST API Endpoints
+
+| Endpoint | Method | Описание |
+|----------|--------|----------|
+| `/api/audit/logs` | GET | Получить логи с фильтрацией |
+| `/api/audit/logs/{id}` | GET | Получить лог по ID |
+| `/api/audit/statistics` | GET | Статистика (by_action_type, by_status, by_day) |
+| `/api/audit/export` | POST | Экспорт логов в файл |
+| `/api/audit/config` | GET | Конфигурация logger |
+| `/api/audit/config` | POST | Переинициализация logger |
+
+### Использование
+
+```bash
+# Получить логи с фильтрацией
+curl "http://localhost:5000/api/audit/logs?agent_id=doctor-1&status=success&limit=50"
+
+# Логи за период
+curl "http://localhost:5000/api/audit/logs?start_date=2026-02-01&end_date=2026-02-03"
+
+# Статистика за 7 дней
+curl "http://localhost:5000/api/audit/statistics?days=7"
+
+# Экспорт логов
+curl -X POST http://localhost:5000/api/audit/export \
+  -H "Content-Type: application/json" \
+  -d '{"output_path": "logs/export.jsonl", "format": "jsonl"}'
+
+# Переключить на SQLite backend
+curl -X POST http://localhost:5000/api/audit/config \
+  -H "Content-Type: application/json" \
+  -d '{"backend": "sqlite", "db_path": "logs/audit.db"}'
+```
+
+### Конфигурация
+
+Environment variable:
+- `AUDIT_BACKEND` — backend type (`memory`, `file`, `sqlite`), default: `file`
+
+Программная конфигурация:
+```python
+from ai_agent_connector.app.utils.audit_logger import init_audit_logger
+
+init_audit_logger(
+    backend='file',
+    log_dir='logs/audit',
+    max_file_size_mb=100,
+    max_files=10
+)
+```
+
+---
+
 ## WebSocket Real-Time Validation
 
 WebSocket endpoints для real-time OntoGuard валидации с поддержкой доменов.
@@ -706,7 +778,7 @@ python e2e_postgres_tests.py
 - ✅ Admin DELETE appointments (OWL: Admin can delete only Staff/PatientRecord)
 - ✅ Doctor DELETE lab_results (OWL: no delete permission)
 
-### Unit Tests (254 passed) ✅
+### Unit Tests (282 passed) ✅
 
 ```bash
 pytest tests/ -v
@@ -730,7 +802,8 @@ pytest tests/ -v
 | `test_cache_api.py` | 8 | Cache API endpoints (stats, config, invalidate, cleanup) |
 | `test_rate_limit_api.py` | 15 | Rate limit API (list, get, set, remove, reset, integration) |
 | `test_jwt_auth.py` | 27 | JWT authentication (config, tokens, refresh, revoke, API endpoints) |
-| **Итого** | **254** | +9 skipped (optional deps) |
+| `test_audit_logger.py` | 28 | Audit trail (backends, persistence, export, statistics, API endpoints) |
+| **Итого** | **282** | +9 skipped (optional deps) |
 
 ---
 
@@ -870,7 +943,7 @@ universal-agent-connector/
 ### ⚡ Средний приоритет
 | # | Улучшение | Описание | Статус |
 |---|-----------|----------|--------|
-| 5 | **Audit Trail** | Логирование операций в отдельную таблицу/файл | planned |
+| 5 | **Audit Trail** | Persistent logging (file/SQLite, rotation, export) | ✅ done |
 | 6 | **Alerting Integration** | Slack/PagerDuty alerts при CRITICAL events | planned |
 | 7 | **Load Testing** | Locust/k6 нагрузочное тестирование | planned |
 | 8 | **Kubernetes Deployment** | Helm charts, manifests, HPA | planned |
@@ -889,6 +962,7 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `c70d22c` | 2026-02-03 | feat: Add persistent Audit Trail with file/SQLite backends |
 | `4dc86b3` | 2026-02-03 | feat: Add JWT Authentication with access and refresh tokens |
 | `d883896` | 2026-02-03 | feat: Add OpenAPI/Swagger documentation with flasgger |
 | `fb58c2b` | 2026-02-03 | feat: Add Prometheus metrics for monitoring |
@@ -911,4 +985,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-03 (JWT Authentication + OpenAPI/Swagger)
+**Последнее обновление**: 2026-02-03 (Audit Trail + JWT Authentication + OpenAPI/Swagger)
