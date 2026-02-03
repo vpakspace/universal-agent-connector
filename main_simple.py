@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 
 from flask import Flask, render_template, session, request, jsonify
+from flask_socketio import SocketIO
 from ai_agent_connector.app.api import api_bp
 from ai_agent_connector.app.widgets import widget_bp
 from ai_agent_connector.app.prompts import prompt_bp
@@ -26,7 +27,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# Global SocketIO instance
+socketio: SocketIO = None
+
+
 def create_app(config_name: str = None) -> Flask:
+    global socketio
+
     app = Flask(__name__)
 
     config_name = config_name or os.getenv('FLASK_ENV', 'development')
@@ -122,7 +129,34 @@ def create_app(config_name: str = None) -> Flask:
     # Initialize OntoGuard
     _initialize_ontoguard(app)
 
+    # Initialize SocketIO for WebSocket support
+    socketio = SocketIO(
+        app,
+        cors_allowed_origins="*",
+        async_mode='threading',
+        logger=True,
+        engineio_logger=True if config_name == 'development' else False
+    )
+
+    # Register WebSocket handlers
+    _register_websocket_handlers(socketio)
+
+    # Store socketio on app for access elsewhere
+    app.socketio = socketio
+
     return app
+
+
+def _register_websocket_handlers(socketio: SocketIO) -> None:
+    """Register WebSocket event handlers for real-time OntoGuard validation."""
+    try:
+        from ai_agent_connector.app.websocket import register_websocket_handlers
+        register_websocket_handlers(socketio)
+        logger.info("WebSocket handlers registered")
+    except ImportError as e:
+        logger.warning(f"WebSocket module not available: {e}")
+    except Exception as e:
+        logger.error(f"WebSocket registration error: {e}")
 
 
 def _register_ontoguard_error_handlers(app: Flask) -> None:
@@ -256,7 +290,9 @@ if __name__ == '__main__':
     print(f"Dashboard: http://{host}:{port}/dashboard")
     print(f"Wizard: http://{host}:{port}/wizard")
     print(f"API: http://{host}:{port}/api")
+    print(f"WebSocket: ws://{host}:{port}/socket.io")
     print(f"Console PIN: {app.config['CONSOLE_PIN']}")
     print("=" * 60)
 
-    app.run(host=host, port=port, debug=True, use_reloader=False)
+    # Use socketio.run() for WebSocket support
+    app.socketio.run(app, host=host, port=port, debug=True, use_reloader=False)

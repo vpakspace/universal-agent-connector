@@ -27,6 +27,11 @@ pyyaml==6.0.1
 # Security
 cryptography>=42.0.0,<44.0.0
 
+# WebSocket
+flask-socketio==5.3.6
+python-socketio==5.10.0
+python-engineio==4.8.1
+
 # Utilities
 requests==2.32.3
 colorama==0.4.6
