@@ -24,6 +24,7 @@ Universal Agent Connector - MCP инфраструктура для AI-аген�
 - **Schema Drift Detection** - обнаружение изменений схемы БД (missing/new columns, type changes, renames)
 - **Validation Caching** - LRU кэш с TTL для OntoGuard валидаций (опционально Redis)
 - **Rate Limiting** - Ограничение запросов per agent (sliding window)
+- **OpenAPI/Swagger Docs** - Автогенерация API документации (flasgger)
 - **E2E Testing** - PostgreSQL + OntoGuard тесты
 
 ---
@@ -768,7 +769,7 @@ universal-agent-connector/
 |---|-----------|----------|--------|
 | 1 | **Caching Layer** | LRU кэш с TTL для OntoGuard валидаций | ✅ done |
 | 2 | **Rate Limiting** | Ограничение запросов per agent (sliding window) | ✅ done |
-| 3 | **OpenAPI/Swagger Docs** | Автогенерация API документации (flask-apispec) | pending |
+| 3 | **OpenAPI/Swagger Docs** | Автогенерация API документации (flasgger) | ✅ done |
 | 4 | **JWT Authentication** | JWT tokens с expiration вместо API Key | pending |
 
 ### ⚡ Средний приоритет

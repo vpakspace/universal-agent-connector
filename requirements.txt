@@ -35,6 +35,9 @@ python-engineio==4.8.1
 # Metrics
 prometheus-client==0.20.0
 
+# API Documentation
+flasgger==0.9.7.1
+
 # Utilities
 requests==2.32.3
 colorama==0.4.6

@@ -26,6 +26,13 @@ try:
 except ImportError:
     METRICS_AVAILABLE = False
 
+# Swagger/OpenAPI documentation (optional)
+try:
+    from flasgger import Swagger
+    SWAGGER_AVAILABLE = True
+except ImportError:
+    SWAGGER_AVAILABLE = False
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -63,6 +70,50 @@ def create_app(config_name: str = None) -> Flask:
         init_metrics(app)
         app.register_blueprint(get_metrics_blueprint())
         logger.info("Prometheus metrics enabled at /metrics")
+
+    # Initialize Swagger/OpenAPI documentation
+    if SWAGGER_AVAILABLE:
+        import yaml as pyyaml
+        openapi_path = os.path.join(os.path.dirname(__file__), 'config', 'openapi.yaml')
+
+        swagger_config = {
+            "headers": [],
+            "specs": [
+                {
+                    "endpoint": 'apispec',
+                    "route": '/apispec.json',
+                    "rule_filter": lambda rule: True,
+                    "model_filter": lambda tag: True,
+                }
+            ],
+            "static_url_path": "/flasgger_static",
+            "swagger_ui": True,
+            "specs_route": "/apidocs/"
+        }
+
+        # Load template from YAML file if exists
+        if os.path.exists(openapi_path):
+            with open(openapi_path, 'r') as f:
+                swagger_template = pyyaml.safe_load(f)
+            logger.info(f"Loaded OpenAPI spec from {openapi_path}")
+        else:
+            swagger_template = {
+                "info": {
+                    "title": "Universal Agent Connector API",
+                    "description": "AI Agent Infrastructure with Semantic Validation (OntoGuard)",
+                    "version": "1.0.0",
+                },
+                "securityDefinitions": {
+                    "ApiKeyAuth": {
+                        "type": "apiKey",
+                        "in": "header",
+                        "name": "X-API-Key",
+                    }
+                }
+            }
+
+        Swagger(app, config=swagger_config, template=swagger_template)
+        logger.info("Swagger UI enabled at /apidocs/")
 
     # Generate console PIN
     console_pin = secrets.randbelow(10000)

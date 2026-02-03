@@ -1,0 +1,692 @@
+openapi: 3.0.3
+info:
+  title: Universal Agent Connector API
+  description: |
+    AI Agent Infrastructure with Semantic Validation (OntoGuard).
+
+    ## Features
+    - **Agent Registry** - Register and manage AI agents
+    - **OntoGuard Integration** - OWL ontology-based semantic validation
+    - **Database Connectors** - PostgreSQL, MySQL, SQLite support
+    - **Rate Limiting** - Per-agent request throttling
+    - **Validation Caching** - LRU cache with TTL
+    - **Schema Drift Detection** - DB schema change monitoring
+
+    ## Authentication
+    Use `X-API-Key` header with the API key returned from agent registration.
+
+    ## OntoGuard Validation
+    Use `X-User-Role` header to specify user role for semantic validation.
+  version: 1.0.0
+  contact:
+    name: API Support
+    url: https://github.com/vpakspace/universal-agent-connector
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+
+tags:
+  - name: Agents
+    description: Agent registration and management
+  - name: Queries
+    description: SQL and Natural Language query execution
+  - name: OntoGuard
+    description: Semantic validation using OWL ontologies
+  - name: Schema
+    description: Schema drift detection
+  - name: Cache
+    description: Validation cache management
+  - name: Rate Limits
+    description: Rate limiting configuration
+  - name: Permissions
+    description: Resource permissions management
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Agent API Key for authentication
+    UserRoleHeader:
+      type: apiKey
+      in: header
+      name: X-User-Role
+      description: User role for OntoGuard validation
+
+  schemas:
+    AgentInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Dr. Smith"
+        role:
+          type: string
+          example: "Doctor"
+        department:
+          type: string
+          example: "Cardiology"
+
+    DatabaseConfig:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [postgresql, mysql, sqlite]
+          example: "postgresql"
+        host:
+          type: string
+          example: "localhost"
+        port:
+          type: integer
+          example: 5433
+        database:
+          type: string
+          example: "hospital_db"
+        user:
+          type: string
+          example: "uac_user"
+        password:
+          type: string
+          example: "uac_password"
+
+    RateLimits:
+      type: object
+      properties:
+        queries_per_minute:
+          type: integer
+          example: 60
+        queries_per_hour:
+          type: integer
+          example: 1000
+        queries_per_day:
+          type: integer
+          example: 10000
+
+    ValidationResult:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+        reason:
+          type: string
+        constraints:
+          type: array
+          items:
+            type: string
+        suggestions:
+          type: array
+          items:
+            type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+
+paths:
+  /api/agents/register:
+    post:
+      tags:
+        - Agents
+      summary: Register a new AI agent
+      description: Register an agent with optional database connection and rate limits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - agent_id
+              properties:
+                agent_id:
+                  type: string
+                  example: "doctor-1"
+                agent_info:
+                  $ref: '#/components/schemas/AgentInfo'
+                agent_credentials:
+                  type: object
+                  properties:
+                    api_key:
+                      type: string
+                    api_secret:
+                      type: string
+                database:
+                  $ref: '#/components/schemas/DatabaseConfig'
+                rate_limits:
+                  $ref: '#/components/schemas/RateLimits'
+      responses:
+        '201':
+          description: Agent registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agent_id:
+                    type: string
+                  api_key:
+                    type: string
+                  rate_limits:
+                    $ref: '#/components/schemas/RateLimits'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/agents:
+    get:
+      tags:
+        - Agents
+      summary: List all registered agents
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agents:
+                    type: array
+                    items:
+                      type: object
+                  count:
+                    type: integer
+
+  /api/agents/{agent_id}:
+    get:
+      tags:
+        - Agents
+      summary: Get agent information
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent information
+        '404':
+          description: Agent not found
+
+    delete:
+      tags:
+        - Agents
+      summary: Revoke an agent
+      description: Complete cleanup including permissions, credentials, and rate limits
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent revoked
+        '404':
+          description: Agent not found
+
+  /api/agents/{agent_id}/query:
+    post:
+      tags:
+        - Queries
+      summary: Execute SQL query
+      description: Execute SQL query with permission enforcement, rate limiting, and OntoGuard validation
+      security:
+        - ApiKeyAuth: []
+        - UserRoleHeader: []
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  example: "SELECT * FROM patients"
+                params:
+                  type: array
+                  items: {}
+                as_dict:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Query results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items: {}
+                  row_count:
+                    type: integer
+                  columns:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          description: Unauthorized
+        '403':
+          description: Action denied by OntoGuard
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  message:
+                    type: string
+                  retry_after:
+                    type: integer
+
+  /api/agents/{agent_id}/query/natural:
+    post:
+      tags:
+        - Queries
+      summary: Execute natural language query
+      description: Convert natural language to SQL and execute
+      security:
+        - ApiKeyAuth: []
+        - UserRoleHeader: []
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  example: "Show all patients"
+                as_dict:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Query results
+        '429':
+          description: Rate limit exceeded
+
+  /api/ontoguard/status:
+    get:
+      tags:
+        - OntoGuard
+      summary: Get OntoGuard status
+      responses:
+        '200':
+          description: OntoGuard status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [active, pass_through, not_initialized]
+                  ontologies_loaded:
+                    type: integer
+
+  /api/ontoguard/validate:
+    post:
+      tags:
+        - OntoGuard
+      summary: Validate action against ontology
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+                - entity_type
+              properties:
+                action:
+                  type: string
+                  enum: [create, read, update, delete]
+                entity_type:
+                  type: string
+                  example: "PatientRecord"
+                context:
+                  type: object
+                  properties:
+                    role:
+                      type: string
+                      example: "Doctor"
+                    domain:
+                      type: string
+                      example: "hospital"
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResult'
+
+  /api/ontoguard/allowed-actions:
+    get:
+      tags:
+        - OntoGuard
+      summary: Get allowed actions for role
+      parameters:
+        - name: role
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: entity_type
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of allowed actions
+
+  /api/cache/stats:
+    get:
+      tags:
+        - Cache
+      summary: Get cache statistics
+      responses:
+        '200':
+          description: Cache statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  cache:
+                    type: object
+                    properties:
+                      hits:
+                        type: integer
+                      misses:
+                        type: integer
+                      hit_rate:
+                        type: number
+                      size:
+                        type: integer
+
+  /api/cache/invalidate:
+    post:
+      tags:
+        - Cache
+      summary: Invalidate cache entries
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                entity_type:
+                  type: string
+                role:
+                  type: string
+                domain:
+                  type: string
+      responses:
+        '200':
+          description: Entries invalidated
+
+  /api/rate-limits:
+    get:
+      tags:
+        - Rate Limits
+      summary: List all rate limits
+      responses:
+        '200':
+          description: All rate limit configurations
+
+  /api/rate-limits/default:
+    get:
+      tags:
+        - Rate Limits
+      summary: Get default rate limits
+      responses:
+        '200':
+          description: Default rate limits
+
+  /api/rate-limits/{agent_id}:
+    get:
+      tags:
+        - Rate Limits
+      summary: Get agent rate limit
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent rate limit configuration and usage
+
+    put:
+      tags:
+        - Rate Limits
+      summary: Set agent rate limit
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RateLimits'
+      responses:
+        '200':
+          description: Rate limit updated
+
+    delete:
+      tags:
+        - Rate Limits
+      summary: Remove agent rate limit
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rate limit removed
+
+  /api/rate-limits/{agent_id}/reset:
+    post:
+      tags:
+        - Rate Limits
+      summary: Reset rate limit counters
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Counters reset
+
+  /api/schema/drift-check:
+    get:
+      tags:
+        - Schema
+      summary: List schema bindings
+      parameters:
+        - name: entity
+          in: query
+          schema:
+            type: string
+        - name: domain
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Schema bindings
+
+    post:
+      tags:
+        - Schema
+      summary: Check schema drift
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                schemas:
+                  type: object
+                  additionalProperties:
+                    type: object
+      responses:
+        '200':
+          description: Drift check results
+
+  /api/schema/drift-check/live:
+    post:
+      tags:
+        - Schema
+      summary: Live schema drift check
+      description: Auto-detect schema from live database connection
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - agent_id
+              properties:
+                agent_id:
+                  type: string
+                entities:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Live drift check results
+
+  /api/agents/{agent_id}/permissions:
+    get:
+      tags:
+        - Permissions
+      summary: Get agent permissions
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent permissions
+
+    post:
+      tags:
+        - Permissions
+      summary: Add agent permission
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - permission
+              properties:
+                permission:
+                  type: string
+                  enum: [READ, WRITE, DELETE, ADMIN]
+      responses:
+        '200':
+          description: Permission added
+
+  /api/agents/{agent_id}/resources/{resource}/permissions:
+    post:
+      tags:
+        - Permissions
+      summary: Add resource permission
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: resource
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - permission
+              properties:
+                permission:
+                  type: string
+                  enum: [READ, WRITE, DELETE, ADMIN]
+      responses:
+        '200':
+          description: Resource permission added
