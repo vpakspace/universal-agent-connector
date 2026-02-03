@@ -23,6 +23,7 @@ Universal Agent Connector - MCP инфраструктура для AI-аген�
 - **Audit Logging** - логирование всех операций
 - **Schema Drift Detection** - обнаружение изменений схемы БД (missing/new columns, type changes, renames)
 - **Validation Caching** - LRU кэш с TTL для OntoGuard валидаций (опционально Redis)
+- **Rate Limiting** - Ограничение запросов per agent (sliding window)
 - **E2E Testing** - PostgreSQL + OntoGuard тесты
 
 ---
@@ -252,6 +253,74 @@ curl -X POST http://localhost:5000/api/cache/invalidate \
 
 # Очистка expired
 curl -X POST http://localhost:5000/api/cache/cleanup
+```
+
+---
+
+## Rate Limiting
+
+Ограничение запросов per agent с sliding window алгоритмом.
+
+### Features
+
+- **Sliding window**: точный подсчёт запросов за время
+- **Multi-window**: лимиты per minute/hour/day
+- **Per-agent config**: индивидуальные лимиты для каждого агента
+- **Default limits**: 60/min, 1000/hour, 10000/day
+- **Usage stats**: текущее использование и remaining
+- **Auto-setup**: лимиты устанавливаются при регистрации агента
+
+### REST API Endpoints
+
+| Endpoint | Method | Описание |
+|----------|--------|----------|
+| `/api/rate-limits` | GET | Список всех лимитов |
+| `/api/rate-limits/default` | GET | Default лимиты |
+| `/api/rate-limits/<agent_id>` | GET | Лимиты агента + usage |
+| `/api/rate-limits/<agent_id>` | PUT | Установить лимиты |
+| `/api/rate-limits/<agent_id>` | DELETE | Удалить лимиты |
+| `/api/rate-limits/<agent_id>/reset` | POST | Сбросить счётчики |
+
+### Использование
+
+```bash
+# Получить лимиты агента
+curl http://localhost:5000/api/rate-limits/doctor-1
+
+# Установить custom лимиты
+curl -X PUT http://localhost:5000/api/rate-limits/doctor-1 \
+  -H "Content-Type: application/json" \
+  -d '{"queries_per_minute": 30, "queries_per_hour": 500}'
+
+# Сбросить счётчики
+curl -X POST http://localhost:5000/api/rate-limits/doctor-1/reset
+```
+
+### Регистрация агента с лимитами
+
+```bash
+curl -X POST http://localhost:5000/api/agents/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "doctor-1",
+    "agent_info": {"name": "Dr. Smith"},
+    "rate_limits": {
+      "queries_per_minute": 30,
+      "queries_per_hour": 500,
+      "queries_per_day": 5000
+    }
+  }'
+```
+
+### HTTP 429 Response
+
+При превышении лимита:
+```json
+{
+  "error": "Rate limit exceeded",
+  "message": "Rate limit exceeded: 60 queries per minute",
+  "retry_after": 60
+}
 ```
 
 ---
@@ -547,7 +616,7 @@ python e2e_postgres_tests.py
 - ✅ Admin DELETE appointments (OWL: Admin can delete only Staff/PatientRecord)
 - ✅ Doctor DELETE lab_results (OWL: no delete permission)
 
-### Unit Tests (212 passed) ✅
+### Unit Tests (227 passed) ✅
 
 ```bash
 pytest tests/ -v
@@ -569,7 +638,8 @@ pytest tests/ -v
 | `test_prometheus_metrics.py` | 23 | Prometheus metrics (tracking, endpoint, normalization) |
 | `test_validation_cache.py` | 17 | Validation cache (LRU, TTL, stats, domain isolation) |
 | `test_cache_api.py` | 8 | Cache API endpoints (stats, config, invalidate, cleanup) |
-| **Итого** | **212** | +9 skipped (optional deps) |
+| `test_rate_limit_api.py` | 15 | Rate limit API (list, get, set, remove, reset, integration) |
+| **Итого** | **227** | +9 skipped (optional deps) |
 
 ---
 
@@ -697,7 +767,7 @@ universal-agent-connector/
 | # | Улучшение | Описание | Статус |
 |---|-----------|----------|--------|
 | 1 | **Caching Layer** | LRU кэш с TTL для OntoGuard валидаций | ✅ done |
-| 2 | **Rate Limiting** | Ограничение запросов per agent (защита от abuse) | pending |
+| 2 | **Rate Limiting** | Ограничение запросов per agent (sliding window) | ✅ done |
 | 3 | **OpenAPI/Swagger Docs** | Автогенерация API документации (flask-apispec) | pending |
 | 4 | **JWT Authentication** | JWT tokens с expiration вместо API Key | pending |
 

@@ -4,7 +4,7 @@ Main API endpoints for agent management, query execution, and system features
 """
 
 from flask import request, jsonify
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 from functools import wraps
 import os
@@ -38,6 +38,7 @@ from ..utils.chargeback import chargeback_manager, CostAllocationRule, Allocatio
 from ..utils.adoption_analytics import adoption_analytics, FeatureType, QueryPatternType
 from ..utils.training_data_export import training_data_exporter, QuerySQLPair, ExportFormat
 from ..utils.security_monitor import SecurityMonitor
+from ..utils.rate_limiter import RateLimiter, RateLimitConfig
 
 # Table name → OWL entity type mappings per domain
 TABLE_ENTITY_MAPS = {
@@ -101,6 +102,16 @@ set_ai_cost_tracker(cost_tracker)
 # Initialize security monitor
 security_monitor = SecurityMonitor()
 
+# Initialize rate limiter
+rate_limiter = RateLimiter()
+
+# Default rate limit for new agents (can be overridden per agent)
+DEFAULT_RATE_LIMIT = RateLimitConfig(
+    queries_per_minute=60,
+    queries_per_hour=1000,
+    queries_per_day=10000
+)
+
 
 # ============================================================================
 # Helper Functions
@@ -120,6 +131,41 @@ def require_auth() -> str:
     if not agent_id:
         return None
     return agent_id
+
+
+def check_rate_limit(agent_id: str) -> Tuple[bool, Optional[str]]:
+    """
+    Check if agent is within rate limits.
+
+    Returns:
+        (allowed, error_message)
+    """
+    return rate_limiter.check_rate_limit(agent_id)
+
+
+def rate_limit_required(f):
+    """
+    Decorator to enforce rate limiting on endpoints.
+    Must be used after authentication.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Get agent_id from kwargs or authenticate
+        agent_id = kwargs.get('agent_id') or authenticate_agent()
+        if not agent_id:
+            return jsonify({'error': 'Authentication required'}), 401
+
+        # Check rate limit
+        allowed, error_msg = check_rate_limit(agent_id)
+        if not allowed:
+            return jsonify({
+                'error': 'Rate limit exceeded',
+                'message': error_msg,
+                'retry_after': 60  # seconds
+            }), 429
+
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def check_permissions(agent_id: str, query: str) -> tuple[bool, List[Dict[str, Any]]]:
@@ -525,17 +571,18 @@ def test_database_connection():
 
 @api_bp.route('/agents/register', methods=['POST'])
 def register_agent():
-    """Register a new AI agent"""
+    """Register a new AI agent with optional rate limits"""
     data = request.get_json() or {}
-    
+
     agent_id = data.get('agent_id')
     agent_info = data.get('agent_info', {})
     agent_credentials = data.get('agent_credentials', {})
     database = data.get('database')
-    
+    rate_limits_config = data.get('rate_limits')
+
     if not agent_id:
         return jsonify({'error': 'Missing required fields: agent_id'}), 400
-    
+
     try:
         result = agent_registry.register_agent(
             agent_id=agent_id,
@@ -543,9 +590,23 @@ def register_agent():
             credentials=agent_credentials,
             database_config=database
         )
-        
+
+        # Set rate limits (custom or default)
+        if rate_limits_config:
+            custom_config = RateLimitConfig(
+                queries_per_minute=rate_limits_config.get('queries_per_minute'),
+                queries_per_hour=rate_limits_config.get('queries_per_hour'),
+                queries_per_day=rate_limits_config.get('queries_per_day')
+            )
+            rate_limiter.set_rate_limit(agent_id, custom_config)
+            result['rate_limits'] = custom_config.to_dict()
+        else:
+            # Apply default rate limits
+            rate_limiter.set_rate_limit(agent_id, DEFAULT_RATE_LIMIT)
+            result['rate_limits'] = DEFAULT_RATE_LIMIT.to_dict()
+
         audit_logger.log(ActionType.AGENT_REGISTERED, agent_id=agent_id, details={'agent_info': agent_info})
-        
+
         return jsonify(result), 201
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
@@ -578,16 +639,19 @@ def revoke_agent(agent_id: str):
     """Revoke an agent (complete cleanup)"""
     if not agent_registry.get_agent(agent_id):
         return jsonify({'error': f'Agent {agent_id} not found'}), 404
-    
+
     # Revoke all permissions
     access_control.permissions.pop(agent_id, None)
     access_control.resource_permissions.pop(agent_id, None)
-    
+
+    # Remove rate limits
+    rate_limiter.remove_agent(agent_id)
+
     # Remove from registry
     agent_registry.revoke_agent(agent_id)
-    
+
     audit_logger.log(ActionType.AGENT_REVOKED, agent_id=agent_id)
-    
+
     return jsonify({
         'message': f'Agent {agent_id} revoked successfully',
         'details': {
@@ -595,7 +659,8 @@ def revoke_agent(agent_id: str):
             'permissions_revoked': True,
             'api_keys_invalidated': True,
             'database_access_removed': True,
-            'credentials_removed': True
+            'credentials_removed': True,
+            'rate_limits_removed': True
         }
     }), 200
 
@@ -864,13 +929,24 @@ def revoke_resource_permissions(agent_id: str, resource_id: str):
 
 @api_bp.route('/agents/<agent_id>/query', methods=['POST'])
 def execute_query(agent_id: str):
-    """Execute a SQL query with permission enforcement and OntoGuard validation"""
+    """Execute a SQL query with permission enforcement, rate limiting, and OntoGuard validation"""
     agent_id_from_auth = authenticate_agent()
     if not agent_id_from_auth or agent_id_from_auth != agent_id:
         return jsonify({'error': 'Unauthorized'}), 401
 
     if not agent_registry.get_agent(agent_id):
         return jsonify({'error': f'Agent {agent_id} not found'}), 404
+
+    # Rate limit check
+    allowed, error_msg = check_rate_limit(agent_id)
+    if not allowed:
+        audit_logger.log(ActionType.QUERY_EXECUTION, agent_id=agent_id, status='rate_limited',
+                        details={'error': error_msg})
+        return jsonify({
+            'error': 'Rate limit exceeded',
+            'message': error_msg,
+            'retry_after': 60
+        }), 429
 
     data = request.get_json() or {}
     query = data.get('query')
@@ -982,14 +1058,25 @@ def execute_query(agent_id: str):
 
 @api_bp.route('/agents/<agent_id>/query/natural', methods=['POST'])
 def natural_language_query(agent_id: str):
-    """Execute a natural language query"""
+    """Execute a natural language query with rate limiting and OntoGuard validation"""
     agent_id_from_auth = authenticate_agent()
     if not agent_id_from_auth or agent_id_from_auth != agent_id:
         return jsonify({'error': 'Unauthorized'}), 401
-    
+
     if not agent_registry.get_agent(agent_id):
         return jsonify({'error': f'Agent {agent_id} not found'}), 404
-    
+
+    # Rate limit check
+    allowed, error_msg = check_rate_limit(agent_id)
+    if not allowed:
+        audit_logger.log(ActionType.QUERY_EXECUTION, agent_id=agent_id, status='rate_limited',
+                        details={'error': error_msg, 'query_type': 'natural_language'})
+        return jsonify({
+            'error': 'Rate limit exceeded',
+            'message': error_msg,
+            'retry_after': 60
+        }), 429
+
     data = request.get_json() or {}
     query = data.get('query') or data.get('question')
     as_dict = data.get('as_dict', False)
@@ -2386,4 +2473,128 @@ def cleanup_cache():
             'status': 'unavailable',
             'message': 'Cache module not installed',
         }), 503
+
+
+# =============================================================================
+# Rate Limiting Endpoints
+# =============================================================================
+
+@api_bp.route('/rate-limits', methods=['GET'])
+def list_rate_limits():
+    """
+    List all configured rate limits.
+
+    Returns:
+        JSON with all agent rate limit configurations
+    """
+    limits = {}
+    for agent_id, config in rate_limiter._configs.items():
+        limits[agent_id] = {
+            'config': config.to_dict(),
+            'usage': rate_limiter.get_usage_stats(agent_id)
+        }
+
+    return jsonify({
+        'status': 'ok',
+        'default_limits': DEFAULT_RATE_LIMIT.to_dict(),
+        'agent_limits': limits,
+        'total_agents': len(limits)
+    })
+
+
+@api_bp.route('/rate-limits/<agent_id>', methods=['GET'])
+def get_agent_rate_limit(agent_id: str):
+    """
+    Get rate limit configuration and usage for an agent.
+
+    Args:
+        agent_id: Agent identifier
+
+    Returns:
+        JSON with rate limit config and current usage
+    """
+    config = rate_limiter.get_rate_limit(agent_id)
+    usage = rate_limiter.get_usage_stats(agent_id)
+
+    return jsonify({
+        'status': 'ok',
+        'agent_id': agent_id,
+        'configured': config is not None,
+        'config': config.to_dict() if config else DEFAULT_RATE_LIMIT.to_dict(),
+        'usage': usage
+    })
+
+
+@api_bp.route('/rate-limits/<agent_id>', methods=['PUT'])
+def set_agent_rate_limit(agent_id: str):
+    """
+    Set rate limit configuration for an agent.
+
+    Body JSON:
+        {
+            "queries_per_minute": 60,
+            "queries_per_hour": 1000,
+            "queries_per_day": 10000
+        }
+    """
+    data = request.get_json() or {}
+
+    config = RateLimitConfig(
+        queries_per_minute=data.get('queries_per_minute'),
+        queries_per_hour=data.get('queries_per_hour'),
+        queries_per_day=data.get('queries_per_day')
+    )
+
+    rate_limiter.set_rate_limit(agent_id, config)
+
+    return jsonify({
+        'status': 'ok',
+        'agent_id': agent_id,
+        'config': config.to_dict()
+    })
+
+
+@api_bp.route('/rate-limits/<agent_id>', methods=['DELETE'])
+def remove_agent_rate_limit(agent_id: str):
+    """
+    Remove rate limit configuration for an agent.
+
+    This removes custom limits; agent will use default limits.
+    """
+    config = rate_limiter.get_rate_limit(agent_id)
+    if config:
+        rate_limiter.remove_agent(agent_id)
+
+    return jsonify({
+        'status': 'ok',
+        'agent_id': agent_id,
+        'removed': config is not None
+    })
+
+
+@api_bp.route('/rate-limits/<agent_id>/reset', methods=['POST'])
+def reset_agent_rate_limit(agent_id: str):
+    """
+    Reset rate limit counters for an agent.
+
+    This clears the usage history without changing the configuration.
+    """
+    rate_limiter.reset_agent_limits(agent_id)
+
+    return jsonify({
+        'status': 'ok',
+        'agent_id': agent_id,
+        'message': 'Rate limit counters reset'
+    })
+
+
+@api_bp.route('/rate-limits/default', methods=['GET'])
+def get_default_rate_limits():
+    """
+    Get default rate limits applied to new agents.
+    """
+    return jsonify({
+        'status': 'ok',
+        'default_limits': DEFAULT_RATE_LIMIT.to_dict()
+    })
 
