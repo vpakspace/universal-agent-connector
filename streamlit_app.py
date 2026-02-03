@@ -6,8 +6,18 @@ Universal Agent Connector - Streamlit UI
 import os
 import streamlit as st
 import requests
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import pandas as pd
+import threading
+import queue
+import time
+
+# WebSocket client (optional)
+try:
+    import socketio
+    SOCKETIO_AVAILABLE = True
+except ImportError:
+    SOCKETIO_AVAILABLE = False
 
 # Конфигурация
 API_BASE_URL = "http://localhost:5000"
@@ -92,6 +102,174 @@ DOMAIN_CONFIGS = {
 
 DEFAULT_CONFIG = DOMAIN_CONFIGS["Hospital (Госпиталь)"]
 
+
+# =============================================================================
+# WebSocket Client Manager
+# =============================================================================
+
+class WebSocketManager:
+    """Manager for WebSocket connection to OntoGuard server."""
+
+    def __init__(self, server_url: str = "http://localhost:5000"):
+        self.server_url = server_url
+        self.sio = None
+        self.connected = False
+        self.results_queue = queue.Queue()
+        self.last_result = None
+        self.session_id = None
+
+    def connect(self) -> bool:
+        """Establish WebSocket connection."""
+        if not SOCKETIO_AVAILABLE:
+            return False
+
+        if self.connected and self.sio:
+            return True
+
+        try:
+            self.sio = socketio.Client()
+
+            @self.sio.on('connected')
+            def on_connected(data):
+                self.connected = True
+                self.session_id = data.get('session_id')
+                self.results_queue.put({'event': 'connected', 'data': data})
+
+            @self.sio.on('validation_result')
+            def on_validation_result(data):
+                self.last_result = data
+                self.results_queue.put({'event': 'validation_result', 'data': data})
+
+            @self.sio.on('permission_result')
+            def on_permission_result(data):
+                self.last_result = data
+                self.results_queue.put({'event': 'permission_result', 'data': data})
+
+            @self.sio.on('allowed_actions_result')
+            def on_allowed_actions_result(data):
+                self.last_result = data
+                self.results_queue.put({'event': 'allowed_actions_result', 'data': data})
+
+            @self.sio.on('batch_result')
+            def on_batch_result(data):
+                self.last_result = data
+                self.results_queue.put({'event': 'batch_result', 'data': data})
+
+            @self.sio.on('error')
+            def on_error(data):
+                self.last_result = {'error': data}
+                self.results_queue.put({'event': 'error', 'data': data})
+
+            @self.sio.on('disconnect')
+            def on_disconnect():
+                self.connected = False
+                self.results_queue.put({'event': 'disconnected', 'data': {}})
+
+            self.sio.connect(self.server_url)
+            return True
+
+        except Exception as e:
+            self.connected = False
+            return False
+
+    def disconnect(self):
+        """Disconnect from server."""
+        if self.sio and self.connected:
+            try:
+                self.sio.disconnect()
+            except:
+                pass
+        self.connected = False
+        self.sio = None
+
+    def validate_action(self, action: str, entity_type: str = None, table: str = None,
+                        domain: str = None, role: str = None, request_id: str = None) -> Optional[Dict]:
+        """Validate action via WebSocket."""
+        if not self.connected:
+            return None
+
+        payload = {'action': action}
+        if entity_type:
+            payload['entity_type'] = entity_type
+        if table:
+            payload['table'] = table
+        if domain:
+            payload['domain'] = domain
+        if role:
+            payload['context'] = {'role': role, 'domain': domain}
+        if request_id:
+            payload['request_id'] = request_id
+
+        self.sio.emit('validate_action', payload)
+        return self._wait_for_result(timeout=5.0)
+
+    def check_permissions(self, role: str, action: str, entity_type: str = None,
+                         table: str = None, domain: str = None) -> Optional[Dict]:
+        """Check permissions via WebSocket."""
+        if not self.connected:
+            return None
+
+        payload = {'role': role, 'action': action}
+        if entity_type:
+            payload['entity_type'] = entity_type
+        if table:
+            payload['table'] = table
+        if domain:
+            payload['domain'] = domain
+
+        self.sio.emit('check_permissions', payload)
+        return self._wait_for_result(timeout=5.0)
+
+    def get_allowed_actions(self, role: str, entity_type: str = None,
+                           table: str = None, domain: str = None) -> Optional[Dict]:
+        """Get allowed actions via WebSocket."""
+        if not self.connected:
+            return None
+
+        payload = {'role': role}
+        if entity_type:
+            payload['entity_type'] = entity_type
+        if table:
+            payload['table'] = table
+        if domain:
+            payload['domain'] = domain
+
+        self.sio.emit('get_allowed_actions', payload)
+        return self._wait_for_result(timeout=5.0)
+
+    def validate_batch(self, validations: List[Dict], domain: str = None) -> Optional[Dict]:
+        """Validate batch of actions via WebSocket."""
+        if not self.connected:
+            return None
+
+        payload = {'validations': validations}
+        if domain:
+            payload['domain'] = domain
+
+        self.sio.emit('validate_batch', payload)
+        return self._wait_for_result(timeout=10.0)
+
+    def _wait_for_result(self, timeout: float = 5.0) -> Optional[Dict]:
+        """Wait for result from queue."""
+        try:
+            result = self.results_queue.get(timeout=timeout)
+            if result['event'] == 'error':
+                return {'error': result['data']}
+            return result['data']
+        except queue.Empty:
+            return {'error': 'Timeout waiting for response'}
+
+
+def get_ws_manager() -> WebSocketManager:
+    """Get or create WebSocket manager in session state."""
+    if 'ws_manager' not in st.session_state:
+        st.session_state.ws_manager = WebSocketManager(API_BASE_URL)
+    return st.session_state.ws_manager
+
+
+# =============================================================================
+# Session State & API Functions
+# =============================================================================
 
 def init_session_state():
     """Инициализация session state"""
@@ -461,7 +639,13 @@ def main():
         return
 
     # Tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["💬 Запросы", "🔍 OntoGuard Валидация", "📊 История", "🔄 Schema Drift"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "💬 Запросы",
+        "🔍 OntoGuard Валидация",
+        "📊 История",
+        "🔄 Schema Drift",
+        "🔌 Real-Time WebSocket"
+    ])
 
     with tab1:
         st.header("💬 Задать вопрос к базе данных")
@@ -740,6 +924,195 @@ def main():
                         st.code(", ".join(f"{k}: {v}" for k, v in cols.items()), language="text")
             else:
                 st.info("Bindings не настроены.")
+
+    with tab5:
+        st.header("🔌 Real-Time WebSocket Validation")
+
+        if not SOCKETIO_AVAILABLE:
+            st.warning("⚠️ WebSocket client не установлен. Установите: `pip install python-socketio[client]`")
+            st.code("pip install python-socketio[client]", language="bash")
+        else:
+            st.markdown("""
+            Real-time валидация через WebSocket соединение.
+            **Преимущества**: мгновенный ответ, поддержка batch операций, domain switching.
+            """)
+
+            # WebSocket connection status
+            ws_manager = get_ws_manager()
+
+            col1, col2 = st.columns([1, 3])
+            with col1:
+                if ws_manager.connected:
+                    st.success("🟢 Connected")
+                    if st.button("🔌 Отключиться"):
+                        ws_manager.disconnect()
+                        st.rerun()
+                else:
+                    st.error("🔴 Disconnected")
+                    if st.button("🔌 Подключиться", type="primary"):
+                        with st.spinner("Подключение..."):
+                            if ws_manager.connect():
+                                time.sleep(0.5)  # Wait for connection
+                                st.success("✅ Подключено!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Не удалось подключиться")
+
+            with col2:
+                if ws_manager.connected and ws_manager.session_id:
+                    st.caption(f"Session ID: `{ws_manager.session_id}`")
+
+            st.divider()
+
+            if ws_manager.connected:
+                # Domain selection for WebSocket
+                domain_key = selected_domain.split(" ")[0].lower()
+
+                # Validation mode selection
+                ws_mode = st.radio(
+                    "Режим валидации",
+                    ["Single Action", "Batch Validation", "Get Allowed Actions"],
+                    horizontal=True,
+                    key="ws_mode"
+                )
+
+                if ws_mode == "Single Action":
+                    st.subheader("🔍 Single Action Validation")
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        ws_role = st.selectbox(
+                            "Роль",
+                            domain_config["roles"],
+                            index=0,
+                            key="ws_role"
+                        )
+                        ws_action = st.selectbox(
+                            "Действие",
+                            ["read", "create", "update", "delete"],
+                            key="ws_action"
+                        )
+
+                    with col2:
+                        # Choice: entity_type or table
+                        ws_input_type = st.radio(
+                            "Тип ввода",
+                            ["Entity Type", "SQL Table"],
+                            horizontal=True,
+                            key="ws_input_type"
+                        )
+
+                        if ws_input_type == "Entity Type":
+                            ws_entity = st.selectbox(
+                                "Entity Type",
+                                domain_config.get("entity_types", []),
+                                key="ws_entity"
+                            )
+                            ws_table = None
+                        else:
+                            ws_table = st.selectbox(
+                                "SQL Table",
+                                domain_config.get("tables", []),
+                                key="ws_table"
+                            )
+                            ws_entity = None
+
+                    if st.button("🚀 Validate via WebSocket", type="primary"):
+                        with st.spinner("Validating..."):
+                            result = ws_manager.validate_action(
+                                action=ws_action,
+                                entity_type=ws_entity,
+                                table=ws_table,
+                                domain=domain_key,
+                                role=ws_role,
+                                request_id=f"st-{int(time.time())}"
+                            )
+
+                            if result:
+                                if result.get("error"):
+                                    st.error(f"❌ Ошибка: {result.get('error')}")
+                                elif result.get("allowed"):
+                                    st.success(f"✅ **РАЗРЕШЕНО**: {ws_role} может {ws_action} на {result.get('entity_type', ws_entity or ws_table)}")
+                                    st.json(result)
+                                else:
+                                    st.error(f"❌ **ЗАПРЕЩЕНО**: {ws_role} НЕ может {ws_action}")
+                                    if result.get("reason"):
+                                        st.warning(f"**Причина:** {result.get('reason')}")
+                                    st.json(result)
+                            else:
+                                st.error("❌ Нет ответа от сервера")
+
+                elif ws_mode == "Batch Validation":
+                    st.subheader("📦 Batch Validation")
+                    st.markdown("Проверка нескольких действий за один запрос.")
+
+                    # Quick batch test
+                    if st.button("🧪 Тест: batch validation (3 действия)"):
+                        with st.spinner("Batch validation..."):
+                            validations = [
+                                {"action": "read", "table": domain_config["tables"][0], "context": {"role": domain_config["roles"][0]}},
+                                {"action": "delete", "table": domain_config["tables"][0], "context": {"role": domain_config["roles"][-1]}},
+                                {"action": "create", "table": domain_config["tables"][0], "context": {"role": domain_config["roles"][1] if len(domain_config["roles"]) > 1 else domain_config["roles"][0]}},
+                            ]
+
+                            result = ws_manager.validate_batch(validations, domain=domain_key)
+
+                            if result:
+                                if result.get("error"):
+                                    st.error(f"❌ Ошибка: {result.get('error')}")
+                                else:
+                                    st.success(f"✅ Batch completed: {result.get('total', 0)} validations")
+                                    st.metric("Allowed", result.get("allowed_count", 0))
+                                    st.metric("Denied", result.get("denied_count", 0))
+
+                                    with st.expander("📋 Детали"):
+                                        st.json(result)
+                            else:
+                                st.error("❌ Нет ответа от сервера")
+
+                else:  # Get Allowed Actions
+                    st.subheader("📋 Get Allowed Actions")
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        ws_role_actions = st.selectbox(
+                            "Роль",
+                            domain_config["roles"],
+                            index=0,
+                            key="ws_role_actions"
+                        )
+                    with col2:
+                        ws_entity_actions = st.selectbox(
+                            "Entity Type",
+                            domain_config.get("entity_types", []),
+                            key="ws_entity_actions"
+                        )
+
+                    if st.button("📋 Get Actions via WebSocket", type="primary"):
+                        with st.spinner("Getting allowed actions..."):
+                            result = ws_manager.get_allowed_actions(
+                                role=ws_role_actions,
+                                entity_type=ws_entity_actions,
+                                domain=domain_key
+                            )
+
+                            if result:
+                                if result.get("error"):
+                                    st.error(f"❌ Ошибка: {result.get('error')}")
+                                else:
+                                    actions = result.get("allowed_actions", [])
+                                    if actions:
+                                        st.success(f"✅ {ws_role_actions} может выполнить на {ws_entity_actions}:")
+                                        for action in actions:
+                                            st.markdown(f"- `{action}`")
+                                    else:
+                                        st.warning(f"⚠️ {ws_role_actions} не имеет разрешённых действий на {ws_entity_actions}")
+                                    st.json(result)
+                            else:
+                                st.error("❌ Нет ответа от сервера")
+
+            else:
+                st.info("👆 Нажмите 'Подключиться' для установки WebSocket соединения")
 
 
 if __name__ == "__main__":

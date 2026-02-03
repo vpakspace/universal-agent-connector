@@ -88,6 +88,7 @@ streamlit run streamlit_app.py
 | **OntoGuard** | Проверка разрешений по OWL онтологии |
 | **История** | Лог выполненных запросов |
 | **Schema Drift** | Мониторинг drift через live DB connection |
+| **Real-Time WebSocket** | WebSocket валидация (single, batch, get actions) |
 
 ### Natural Language Query
 
@@ -592,7 +593,7 @@ universal-agent-connector/
 - [x] ~~WebSocket для real-time validation~~ (done: flask-socketio, 8 events, 15 tests)
 - [x] ~~Prometheus metrics~~ (done: prometheus-client, 9 metrics, /metrics endpoint, 23 tests)
 - [x] ~~WebSocket domain support~~ (done: table-to-entity mapping, role validation, ontology switching, 30 tests)
-- [ ] WebSocket client в Streamlit UI (optional)
+- [x] ~~WebSocket client в Streamlit UI~~ (done: 5th tab, single/batch/get_actions modes, python-socketio)
 
 ---
 
@@ -620,4 +621,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-03 (Domain-aware WebSocket)
+**Последнее обновление**: 2026-02-03 (WebSocket client в Streamlit UI)
