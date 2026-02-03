@@ -2648,11 +2648,10 @@ def get_jwt_token():
     jwt_mgr = get_jwt_manager()
     tokens = jwt_mgr.generate_token_pair(agent_id, role)
 
-    audit_logger.log_action(
+    audit_logger.log(
+        action_type=ActionType.JWT_TOKEN_GENERATED,
         agent_id=agent_id,
-        action=ActionType.CUSTOM,
-        resource='auth/token',
-        details={'event': 'jwt_token_generated', 'role': role}
+        details={'role': role}
     )
 
     return jsonify({
@@ -2782,11 +2781,10 @@ def revoke_jwt_token():
     revoked = jwt_mgr.revoke_token(data['token'])
 
     if revoked:
-        audit_logger.log_action(
+        audit_logger.log(
+            action_type=ActionType.JWT_TOKEN_REVOKED,
             agent_id=agent_id,
-            action=ActionType.CUSTOM,
-            resource='auth/revoke',
-            details={'event': 'jwt_token_revoked'}
+            details={}
         )
 
     return jsonify({

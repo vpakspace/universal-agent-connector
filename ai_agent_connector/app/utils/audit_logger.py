@@ -21,6 +21,9 @@ class ActionType(Enum):
     TABLES_LISTED = "tables_listed"
     AGENT_VIEWED = "agent_viewed"
     AGENTS_LISTED = "agents_listed"
+    # JWT Authentication
+    JWT_TOKEN_GENERATED = "jwt_token_generated"
+    JWT_TOKEN_REVOKED = "jwt_token_revoked"
 
 
 class AuditLogger:

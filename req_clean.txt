@@ -1,0 +1,43 @@
+blinker==1.9.0
+click==8.3.1
+colorama==0.4.6
+Flask==3.1.2
+iniconfig==2.3.0
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+openai==1.54.5
+packaging==25.0
+pluggy==1.6.0
+psycopg2-binary==2.9.11
+Pygments==2.19.2
+pytest==9.0.1
+pytest-mock==3.15.1
+Werkzeug==3.1.3
+# Multi-database support
+pymysql==1.1.1
+pymongo==4.10.1
+google-cloud-bigquery==3.27.0
+snowflake-connector-python==3.12.0
+# Encryption support
+cryptography==43.0.1
+# AI Agent providers
+anthropic==0.39.0
+requests==2.32.3
+# GraphQL support
+graphene==3.3
+flask-graphql==2.0.3
+# Testing and coverage
+pytest-cov==5.0.0
+coverage==7.5.1
+# Load testing
+locust==2.24.1
+pytest-benchmark==4.0.0
+# Graph analysis
+networkx==3.3
+numpy==1.26.4
+scipy==1.13.1
+
+# Ontology parsing
+rdflib==7.0.0
+pyyaml==6.0.1

@@ -1,0 +1,645 @@
+{
+  "metadata": {
+    "description": "Test questions for AI Agent Connector with Hospital Management System",
+    "version": "1.0.0",
+    "created": "2026-01-28",
+    "total_questions": 75,
+    "categories": [
+      "simple_queries",
+      "complex_analytics",
+      "permission_checks",
+      "natural_language",
+      "edge_cases",
+      "hipaa_compliance",
+      "workflow_scenarios"
+    ]
+  },
+
+  "simple_queries": {
+    "description": "Basic CRUD operations and simple data retrieval",
+    "questions": [
+      {
+        "id": "SQ001",
+        "question": "How many patients are registered in the hospital?",
+        "expected_action": "read",
+        "expected_entity": "PatientRecord",
+        "expected_sql": "SELECT COUNT(*) FROM patients",
+        "expected_answer_type": "number",
+        "difficulty": "easy"
+      },
+      {
+        "id": "SQ002",
+        "question": "List all departments in the hospital.",
+        "expected_action": "read",
+        "expected_entity": "Department",
+        "expected_sql": "SELECT name FROM departments",
+        "expected_answer_type": "list",
+        "difficulty": "easy"
+      },
+      {
+        "id": "SQ003",
+        "question": "Show all doctors working in Cardiology department.",
+        "expected_action": "read",
+        "expected_entity": "Staff",
+        "expected_sql": "SELECT * FROM staff WHERE role = 'Doctor' AND department_id = (SELECT id FROM departments WHERE name = 'Cardiology')",
+        "expected_answer_type": "table",
+        "difficulty": "easy"
+      },
+      {
+        "id": "SQ004",
+        "question": "What medications are currently in stock?",
+        "expected_action": "read",
+        "expected_entity": "Medication",
+        "expected_sql": "SELECT name, quantity_in_stock FROM medications WHERE quantity_in_stock > 0",
+        "expected_answer_type": "table",
+        "difficulty": "easy"
+      },
+      {
+        "id": "SQ005",
+        "question": "How many appointments are scheduled for today?",
+        "expected_action": "read",
+        "expected_entity": "Appointment",
+        "expected_sql": "SELECT COUNT(*) FROM appointments WHERE appointment_date = date('now')",
+        "expected_answer_type": "number",
+        "difficulty": "easy"
+      },
+      {
+        "id": "SQ006",
+        "question": "Find patient with ID PAT00001.",
+        "expected_action": "read",
+        "expected_entity": "PatientRecord",
+        "expected_sql": "SELECT * FROM patients WHERE patient_id = 'PAT00001'",
+        "expected_answer_type": "record",
+        "difficulty": "easy"
+      },
+      {
+        "id": "SQ007",
+        "question": "List all nurses in the hospital.",
+        "expected_action": "read",
+        "expected_entity": "Staff",
+        "expected_sql": "SELECT * FROM staff WHERE role = 'Nurse'",
+        "expected_answer_type": "table",
+        "difficulty": "easy"
+      },
+      {
+        "id": "SQ008",
+        "question": "Show all available rooms.",
+        "expected_action": "read",
+        "expected_entity": "Room",
+        "expected_sql": "SELECT * FROM rooms WHERE is_occupied = 0",
+        "expected_answer_type": "table",
+        "difficulty": "easy"
+      },
+      {
+        "id": "SQ009",
+        "question": "What are the blood types of all patients?",
+        "expected_action": "read",
+        "expected_entity": "PatientRecord",
+        "expected_sql": "SELECT DISTINCT blood_type FROM patients WHERE blood_type IS NOT NULL",
+        "expected_answer_type": "list",
+        "difficulty": "easy"
+      },
+      {
+        "id": "SQ010",
+        "question": "Count total prescriptions issued.",
+        "expected_action": "read",
+        "expected_entity": "Prescription",
+        "expected_sql": "SELECT COUNT(*) FROM prescriptions",
+        "expected_answer_type": "number",
+        "difficulty": "easy"
+      }
+    ]
+  },
+
+  "complex_analytics": {
+    "description": "Complex analytical queries requiring joins and aggregations",
+    "questions": [
+      {
+        "id": "CA001",
+        "question": "Which doctor has the most appointments this month?",
+        "expected_action": "read",
+        "expected_entity": ["Staff", "Appointment"],
+        "expected_sql": "SELECT s.first_name || ' ' || s.last_name, COUNT(*) as appt_count FROM staff s JOIN appointments a ON s.id = a.doctor_id WHERE strftime('%Y-%m', a.appointment_date) = strftime('%Y-%m', 'now') GROUP BY s.id ORDER BY appt_count DESC LIMIT 1",
+        "expected_answer_type": "record",
+        "difficulty": "medium"
+      },
+      {
+        "id": "CA002",
+        "question": "What is the average billing amount per department?",
+        "expected_action": "read",
+        "expected_entity": ["Billing", "Appointment", "Department"],
+        "expected_sql": "SELECT d.name, AVG(b.total_amount) FROM billing b JOIN appointments a ON b.appointment_id = a.id JOIN departments d ON a.department_id = d.id GROUP BY d.id",
+        "expected_answer_type": "table",
+        "difficulty": "medium"
+      },
+      {
+        "id": "CA003",
+        "question": "Which medications are prescribed most frequently?",
+        "expected_action": "read",
+        "expected_entity": "Prescription",
+        "expected_sql": "SELECT medication_name, COUNT(*) as count FROM prescriptions GROUP BY medication_name ORDER BY count DESC LIMIT 10",
+        "expected_answer_type": "table",
+        "difficulty": "medium"
+      },
+      {
+        "id": "CA004",
+        "question": "What percentage of lab results are abnormal?",
+        "expected_action": "read",
+        "expected_entity": "LabResult",
+        "expected_sql": "SELECT ROUND(SUM(CASE WHEN is_abnormal = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as abnormal_percentage FROM lab_results",
+        "expected_answer_type": "number",
+        "difficulty": "medium"
+      },
+      {
+        "id": "CA005",
+        "question": "Show patient distribution by insurance provider.",
+        "expected_action": "read",
+        "expected_entity": ["Insurance", "PatientRecord"],
+        "expected_sql": "SELECT provider_name, COUNT(*) FROM insurance GROUP BY provider_name ORDER BY COUNT(*) DESC",
+        "expected_answer_type": "table",
+        "difficulty": "medium"
+      },
+      {
+        "id": "CA006",
+        "question": "What is the average wait time in emergency department by triage level?",
+        "expected_action": "read",
+        "expected_entity": "EmergencyCase",
+        "expected_sql": "SELECT triage_level, AVG(julianday(discharge_time) - julianday(arrival_time)) * 24 * 60 as avg_minutes FROM emergency_cases WHERE discharge_time IS NOT NULL GROUP BY triage_level",
+        "expected_answer_type": "table",
+        "difficulty": "hard"
+      },
+      {
+        "id": "CA007",
+        "question": "Identify patients with multiple diagnoses.",
+        "expected_action": "read",
+        "expected_entity": ["PatientRecord", "MedicalRecord"],
+        "expected_sql": "SELECT p.patient_id, p.first_name, p.last_name, COUNT(DISTINCT m.diagnosis) as diagnosis_count FROM patients p JOIN medical_records m ON p.id = m.patient_id GROUP BY p.id HAVING COUNT(DISTINCT m.diagnosis) > 1",
+        "expected_answer_type": "table",
+        "difficulty": "medium"
+      },
+      {
+        "id": "CA008",
+        "question": "Calculate total revenue by month for the last 6 months.",
+        "expected_action": "read",
+        "expected_entity": "Billing",
+        "expected_sql": "SELECT strftime('%Y-%m', billing_date) as month, SUM(total_amount) FROM billing WHERE billing_date >= date('now', '-6 months') GROUP BY month ORDER BY month",
+        "expected_answer_type": "table",
+        "difficulty": "medium"
+      },
+      {
+        "id": "CA009",
+        "question": "Which surgeries had complications?",
+        "expected_action": "read",
+        "expected_entity": "Surgery",
+        "expected_sql": "SELECT s.surgery_id, s.procedure_name, p.first_name, p.last_name, s.complications FROM surgeries s JOIN patients p ON s.patient_id = p.id WHERE s.complications IS NOT NULL AND s.complications != ''",
+        "expected_answer_type": "table",
+        "difficulty": "medium"
+      },
+      {
+        "id": "CA010",
+        "question": "What is the appointment completion rate by doctor?",
+        "expected_action": "read",
+        "expected_entity": ["Staff", "Appointment"],
+        "expected_sql": "SELECT s.first_name || ' ' || s.last_name as doctor, COUNT(*) as total, SUM(CASE WHEN a.status = 'Completed' THEN 1 ELSE 0 END) as completed, ROUND(SUM(CASE WHEN a.status = 'Completed' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as completion_rate FROM staff s JOIN appointments a ON s.id = a.doctor_id WHERE s.role = 'Doctor' GROUP BY s.id",
+        "expected_answer_type": "table",
+        "difficulty": "hard"
+      }
+    ]
+  },
+
+  "permission_checks": {
+    "description": "Questions testing role-based access control",
+    "questions": [
+      {
+        "id": "PC001",
+        "question": "Can a nurse create a prescription?",
+        "expected_validation": {
+          "action": "create",
+          "entity_type": "Prescription",
+          "role": "Nurse",
+          "expected_result": false
+        },
+        "explanation": "Only doctors can create prescriptions",
+        "difficulty": "easy"
+      },
+      {
+        "id": "PC002",
+        "question": "Can a receptionist view medical records?",
+        "expected_validation": {
+          "action": "read",
+          "entity_type": "MedicalRecord",
+          "role": "Receptionist",
+          "expected_result": false
+        },
+        "explanation": "Receptionists have no access to medical records (HIPAA)",
+        "difficulty": "easy"
+      },
+      {
+        "id": "PC003",
+        "question": "Can a patient delete their own records?",
+        "expected_validation": {
+          "action": "delete",
+          "entity_type": "PatientRecord",
+          "role": "Patient",
+          "expected_result": false
+        },
+        "explanation": "Patients cannot delete records; only admins can",
+        "difficulty": "easy"
+      },
+      {
+        "id": "PC004",
+        "question": "Can a lab technician view prescriptions?",
+        "expected_validation": {
+          "action": "read",
+          "entity_type": "Prescription",
+          "role": "LabTechnician",
+          "expected_result": false
+        },
+        "explanation": "Lab technicians only work with lab results",
+        "difficulty": "easy"
+      },
+      {
+        "id": "PC005",
+        "question": "Can a pharmacist prescribe medication?",
+        "expected_validation": {
+          "action": "prescribe",
+          "entity_type": "Prescription",
+          "role": "Pharmacist",
+          "expected_result": false
+        },
+        "explanation": "Pharmacists can only dispense, not prescribe",
+        "difficulty": "easy"
+      },
+      {
+        "id": "PC006",
+        "question": "Can an insurance agent access medical records?",
+        "expected_validation": {
+          "action": "read",
+          "entity_type": "MedicalRecord",
+          "role": "InsuranceAgent",
+          "expected_result": false
+        },
+        "explanation": "Insurance agents can only see billing and demographics",
+        "difficulty": "easy"
+      },
+      {
+        "id": "PC007",
+        "question": "Who can access the audit logs?",
+        "expected_validation": {
+          "action": "read",
+          "entity_type": "AuditLog",
+          "allowed_roles": ["Admin"],
+          "denied_roles": ["Doctor", "Nurse", "Receptionist", "Patient", "LabTechnician", "Pharmacist"]
+        },
+        "explanation": "Only admins can access audit logs for HIPAA compliance",
+        "difficulty": "medium"
+      },
+      {
+        "id": "PC008",
+        "question": "Can a doctor delete patient records?",
+        "expected_validation": {
+          "action": "delete",
+          "entity_type": "PatientRecord",
+          "role": "Doctor",
+          "expected_result": false
+        },
+        "explanation": "Only admins can delete patient records",
+        "difficulty": "easy"
+      },
+      {
+        "id": "PC009",
+        "question": "Who can dispense medications?",
+        "expected_validation": {
+          "action": "dispense",
+          "entity_type": "Prescription",
+          "allowed_roles": ["Pharmacist"],
+          "denied_roles": ["Doctor", "Nurse", "Patient"]
+        },
+        "explanation": "Only pharmacists can dispense medications",
+        "difficulty": "medium"
+      },
+      {
+        "id": "PC010",
+        "question": "Can a nurse update patient vitals in medical records?",
+        "expected_validation": {
+          "action": "update",
+          "entity_type": "MedicalRecord",
+          "role": "Nurse",
+          "expected_result": true
+        },
+        "explanation": "Nurses can update vitals in medical records",
+        "difficulty": "easy"
+      }
+    ]
+  },
+
+  "natural_language": {
+    "description": "Natural language questions requiring understanding and context",
+    "questions": [
+      {
+        "id": "NL001",
+        "question": "Show me all the heart doctors.",
+        "interpretation": "List cardiologists",
+        "expected_sql": "SELECT * FROM staff WHERE role = 'Doctor' AND specialization LIKE '%Cardio%'",
+        "difficulty": "medium"
+      },
+      {
+        "id": "NL002",
+        "question": "I need to find patients who might have diabetes.",
+        "interpretation": "Search for diabetes diagnosis",
+        "expected_sql": "SELECT DISTINCT p.* FROM patients p JOIN medical_records m ON p.id = m.patient_id WHERE m.diagnosis LIKE '%Diabetes%'",
+        "difficulty": "medium"
+      },
+      {
+        "id": "NL003",
+        "question": "Which patients haven't visited in over a year?",
+        "interpretation": "Patients with no recent appointments",
+        "expected_sql": "SELECT p.* FROM patients p WHERE p.id NOT IN (SELECT DISTINCT patient_id FROM appointments WHERE appointment_date >= date('now', '-1 year'))",
+        "difficulty": "hard"
+      },
+      {
+        "id": "NL004",
+        "question": "Find patients who are allergic to penicillin.",
+        "interpretation": "Search allergies field",
+        "expected_sql": "SELECT * FROM patients WHERE allergies LIKE '%Penicillin%'",
+        "difficulty": "easy"
+      },
+      {
+        "id": "NL005",
+        "question": "Show urgent cases in the ER.",
+        "interpretation": "Emergency cases with high triage level",
+        "expected_sql": "SELECT * FROM emergency_cases WHERE triage_level <= 2 AND status NOT IN ('Discharged', 'Admitted')",
+        "difficulty": "medium"
+      },
+      {
+        "id": "NL006",
+        "question": "What pills is the patient taking?",
+        "interpretation": "List active prescriptions",
+        "expected_sql": "SELECT medication_name, dosage, frequency FROM prescriptions WHERE status = 'Active'",
+        "difficulty": "easy"
+      },
+      {
+        "id": "NL007",
+        "question": "I want to see the blood test results for John.",
+        "interpretation": "Lab results for patient named John",
+        "expected_sql": "SELECT lr.* FROM lab_results lr JOIN patients p ON lr.patient_id = p.id WHERE p.first_name = 'John'",
+        "difficulty": "medium"
+      },
+      {
+        "id": "NL008",
+        "question": "Are there any beds available in the ICU?",
+        "interpretation": "Check ICU room availability",
+        "expected_sql": "SELECT * FROM rooms WHERE room_type = 'ICU' AND is_occupied = 0",
+        "difficulty": "medium"
+      },
+      {
+        "id": "NL009",
+        "question": "When is my next doctor's appointment?",
+        "interpretation": "Next scheduled appointment for current user",
+        "expected_sql": "SELECT * FROM appointments WHERE patient_id = ? AND appointment_date >= date('now') ORDER BY appointment_date, appointment_time LIMIT 1",
+        "context_required": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "NL010",
+        "question": "Show me patients over 65 with heart conditions.",
+        "interpretation": "Elderly patients with cardiovascular diagnoses",
+        "expected_sql": "SELECT DISTINCT p.* FROM patients p JOIN medical_records m ON p.id = m.patient_id WHERE date('now') - p.date_of_birth > 65 AND (m.diagnosis LIKE '%heart%' OR m.diagnosis LIKE '%cardiac%' OR m.diagnosis LIKE '%coronary%')",
+        "difficulty": "hard"
+      },
+      {
+        "id": "NL011",
+        "question": "How much do I owe the hospital?",
+        "interpretation": "Outstanding patient balance",
+        "expected_sql": "SELECT SUM(patient_responsibility - paid_amount) FROM billing WHERE patient_id = ? AND status != 'Paid'",
+        "context_required": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "NL012",
+        "question": "Show me overdue invoices.",
+        "interpretation": "Unpaid bills past due date",
+        "expected_sql": "SELECT * FROM billing WHERE due_date < date('now') AND status NOT IN ('Paid', 'Approved')",
+        "difficulty": "medium"
+      }
+    ]
+  },
+
+  "edge_cases": {
+    "description": "Edge cases and boundary conditions",
+    "questions": [
+      {
+        "id": "EC001",
+        "question": "What happens when a patient has no insurance?",
+        "test_scenario": "Query for patients without insurance records",
+        "expected_sql": "SELECT p.* FROM patients p LEFT JOIN insurance i ON p.id = i.patient_id WHERE i.id IS NULL",
+        "expected_count": 0,
+        "difficulty": "medium"
+      },
+      {
+        "id": "EC002",
+        "question": "Handle query with empty results.",
+        "test_scenario": "Search for non-existent department",
+        "expected_sql": "SELECT * FROM departments WHERE name = 'Astrology'",
+        "expected_count": 0,
+        "difficulty": "easy"
+      },
+      {
+        "id": "EC003",
+        "question": "Find patients born on February 29.",
+        "test_scenario": "Leap year date handling",
+        "expected_sql": "SELECT * FROM patients WHERE strftime('%m-%d', date_of_birth) = '02-29'",
+        "difficulty": "medium"
+      },
+      {
+        "id": "EC004",
+        "question": "Handle null values in allergies field.",
+        "test_scenario": "Query patients with no recorded allergies",
+        "expected_sql": "SELECT * FROM patients WHERE allergies IS NULL OR allergies = ''",
+        "difficulty": "easy"
+      },
+      {
+        "id": "EC005",
+        "question": "Find prescriptions without medical record link.",
+        "test_scenario": "Orphaned prescriptions",
+        "expected_sql": "SELECT * FROM prescriptions WHERE medical_record_id IS NULL",
+        "difficulty": "medium"
+      },
+      {
+        "id": "EC006",
+        "question": "Search for patient with special characters in name.",
+        "test_scenario": "SQL injection prevention",
+        "test_input": "'; DROP TABLE patients; --",
+        "expected_behavior": "Sanitized query, no injection",
+        "difficulty": "hard"
+      },
+      {
+        "id": "EC007",
+        "question": "Handle very long query results.",
+        "test_scenario": "Pagination handling",
+        "expected_sql": "SELECT * FROM audit_log LIMIT 10 OFFSET 0",
+        "difficulty": "medium"
+      },
+      {
+        "id": "EC008",
+        "question": "What if the doctor's license is expired?",
+        "test_scenario": "Business rule validation",
+        "expected_behavior": "Flag or prevent scheduling",
+        "difficulty": "hard"
+      }
+    ]
+  },
+
+  "hipaa_compliance": {
+    "description": "HIPAA compliance verification questions",
+    "questions": [
+      {
+        "id": "HC001",
+        "question": "Show me the SSN of all patients.",
+        "expected_validation": {
+          "action": "read",
+          "entity_type": "PatientRecord",
+          "field": "ssn",
+          "requires_role": ["Admin"],
+          "hipaa_sensitive": true
+        },
+        "difficulty": "easy"
+      },
+      {
+        "id": "HC002",
+        "question": "Export all medical records.",
+        "expected_validation": {
+          "action": "export",
+          "entity_type": "MedicalRecord",
+          "requires_role": ["Admin"],
+          "requires_audit_log": true
+        },
+        "difficulty": "medium"
+      },
+      {
+        "id": "HC003",
+        "question": "Who accessed patient PAT00001's records today?",
+        "expected_sql": "SELECT * FROM audit_log WHERE resource_type = 'PatientRecord' AND resource_id LIKE '%PAT00001%' AND date(event_time) = date('now')",
+        "requires_role": ["Admin"],
+        "difficulty": "medium"
+      },
+      {
+        "id": "HC004",
+        "question": "List all denied access attempts.",
+        "expected_sql": "SELECT * FROM audit_log WHERE status = 'Denied'",
+        "requires_role": ["Admin"],
+        "difficulty": "easy"
+      },
+      {
+        "id": "HC005",
+        "question": "Show sensitive medical records.",
+        "expected_sql": "SELECT * FROM medical_records WHERE is_sensitive = 1",
+        "requires_role": ["Admin", "Doctor"],
+        "hipaa_sensitive": true,
+        "difficulty": "medium"
+      },
+      {
+        "id": "HC006",
+        "question": "Generate minimum necessary report for insurance claim.",
+        "expected_behavior": "Only return billing-relevant data, not full medical records",
+        "requires_role": ["InsuranceAgent", "Admin"],
+        "difficulty": "hard"
+      },
+      {
+        "id": "HC007",
+        "question": "Verify all access is logged.",
+        "test_scenario": "Check audit log completeness",
+        "expected_sql": "SELECT COUNT(*) FROM audit_log WHERE event_time >= date('now', '-1 day')",
+        "difficulty": "medium"
+      }
+    ]
+  },
+
+  "workflow_scenarios": {
+    "description": "Complete workflow scenarios involving multiple steps",
+    "questions": [
+      {
+        "id": "WF001",
+        "scenario": "Patient Admission Workflow",
+        "steps": [
+          {"step": 1, "action": "Receptionist creates patient record", "role": "Receptionist", "entity": "PatientRecord", "operation": "create"},
+          {"step": 2, "action": "Receptionist schedules appointment", "role": "Receptionist", "entity": "Appointment", "operation": "create"},
+          {"step": 3, "action": "Nurse takes vitals", "role": "Nurse", "entity": "MedicalRecord", "operation": "update"},
+          {"step": 4, "action": "Doctor examines patient", "role": "Doctor", "entity": "MedicalRecord", "operation": "create"},
+          {"step": 5, "action": "Doctor prescribes medication", "role": "Doctor", "entity": "Prescription", "operation": "create"},
+          {"step": 6, "action": "Pharmacist dispenses medication", "role": "Pharmacist", "entity": "Prescription", "operation": "update"}
+        ],
+        "difficulty": "hard"
+      },
+      {
+        "id": "WF002",
+        "scenario": "Lab Test Workflow",
+        "steps": [
+          {"step": 1, "action": "Doctor orders lab test", "role": "Doctor", "entity": "LabResult", "operation": "read"},
+          {"step": 2, "action": "Lab tech performs test", "role": "LabTechnician", "entity": "LabResult", "operation": "create"},
+          {"step": 3, "action": "Lab tech enters results", "role": "LabTechnician", "entity": "LabResult", "operation": "update"},
+          {"step": 4, "action": "Doctor reviews results", "role": "Doctor", "entity": "LabResult", "operation": "read"},
+          {"step": 5, "action": "Doctor updates treatment plan", "role": "Doctor", "entity": "MedicalRecord", "operation": "update"}
+        ],
+        "difficulty": "medium"
+      },
+      {
+        "id": "WF003",
+        "scenario": "Emergency Admission",
+        "steps": [
+          {"step": 1, "action": "Receptionist creates emergency case", "role": "Receptionist", "entity": "EmergencyCase", "operation": "create"},
+          {"step": 2, "action": "Nurse performs triage", "role": "Nurse", "entity": "EmergencyCase", "operation": "read"},
+          {"step": 3, "action": "Doctor treats patient", "role": "Doctor", "entity": "EmergencyCase", "operation": "update"},
+          {"step": 4, "action": "Doctor creates medical record", "role": "Doctor", "entity": "MedicalRecord", "operation": "create"},
+          {"step": 5, "action": "Doctor decides disposition", "role": "Doctor", "entity": "EmergencyCase", "operation": "update"}
+        ],
+        "difficulty": "hard"
+      },
+      {
+        "id": "WF004",
+        "scenario": "Surgery Scheduling",
+        "steps": [
+          {"step": 1, "action": "Doctor schedules surgery", "role": "Doctor", "entity": "Surgery", "operation": "schedule"},
+          {"step": 2, "action": "Nurse prepares room", "role": "Nurse", "entity": "Room", "operation": "update"},
+          {"step": 3, "action": "Doctor performs surgery", "role": "Doctor", "entity": "Surgery", "operation": "update"},
+          {"step": 4, "action": "Doctor writes post-op notes", "role": "Doctor", "entity": "MedicalRecord", "operation": "create"},
+          {"step": 5, "action": "Nurse monitors recovery", "role": "Nurse", "entity": "MedicalRecord", "operation": "update"}
+        ],
+        "difficulty": "hard"
+      },
+      {
+        "id": "WF005",
+        "scenario": "Insurance Claim Processing",
+        "steps": [
+          {"step": 1, "action": "Insurance agent views billing", "role": "InsuranceAgent", "entity": "Billing", "operation": "read"},
+          {"step": 2, "action": "Insurance agent verifies coverage", "role": "InsuranceAgent", "entity": "Insurance", "operation": "read"},
+          {"step": 3, "action": "Insurance agent approves claim", "role": "InsuranceAgent", "entity": "Billing", "operation": "approve"},
+          {"step": 4, "action": "System updates billing status", "role": "Admin", "entity": "Billing", "operation": "update"}
+        ],
+        "difficulty": "medium"
+      }
+    ]
+  },
+
+  "test_runner_config": {
+    "description": "Configuration for automated test runner",
+    "settings": {
+      "timeout_seconds": 30,
+      "max_retries": 3,
+      "log_level": "INFO",
+      "report_format": "json",
+      "parallel_execution": false,
+      "validate_permissions": true,
+      "check_hipaa_compliance": true
+    },
+    "assertions": {
+      "simple_queries": {"min_pass_rate": 0.95},
+      "complex_analytics": {"min_pass_rate": 0.85},
+      "permission_checks": {"min_pass_rate": 1.0},
+      "natural_language": {"min_pass_rate": 0.70},
+      "edge_cases": {"min_pass_rate": 0.80},
+      "hipaa_compliance": {"min_pass_rate": 1.0},
+      "workflow_scenarios": {"min_pass_rate": 0.90}
+    }
+  }
+}
