@@ -437,14 +437,14 @@ universal-agent-connector/
 - [x] ~~Настройка БД через UI~~ (done: hospital_db/finance_db auto-switch)
 - [x] ~~Agent re-registration fix~~ (done: re-register instead of 400 error)
 - [x] ~~Schema Drift Detection~~ (done: detector, YAML bindings, REST endpoints, 31 tests, policy engine integration)
-- [ ] GraphQL mutations для OntoGuard
+- [x] ~~GraphQL mutations для OntoGuard~~ (done: 3 mutations, 4 queries, 4 types, 3 inputs)
 - [ ] WebSocket для real-time validation
 - [x] ~~CI/CD pipeline~~ (done: GitHub Actions — pytest, black, isort, bandit, dependabot)
 - [x] ~~Code audit (Kimi K2)~~ (done: SECRET_KEY, .dockerignore, requirements split, src/ cleanup)
 - [x] ~~Unit tests для core modules~~ (done: 125 passed, CI green — lint + test 3.10/3.11/3.12)
 - [x] ~~Schema drift: auto-detect from live DB connection~~ (done: fetch_live_schema, check_live, POST /api/schema/drift-check/live, 9 tests)
 - [x] ~~Schema drift: Streamlit UI tab for drift monitoring~~ (done: 4th tab with live drift check, severity colors, fix suggestions)
-- [ ] GraphQL mutations для OntoGuard
+- [x] ~~GraphQL mutations для OntoGuard~~ (done: 3 mutations, 4 queries, 4 types, 3 inputs)
 - [ ] WebSocket для real-time validation
 - [ ] Prometheus metrics
 
@@ -454,6 +454,7 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `cea11d3` | 2026-02-03 | feat: Add GraphQL mutations for OntoGuard semantic validation |
 | `ba42ed8` | 2026-02-02 | feat: Add Schema Drift Monitor tab to Streamlit UI |
 | `3122c45` | 2026-02-02 | feat: Add live schema drift detection via information_schema |
 | `aabb756` | 2026-02-02 | feat: Add schema drift detection module (31 tests, REST endpoints) |
@@ -471,4 +472,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-02 (Schema Drift Monitor tab in Streamlit UI)
+**Последнее обновление**: 2026-02-03 (GraphQL mutations for OntoGuard)
