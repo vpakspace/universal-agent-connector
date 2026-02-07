@@ -7,7 +7,17 @@ Adapted from powerbi-ontology-extractor's SchemaMapper.
 Key concepts:
 - SchemaBinding: maps logical entity -> physical table/columns
 - DriftReport: result of drift check (missing/new columns, type changes, renames)
+- DriftApproval: admin override for CRITICAL drift blocks (time-limited)
 - SchemaDriftDetector: main detection class
+
+Known limitations:
+- No data lineage signals — compares column names and types only.
+- Rename detection uses character overlap ratio, not semantic similarity
+  (e.g., "customer_id" vs "client_id" may be missed).
+- Column order changes are not detected.
+- Constraint drift (CHECK, UNIQUE, FK) is not tracked — only columns.
+- Single-table scope — does not detect cross-table schema changes.
+- No historical drift tracking — each check is independent (no trends).
 """
 
 import hashlib

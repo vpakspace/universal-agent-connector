@@ -27,6 +27,8 @@ Universal Agent Connector - MCP инфраструктура для AI-аген�
 - **Rate Limiting** - Ограничение запросов per agent (sliding window)
 - **OpenAPI/Swagger Docs** - Автогенерация API документации (flasgger)
 - **JWT Authentication** - JWT токены с access/refresh и revocation
+- **Multi-tenancy** - поддержка нескольких организаций (tenant isolation, quotas, plans)
+- **Admin Dashboard** - UI для администрирования (порт 8502)
 - **E2E Testing** - PostgreSQL + OntoGuard тесты
 
 ---
@@ -1032,7 +1034,7 @@ table_entity_map = {
 | `app/security/schema_drift.py` | SchemaDriftDetector, SchemaBinding, DriftReport, Fix |
 | `config/schema_bindings.yaml` | YAML конфигурация bindings (hospital: 6, finance: 5 entities) |
 | `policy_engine.py` | ExtendedPolicyEngine с `_check_schema_drift()` |
-| `tests/test_schema_drift.py` | 31 unit тест |
+| `tests/test_schema_drift.py` | 43 unit тестов (drift + approval workflow) |
 | `tests/test_schema_drift_live.py` | 9 unit тестов (live drift via information_schema) |
 
 ### REST API Endpoints
@@ -1044,12 +1046,15 @@ table_entity_map = {
 | `/api/schema/drift-check/live` | POST | Auto-detect drift через live DB (information_schema) |
 | `/api/schema/bindings` | GET | Список всех bindings |
 | `/api/schema/bindings` | POST | Создать/обновить binding |
+| `/api/schema/drift-approve` | POST | Approve CRITICAL drift (admin override) |
+| `/api/schema/drift-approvals` | GET | Список активных approvals |
+| `/api/schema/drift-approve/<entity>` | DELETE | Отозвать approval |
 
 ### Severity Levels
 
 | Severity | Trigger | Action |
 |----------|---------|--------|
-| **CRITICAL** | Missing columns | Запрос блокируется |
+| **CRITICAL** | Missing columns | Запрос блокируется (unless approved) |
 | **WARNING** | Type changes, renames | Логирование, запрос проходит |
 | **INFO** | New columns / no drift | Без действий |
 
@@ -1061,6 +1066,18 @@ table_entity_map = {
 - **Multi-domain**: hospital (6 entities) + finance (5 entities)
 - **Policy Engine integration**: CRITICAL drift блокирует запрос в ExtendedPolicyEngine
 - **Live DB auto-detect**: `fetch_live_schema()` + `check_live()` через `information_schema.columns`
+- **Admin approval workflow**: time-limited overrides for CRITICAL drift (DriftApproval)
+
+### Known Limitations
+
+| Limitation | Description |
+|-----------|-------------|
+| No data lineage | Compares column names/types only, no lineage tracking |
+| Character-based rename detection | Uses character overlap ratio, not semantic similarity |
+| No column order tracking | Column reordering is not detected |
+| No constraint drift | CHECK, UNIQUE, FK constraints are not tracked |
+| Single-table scope | Cross-table schema changes are not detected |
+| No historical tracking | Each check is independent, no trend analysis |
 
 ### Использование
 
@@ -1175,7 +1192,7 @@ python e2e_postgres_tests.py
 - ✅ Admin DELETE appointments (OWL: Admin can delete only Staff/PatientRecord)
 - ✅ Doctor DELETE lab_results (OWL: no delete permission)
 
-### Unit Tests (282 passed) ✅
+### Unit Tests (377 passed) ✅
 
 ```bash
 pytest tests/ -v
@@ -1201,7 +1218,9 @@ pytest tests/ -v
 | `test_jwt_auth.py` | 27 | JWT authentication (config, tokens, refresh, revoke, API endpoints) |
 | `test_audit_logger.py` | 28 | Audit trail (backends, persistence, export, statistics, API endpoints) |
 | `test_alerting.py` | 42 | Alerting (channels, manager, deduplication, history, API endpoints) |
-| **Итого** | **324** | +9 skipped (optional deps) |
+| `test_tenant_manager.py` | 27 | TenantManager (config, quotas, features, plan detection) |
+| `test_multi_tenant_registry.py` | 26 | MultiTenantAgentRegistry (isolation, CRUD, API key mapping) |
+| **Итого** | **377** | +9 skipped (optional deps) |
 
 ---
 
@@ -1376,6 +1395,8 @@ universal-agent-connector/
 
 | Commit | Дата | Описание |
 |--------|------|----------|
+| `20934c0` | 2026-02-03 | feat: Add Admin Dashboard UI and fix Werkzeug production warning |
+| `3547a6c` | 2026-02-03 | feat: Add Multi-tenancy support with tenant isolation and quotas |
 | `1687a09` | 2026-02-03 | feat: Add Kubernetes Deployment (Kustomize + Helm) |
 | `d0e9f79` | 2026-02-03 | feat: Add Load Testing with Locust (9 user classes) |
 | `d48d257` | 2026-02-03 | feat: Add Alerting Integration with Slack/PagerDuty support |
@@ -1402,4 +1423,4 @@ universal-agent-connector/
 
 ---
 
-**Последнее обновление**: 2026-02-03 (Kubernetes Deployment + Load Testing + Alerting)
+**Последнее обновление**: 2026-02-03 (Multi-tenancy + Admin Dashboard)
