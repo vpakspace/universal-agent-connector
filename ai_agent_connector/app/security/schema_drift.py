@@ -91,8 +91,16 @@ class SchemaDriftDetector:
         report = detector.detect_drift("PatientRecord", {"id": "integer", "name": "text"})
     """
 
-    def __init__(self):
+    def __init__(self, similarity_threshold: float = 0.7):
+        """
+        Args:
+            similarity_threshold: Threshold (0.0-1.0) for rename detection.
+                Lower = more sensitive (more false positives),
+                higher = stricter (may miss renames).
+                Default 0.7 works well for typical column renames.
+        """
         self._bindings: Dict[str, SchemaBinding] = {}  # entity -> binding
+        self.similarity_threshold = similarity_threshold
 
     def load_bindings(self, config_path: str) -> int:
         """
@@ -103,6 +111,10 @@ class SchemaDriftDetector:
         """
         with open(config_path, "r") as f:
             data = yaml.safe_load(f) or {}
+
+        # Read optional similarity_threshold from config
+        if "similarity_threshold" in data:
+            self.similarity_threshold = float(data["similarity_threshold"])
 
         count = 0
         for domain_name, domain_data in data.get("domains", {}).items():
@@ -174,7 +186,7 @@ class SchemaDriftDetector:
             remaining_new = list(new)
             for m_col in list(remaining_missing):
                 for n_col in list(remaining_new):
-                    if _similar_names(m_col, n_col):
+                    if _similar_names(m_col, n_col, self.similarity_threshold):
                         renamed[m_col] = n_col
                         remaining_missing.remove(m_col)
                         remaining_new.remove(n_col)
@@ -322,13 +334,22 @@ def _normalize_type(t: str) -> str:
     return aliases.get(base, base)
 
 
-def _similar_names(a: str, b: str) -> bool:
+def _similar_names(a: str, b: str, threshold: float = 0.7) -> bool:
     """
     Heuristic check if two column names are similar (possible rename).
 
     Checks:
     1. One contains the other (ignoring underscores/hyphens)
-    2. Levenshtein-like similarity > 70%
+    2. Character overlap ratio > threshold
+
+    Note: The ratio formula ``2 * common_chars / (len_a + len_b)``
+    resembles the Sorensen-Dice coefficient but operates on individual
+    characters, not bigrams.
+
+    Args:
+        a: First column name.
+        b: Second column name.
+        threshold: Similarity ratio threshold (0.0-1.0). Default 0.7.
     """
     a_clean = a.replace("_", "").replace("-", "").lower()
     b_clean = b.replace("_", "").replace("-", "").lower()
@@ -340,7 +361,7 @@ def _similar_names(a: str, b: str) -> bool:
     if a_clean in b_clean or b_clean in a_clean:
         return True
 
-    # Simple similarity (character overlap ratio)
+    # Character overlap ratio
     common = sum(1 for c in a_clean if c in b_clean)
     ratio = (2 * common) / (len(a_clean) + len(b_clean))
-    return ratio > 0.7
+    return ratio > threshold

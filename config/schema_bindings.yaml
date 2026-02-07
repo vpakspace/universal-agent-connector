@@ -2,6 +2,11 @@
 # Maps logical entities to physical tables and expected columns.
 # Used by SchemaDriftDetector to detect schema changes.
 
+# Rename detection threshold (0.0-1.0).
+# Lower = more sensitive (more false positives), higher = stricter.
+# Default: 0.7
+similarity_threshold: 0.7
+
 domains:
   hospital:
     entities:
