@@ -617,6 +617,7 @@ class ExtendedPolicyEngine(PolicyEngine):
 
         Only blocks on CRITICAL severity (missing columns).
         WARNING severity is logged but allowed.
+        CRITICAL severity triggers an alert via the alerting system.
         """
         entity_type = self._extract_entity_type(arguments)
         current_schema = arguments.get("current_schema")
@@ -628,6 +629,10 @@ class ExtendedPolicyEngine(PolicyEngine):
 
         if report.severity == "CRITICAL":
             fixes = self._schema_drift_detector.suggest_fixes(report)
+
+            # Send alert for CRITICAL schema drift (the $4.6M mistake prevention)
+            self._send_schema_drift_alert(report, fixes)
+
             return ValidationResult(
                 is_allowed=False,
                 reason=f"Schema drift detected: {report.message}",
@@ -640,6 +645,53 @@ class ExtendedPolicyEngine(PolicyEngine):
             logger.warning("Schema drift warning for %s: %s", entity_type, report.message)
 
         return None
+
+    def _send_schema_drift_alert(self, report, fixes: List) -> None:
+        """Send alert via alerting system and WebSocket for CRITICAL schema drift."""
+        # Send WebSocket real-time event
+        try:
+            from ai_agent_connector.app.websocket.ontoguard_ws import emit_schema_drift_event
+            emit_schema_drift_event(report.to_dict(), [f.to_dict() for f in fixes])
+        except ImportError:
+            logger.debug("WebSocket module not available, skipping real-time event")
+        except Exception as e:
+            logger.debug("Failed to emit WebSocket schema drift event: %s", e)
+
+        # Send alert via notification manager (Slack/PagerDuty/webhook)
+        try:
+            from ai_agent_connector.app.utils.alerting import (
+                get_notification_manager,
+                NotificationAlert,
+                AlertType,
+                AlertSeverity,
+            )
+
+            manager = get_notification_manager()
+            if manager is None:
+                logger.debug("Notification manager not initialized, skipping alert")
+                return
+
+            alert = NotificationAlert(
+                alert_type=AlertType.SCHEMA_DRIFT_CRITICAL,
+                title=f"CRITICAL Schema Drift: {report.entity}",
+                severity=AlertSeverity.CRITICAL,
+                message=report.message,
+                details={
+                    "entity": report.entity,
+                    "table": report.table,
+                    "missing_columns": report.missing_columns,
+                    "type_changes": report.type_changes,
+                    "renamed_columns": report.renamed_columns,
+                    "suggested_fixes": [f.description for f in fixes],
+                }
+            )
+            manager.send(alert)
+            logger.info("Schema drift alert sent for entity '%s'", report.entity)
+
+        except ImportError:
+            logger.debug("Alerting module not available, skipping schema drift alert")
+        except Exception as e:
+            logger.warning("Failed to send schema drift alert: %s", e)
 
     @property
     def schema_drift_detector(self):

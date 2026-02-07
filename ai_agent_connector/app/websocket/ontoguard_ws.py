@@ -25,6 +25,7 @@ Events:
         - rule_explanation: Rule explanation text
         - batch_result: Results of batch validation
         - validation_event: Real-time validation event (for subscribed agents)
+        - schema_drift_detected: Schema drift alert (CRITICAL/WARNING severity)
         - error: Error message
 """
 
@@ -169,6 +170,44 @@ def emit_validation_event(agent_id: str, event_data: Dict[str, Any]) -> None:
         'timestamp': datetime.now(timezone.utc).isoformat(),
         **event_data
     }, room=room)
+
+
+def emit_schema_drift_event(drift_report: Dict[str, Any], fixes: list = None) -> None:
+    """
+    Emit a schema drift event to all connected clients.
+
+    This is the real-time notification for the $4.6M mistake prevention system.
+    Called when schema drift is detected during query validation.
+
+    Args:
+        drift_report: DriftReport as dict with entity, table, missing_columns, etc.
+        fixes: List of suggested fixes
+    """
+    if _socketio is None:
+        return
+
+    event_data = {
+        'type': 'schema_drift_detected',
+        'severity': drift_report.get('severity', 'INFO'),
+        'entity': drift_report.get('entity'),
+        'table': drift_report.get('table'),
+        'message': drift_report.get('message'),
+        'missing_columns': drift_report.get('missing_columns', []),
+        'new_columns': drift_report.get('new_columns', []),
+        'type_changes': drift_report.get('type_changes', {}),
+        'renamed_columns': drift_report.get('renamed_columns', {}),
+        'suggested_fixes': [f.get('description') if isinstance(f, dict) else str(f) for f in (fixes or [])],
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Broadcast to all connected clients
+    _socketio.emit('schema_drift_detected', event_data)
+
+    logger.info(
+        "Schema drift event emitted: %s severity for entity '%s'",
+        event_data['severity'],
+        event_data['entity']
+    )
 
 
 def require_initialized(f):
