@@ -13,6 +13,7 @@ import yaml
 from ai_agent_connector.app.security.schema_drift import (
     SchemaBinding,
     DriftReport,
+    DriftApproval,
     Fix,
     SchemaDriftDetector,
     _normalize_type,
@@ -387,3 +388,127 @@ class TestFixDict:
         d = fix.to_dict()
         assert d["type"] == "verify_column"
         assert d["entity"] == "E"
+
+
+# ============================================================
+# Tests: DriftApproval and approval workflow
+# ============================================================
+
+class TestDriftApproval:
+    def test_approve_drift(self, detector):
+        """approve_drift creates a valid approval."""
+        approval = detector.approve_drift(
+            entity="PatientRecord",
+            approved_by="admin@test.com",
+            reason="Planned migration",
+        )
+        assert approval.entity == "PatientRecord"
+        assert approval.approved_by == "admin@test.com"
+        assert approval.reason == "Planned migration"
+        assert approval.table == "patients"
+        assert not approval.is_expired
+
+    def test_is_approved(self, detector):
+        """is_approved returns True after approval."""
+        assert not detector.is_approved("PatientRecord")
+        detector.approve_drift(
+            entity="PatientRecord",
+            approved_by="admin",
+            reason="test",
+        )
+        assert detector.is_approved("PatientRecord")
+
+    def test_expired_approval(self, detector):
+        """Expired approvals are not valid."""
+        approval = detector.approve_drift(
+            entity="PatientRecord",
+            approved_by="admin",
+            reason="test",
+            ttl_hours=0,  # expires immediately
+        )
+        assert approval.is_expired
+        assert not detector.is_approved("PatientRecord")
+
+    def test_revoke_approval(self, detector):
+        """revoke_approval removes the approval."""
+        detector.approve_drift(
+            entity="PatientRecord",
+            approved_by="admin",
+            reason="test",
+        )
+        assert detector.is_approved("PatientRecord")
+        assert detector.revoke_approval("PatientRecord") is True
+        assert not detector.is_approved("PatientRecord")
+
+    def test_revoke_nonexistent(self, detector):
+        """revoke_approval returns False for nonexistent."""
+        assert detector.revoke_approval("NonExistent") is False
+
+    def test_list_approvals(self, detector):
+        """list_approvals returns active approvals."""
+        detector.approve_drift(entity="PatientRecord", approved_by="admin", reason="r1")
+        detector.approve_drift(entity="Account", approved_by="admin", reason="r2")
+        approvals = detector.list_approvals()
+        assert len(approvals) == 2
+        entities = {a.entity for a in approvals}
+        assert entities == {"PatientRecord", "Account"}
+
+    def test_list_approvals_excludes_expired(self, detector):
+        """list_approvals excludes expired by default."""
+        detector.approve_drift(entity="PatientRecord", approved_by="admin", reason="r1", ttl_hours=0)
+        detector.approve_drift(entity="Account", approved_by="admin", reason="r2", ttl_hours=24)
+        approvals = detector.list_approvals()
+        assert len(approvals) == 1
+        assert approvals[0].entity == "Account"
+
+    def test_get_approval(self, detector):
+        """get_approval returns the approval object."""
+        detector.approve_drift(entity="PatientRecord", approved_by="admin", reason="r")
+        approval = detector.get_approval("PatientRecord")
+        assert approval is not None
+        assert approval.entity == "PatientRecord"
+
+    def test_get_approval_none(self, detector):
+        """get_approval returns None when not approved."""
+        assert detector.get_approval("PatientRecord") is None
+
+    def test_approval_to_dict(self, detector):
+        """DriftApproval.to_dict() returns expected keys."""
+        approval = detector.approve_drift(
+            entity="PatientRecord",
+            approved_by="admin",
+            reason="test",
+        )
+        d = approval.to_dict()
+        assert d["entity"] == "PatientRecord"
+        assert d["approved_by"] == "admin"
+        assert d["reason"] == "test"
+        assert "approval_id" in d
+        assert "is_expired" in d
+        assert d["is_expired"] is False
+
+    def test_approval_with_drift_report(self, detector):
+        """approve_drift with drift_report generates drift_hash."""
+        report = DriftReport(
+            entity="PatientRecord",
+            table="patients",
+            missing_columns=["email"],
+            severity="CRITICAL",
+        )
+        approval = detector.approve_drift(
+            entity="PatientRecord",
+            approved_by="admin",
+            reason="test",
+            drift_report=report,
+        )
+        assert approval.drift_hash != ""
+        assert len(approval.drift_hash) == 12
+
+    def test_approve_unknown_entity(self, detector):
+        """Approving entity with no binding sets table='unknown'."""
+        approval = detector.approve_drift(
+            entity="UnknownEntity",
+            approved_by="admin",
+            reason="test",
+        )
+        assert approval.table == "unknown"

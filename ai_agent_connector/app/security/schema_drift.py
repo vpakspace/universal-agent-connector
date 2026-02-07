@@ -10,7 +10,9 @@ Key concepts:
 - SchemaDriftDetector: main detection class
 """
 
+import hashlib
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
 
@@ -81,6 +83,34 @@ class Fix:
         }
 
 
+@dataclass
+class DriftApproval:
+    """Admin approval to override a CRITICAL schema drift block."""
+    approval_id: str
+    entity: str
+    table: str
+    approved_by: str
+    reason: str
+    approved_at: float  # time.monotonic() timestamp
+    expires_at: float   # time.monotonic() timestamp
+    drift_hash: str     # hash of the drift state at approval time
+
+    @property
+    def is_expired(self) -> bool:
+        return time.monotonic() > self.expires_at
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "approval_id": self.approval_id,
+            "entity": self.entity,
+            "table": self.table,
+            "approved_by": self.approved_by,
+            "reason": self.reason,
+            "is_expired": self.is_expired,
+            "drift_hash": self.drift_hash,
+        }
+
+
 class SchemaDriftDetector:
     """
     Detects schema drift between expected bindings and actual DB schemas.
@@ -100,6 +130,7 @@ class SchemaDriftDetector:
                 Default 0.7 works well for typical column renames.
         """
         self._bindings: Dict[str, SchemaBinding] = {}  # entity -> binding
+        self._approvals: Dict[str, DriftApproval] = {}  # entity -> approval
         self.similarity_threshold = similarity_threshold
 
     def load_bindings(self, config_path: str) -> int:
@@ -305,6 +336,95 @@ class SchemaDriftDetector:
                 report = self.detect_drift(entity, schema)
                 reports.append(report)
         return reports
+
+
+    def approve_drift(
+        self,
+        entity: str,
+        approved_by: str,
+        reason: str,
+        ttl_hours: float = 24.0,
+        drift_report: Optional[DriftReport] = None,
+    ) -> DriftApproval:
+        """
+        Approve a CRITICAL schema drift, allowing queries to proceed.
+
+        Args:
+            entity: Entity name to approve.
+            approved_by: Admin username.
+            reason: Justification for the override.
+            ttl_hours: How long the approval is valid (default 24h).
+            drift_report: Optional report to hash for verification.
+
+        Returns:
+            DriftApproval object.
+        """
+        now = time.monotonic()
+        drift_hash = ""
+        if drift_report:
+            raw = f"{drift_report.entity}:{drift_report.missing_columns}:{drift_report.type_changes}"
+            drift_hash = hashlib.md5(raw.encode()).hexdigest()[:12]
+
+        approval = DriftApproval(
+            approval_id=hashlib.md5(
+                f"{entity}:{approved_by}:{now}".encode()
+            ).hexdigest()[:16],
+            entity=entity,
+            table=self._bindings[entity].table if entity in self._bindings else "unknown",
+            approved_by=approved_by,
+            reason=reason,
+            approved_at=now,
+            expires_at=now + ttl_hours * 3600,
+            drift_hash=drift_hash,
+        )
+        self._approvals[entity] = approval
+        logger.info(
+            "Schema drift approved: entity=%s by=%s reason=%s ttl=%sh",
+            entity, approved_by, reason, ttl_hours,
+        )
+        return approval
+
+    def is_approved(self, entity: str) -> bool:
+        """Check if a CRITICAL drift for this entity has been approved and is still valid."""
+        approval = self._approvals.get(entity)
+        if approval is None:
+            return False
+        if approval.is_expired:
+            del self._approvals[entity]
+            return False
+        return True
+
+    def get_approval(self, entity: str) -> Optional[DriftApproval]:
+        """Get the active approval for an entity, if any."""
+        approval = self._approvals.get(entity)
+        if approval and approval.is_expired:
+            del self._approvals[entity]
+            return None
+        return approval
+
+    def revoke_approval(self, entity: str) -> bool:
+        """Revoke an existing approval. Returns True if an approval was revoked."""
+        if entity in self._approvals:
+            del self._approvals[entity]
+            logger.info("Schema drift approval revoked: entity=%s", entity)
+            return True
+        return False
+
+    def list_approvals(self, include_expired: bool = False) -> List[DriftApproval]:
+        """List all active (non-expired) approvals."""
+        result = []
+        expired_keys = []
+        for entity, approval in self._approvals.items():
+            if approval.is_expired:
+                expired_keys.append(entity)
+                if include_expired:
+                    result.append(approval)
+            else:
+                result.append(approval)
+        # Clean up expired
+        for key in expired_keys:
+            del self._approvals[key]
+        return result
 
 
 def _normalize_type(t: str) -> str:

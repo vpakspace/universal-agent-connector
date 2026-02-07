@@ -18,6 +18,7 @@ from ..security import (
     ValidationDeniedError,
     SchemaDriftDetector,
     SchemaBinding,
+    DriftApproval,
 )
 
 # Core components
@@ -3065,6 +3066,75 @@ def create_schema_binding():
             'columns': binding.columns,
         }
     }), 201
+
+
+# =============================================================================
+# Schema Drift Approval Endpoints
+# =============================================================================
+
+@api_bp.route('/schema/drift-approve', methods=['POST'])
+def approve_schema_drift():
+    """
+    Approve a CRITICAL schema drift to allow queries to proceed.
+
+    Body JSON:
+        {
+            "entity": "PatientRecord",
+            "approved_by": "admin@example.com",
+            "reason": "Planned migration, column will be added back",
+            "ttl_hours": 24
+        }
+
+    Returns:
+        JSON with approval details.
+    """
+    detector = get_schema_drift_detector()
+    data = request.get_json() or {}
+
+    entity = data.get('entity')
+    approved_by = data.get('approved_by')
+    reason = data.get('reason', '')
+
+    if not entity or not approved_by:
+        return jsonify({'error': 'entity and approved_by are required'}), 400
+
+    if entity not in detector.bindings:
+        return jsonify({'error': f"No binding found for entity '{entity}'"}), 404
+
+    ttl_hours = float(data.get('ttl_hours', 24))
+
+    approval = detector.approve_drift(
+        entity=entity,
+        approved_by=approved_by,
+        reason=reason,
+        ttl_hours=ttl_hours,
+    )
+
+    return jsonify({
+        'status': 'approved',
+        'approval': approval.to_dict(),
+    }), 201
+
+
+@api_bp.route('/schema/drift-approvals', methods=['GET'])
+def list_drift_approvals():
+    """List all active drift approvals."""
+    detector = get_schema_drift_detector()
+    approvals = detector.list_approvals()
+    return jsonify({
+        'approvals': [a.to_dict() for a in approvals],
+        'total': len(approvals),
+    }), 200
+
+
+@api_bp.route('/schema/drift-approve/<entity>', methods=['DELETE'])
+def revoke_drift_approval(entity: str):
+    """Revoke an existing drift approval."""
+    detector = get_schema_drift_detector()
+    revoked = detector.revoke_approval(entity)
+    if revoked:
+        return jsonify({'status': 'revoked', 'entity': entity}), 200
+    return jsonify({'error': f"No active approval for entity '{entity}'"}), 404
 
 
 # =============================================================================

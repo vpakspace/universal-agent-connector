@@ -18,6 +18,7 @@ from .ontoguard_adapter import (
 from .schema_drift import (
     SchemaBinding,
     DriftReport,
+    DriftApproval,
     Fix,
     SchemaDriftDetector,
 )
@@ -45,6 +46,7 @@ __all__ = [
     # Schema drift
     'SchemaBinding',
     'DriftReport',
+    'DriftApproval',
     'Fix',
     'SchemaDriftDetector',
 
